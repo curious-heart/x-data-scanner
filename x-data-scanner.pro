@@ -12,8 +12,12 @@ SOURCES += \
     common_tools/common_tool_func.cpp \
     config_recorder/uiconfigrecorder.cpp \
     logger/logger.cpp \
+    loginwidget.cpp \
     main.cpp \
+    mainmenubtnswidget.cpp \
     mainwindow.cpp \
+    scanwidget.cpp \
+    selfcheckwidget.cpp \
     sysconfigs/sysconfigs.cpp \
     version_def/version_def.cpp
 
@@ -21,12 +25,20 @@ HEADERS += \
     common_tools/common_tool_func.h \
     config_recorder/uiconfigrecorder.h \
     logger/logger.h \
+    loginwidget.h \
+    mainmenubtnswidget.h \
     mainwindow.h \
+    scanwidget.h \
+    selfcheckwidget.h \
     sysconfigs/sysconfigs.h \
     version_def/version_def.h
 
 FORMS += \
-    mainwindow.ui
+    loginwidget.ui \
+    mainmenubtnswidget.ui \
+    mainwindow.ui \
+    scanwidget.ui \
+    selfcheckwidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -2,6 +2,13 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QStackedWidget>
+#include <QTimer>
+
+#include <selfcheckwidget.h>
+#include <loginwidget.h>
+#include <scanwidget.h>
+#include <mainmenubtnswidget.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -15,10 +22,17 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
-    void on_pushButton_clicked();
+    SelfCheckWidget * m_self_chk_widget;
 
 private:
     Ui::MainWindow *ui;
+    QStackedWidget *m_stacked_widget;
+
+    LoginWidget * m_login_widget;
+    ScanWidget * m_scan_widget;
+
+    MainmenuBtnsWidget * m_mainmenubtns_widget;
+
+    void start_self_chk();
 };
 #endif // MAINWINDOW_H

@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 
     w.showFullScreen();
     w.show();
+
     ret = a.exec();
 
     end_log_thread(th);

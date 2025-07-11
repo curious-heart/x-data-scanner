@@ -6,34 +6,96 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>469</width>
+    <height>527</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
-    <property name="geometry">
-     <rect>
-      <x>190</x>
-      <y>350</y>
-      <width>80</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>退出</string>
-    </property>
-   </widget>
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,20,2">
+    <item>
+     <layout class="QHBoxLayout" name="statusHBoxLayout">
+      <item>
+       <widget class="QLabel" name="comStImgLbl">
+        <property name="text">
+         <string>img1</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="comStCodeLbl">
+        <property name="text">
+         <string>err-code</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="comStLbl">
+        <property name="text">
+         <string>远程通讯状态</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="timeLbl">
+        <property name="text">
+         <string>时间</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="userImgLbl">
+        <property name="text">
+         <string>img2</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="storageImgLbl">
+        <property name="text">
+         <string>img3</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="storageCapLbl">
+        <property name="text">
+         <string>存储空间</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="batImgLbl">
+        <property name="text">
+         <string>img4</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_9">
+        <property name="text">
+         <string>batPctLbl</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="mainPartVBoxLayot"/>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="buttonsHBoxLayout"/>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>469</width>
      <height>21</height>
     </rect>
    </property>
