@@ -11,26 +11,34 @@ CONFIG += c++17
 SOURCES += \
     common_tools/common_tool_func.cpp \
     config_recorder/uiconfigrecorder.cpp \
+    literal_strings/literal_strings.cpp \
     logger/logger.cpp \
     loginwidget.cpp \
     main.cpp \
     mainmenubtnswidget.cpp \
     mainwindow.cpp \
+    recvscanneddata.cpp \
     scanwidget.cpp \
     selfcheckwidget.cpp \
     sysconfigs/sysconfigs.cpp \
+    syssettingswidget.cpp \
     version_def/version_def.cpp
 
 HEADERS += \
     common_tools/common_tool_func.h \
     config_recorder/uiconfigrecorder.h \
+    literal_strings/literal_strings.h \
     logger/logger.h \
     loginwidget.h \
     mainmenubtnswidget.h \
     mainwindow.h \
+    recvscanneddata.h \
+    sc_data_proc.h \
     scanwidget.h \
     selfcheckwidget.h \
     sysconfigs/sysconfigs.h \
+    syssettings.h \
+    syssettingswidget.h \
     version_def/version_def.h
 
 FORMS += \
@@ -38,7 +46,8 @@ FORMS += \
     mainmenubtnswidget.ui \
     mainwindow.ui \
     scanwidget.ui \
-    selfcheckwidget.ui
+    selfcheckwidget.ui \
+    syssettingswidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

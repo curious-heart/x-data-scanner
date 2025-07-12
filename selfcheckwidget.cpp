@@ -5,14 +5,7 @@
 #include "logger/logger.h"
 #include "selfcheckwidget.h"
 #include "ui_selfcheckwidget.h"
-
-static const char* gs_str_pwr_st = "电源状态";
-static const char* gs_str_x_rar_source_st = "射线源状态";
-static const char* gs_str_detector_st = "探测器状态";
-static const char* gs_str_storage_st = "数据存储状态";
-
-const char* g_str_abnormal = "异常";
-const char* g_str_normal = "正常";
+#include "literal_strings/literal_strings.h"
 
 SelfCheckWidget::SelfCheckWidget(QWidget *parent) :
     QWidget(parent),
@@ -51,6 +44,8 @@ bool SelfCheckWidget::self_check(bool start)
         hdlr_idx = 0;
         bool final_ret = ret;
         ret = true;
+
+        emit self_check_finished_sig(final_ret);
         return final_ret;
     }
 
@@ -61,6 +56,7 @@ bool SelfCheckWidget::self_check(bool start)
     QString sub_ret_str = sub_ret ? g_str_normal : g_str_abnormal;
     QString disp_str = title + ":" + sub_ret_str;
     QLabel * self_chk_lbl = new QLabel(this);
+    self_chk_lbl->setAlignment(Qt::AlignHCenter);
     self_chk_lbl->setText(disp_str);
     ui->selfChkVBoxLayout->addWidget(self_chk_lbl);
 
@@ -71,19 +67,19 @@ bool SelfCheckWidget::self_check(bool start)
 
 void SelfCheckWidget::go_to_next_check_item()
 {
-    m_simu_timer.start(2000);
+    m_simu_timer.start(500);
 }
 
 bool SelfCheckWidget::pwr_st_check(QString &title_str)
 {
-    title_str = gs_str_pwr_st;
+    title_str = g_str_pwr_st;
     go_to_next_check_item();
     return true;
 }
 
 bool SelfCheckWidget::x_ray_source_st_check(QString &title_str)
 {
-    title_str = gs_str_x_rar_source_st;
+    title_str = g_str_x_rar_source_st;
 
     go_to_next_check_item();
     return true;
@@ -91,7 +87,7 @@ bool SelfCheckWidget::x_ray_source_st_check(QString &title_str)
 
 bool SelfCheckWidget::detector_st_check(QString &title_str)
 {
-    title_str = gs_str_detector_st;
+    title_str = g_str_detector_st;
 
     go_to_next_check_item();
     return true;
@@ -99,7 +95,7 @@ bool SelfCheckWidget::detector_st_check(QString &title_str)
 
 bool SelfCheckWidget::storage_st_check(QString &title_str)
 {
-    title_str = gs_str_storage_st;
+    title_str = g_str_storage_st;
 
     go_to_next_check_item();
     return true;

@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 
 #include <type_traits>  // std::make_unsigned
+#include <QImage>
 
 typedef enum
 {
@@ -126,7 +127,7 @@ public:
     void add_keys_to_filter(const QSet<Qt::Key> & keys);
 };
 
-
+QImage convertGrayscale16To8(const QImage &img16);
 // 求最大公约数
 template <typename T>
 T gcd(T a, T b)
@@ -156,4 +157,7 @@ T lcm(T a, T b)
 
     return static_cast<T>((ua / gcd(ua, ub)) * ub);
 }
+
+bool ip_addr_valid(QString &ip_str);
+
 #endif // COMMON_TOOL_FUNC_H

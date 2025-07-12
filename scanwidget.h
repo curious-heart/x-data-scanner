@@ -1,11 +1,35 @@
-#ifndef SCANWIDGET_H
+﻿#ifndef SCANWIDGET_H
 #define SCANWIDGET_H
 
 #include <QWidget>
+#include <QTimer>
+#include <QFile>
+#include <QMutex>
+
+#include "recvscanneddata.h"
 
 namespace Ui {
 class ScanWidget;
 }
+
+typedef enum
+{
+    COLLECT_CMD_SW_BTN,
+    COLLECT_CMD_PHY_KEY,
+}src_of_collect_cmd_e_t;
+
+typedef struct
+{
+    QVector<QVector<quint32>> lines;
+    int max_line_len;
+    bool refreshed;
+}gray_lines_s_t;
+
+typedef enum
+{
+    DISPLAY_IMG_REAL,
+    DISPLAY_IMG_LAYFULL,
+}gray_img_disp_type_e_t;
 
 class ScanWidget : public QWidget
 {
@@ -17,6 +41,58 @@ public:
 
 private:
     Ui::ScanWidget *ui;
+
+    RecvScannedData *recv_data_worker;
+    QThread *recv_data_workerThread;
+
+    QQueue<recv_data_with_notes_s_t> dataQueue;
+    QMutex queueMutex;
+
+    int m_curr_line_pt_cnt;
+    QVector<quint32> m_ch1_data_vec, m_ch2_data_vec;
+    gray_lines_s_t m_gray_img_lines;
+
+    QImage m_local_img, m_local_img_8bit;
+    QImage m_local_layfull_img, m_local_layfull_img_8bit;
+
+    QTimer m_scan_dura_timer;
+
+    QTimer m_expo_to_coll_delay_timer;
+
+    QString m_curr_sc_txt_file_name;
+    QFile m_curr_sc_txt_file;
+    QTextStream m_curr_sc_txt_stream;
+
+    void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);
+    void close_sc_data_file_rec();
+    void clear_gray_img_lines();
+    void record_gray_img_line();
+    int split_data_into_channels(QByteArray& ori_data,
+                                  QVector<quint32> &dv_ch1, QVector<quint32> &dv_ch2,
+                                  quint64 &pkt_idx);
+    void generate_gray_img(gray_img_disp_type_e_t disp_type);
+    void display_gray_img(gray_img_disp_type_e_t disp_type);
+    void save_local_imgs(gray_img_disp_type_e_t disp_type);
+
+    QString log_disp_prepender_str();
+    bool chk_mk_pth_and_warn(QString &pth_str);
+
+private slots:
+    void handleNewDataReady();
+    void recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
+                                collect_rpt_evt_e_t evt = COLLECT_RPT_EVT_IGNORE);
+    void scn_dura_timeout_hdlr();
+    void expo_to_coll_delay_timer_hdlr();
+
+    void on_dataCollStartPbt_clicked();
+
+    void on_dataCollStopPbt_clicked();
+
+signals:
+    void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);
+    void stop_collect_sc_data_sig();
 };
 
 #endif // SCANWIDGET_H

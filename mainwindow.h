@@ -8,6 +8,7 @@
 #include <selfcheckwidget.h>
 #include <loginwidget.h>
 #include <scanwidget.h>
+#include <syssettingswidget.h>
 #include <mainmenubtnswidget.h>
 
 QT_BEGIN_NAMESPACE
@@ -30,9 +31,14 @@ private:
 
     LoginWidget * m_login_widget;
     ScanWidget * m_scan_widget;
+    SysSettingsWidget * m_syssettings_widget;
 
     MainmenuBtnsWidget * m_mainmenubtns_widget;
 
     void start_self_chk();
+
+public slots:
+    void self_check_finished_sig_hdlr(bool result);
+    void login_chk_passed_sig_hdlr();
 };
 #endif // MAINWINDOW_H
