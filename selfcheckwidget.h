@@ -17,32 +17,26 @@ public:
     explicit SelfCheckWidget(QWidget *parent = nullptr);
     ~SelfCheckWidget();
 
+    typedef enum
+    {
+        SELF_CHECK_PWR,
+        SELF_CHECK_XRAY,
+        SELF_CHECK_DETECTOR,
+        SELF_CHECK_STORAGE,
+    }self_check_type_e_t;
+    Q_ENUM(self_check_type_e_t)
+
+    typedef struct
+    {
+      self_check_type_e_t self_check_type;
+      const char* type_str;
+    }self_check_type_str_map_s_t;
+
 private:
     Ui::SelfCheckWidget *ui;
 
-    bool pwr_st_check(QString &title_str);
-    bool x_ray_source_st_check(QString &title_str);
-    bool detector_st_check(QString &title_str);
-    bool storage_st_check(QString &title_str);
-
-    using CheckHandler = bool (SelfCheckWidget::*)(QString &);
-    QVector<CheckHandler> m_check_hdlrs =
-    {
-        &SelfCheckWidget::pwr_st_check,
-        &SelfCheckWidget::x_ray_source_st_check,
-        &SelfCheckWidget::detector_st_check,
-        &SelfCheckWidget::storage_st_check,
-    };
-
-    void go_to_next_check_item();
-    QTimer m_simu_timer;
-
 public slots:
-    bool self_check(bool start = false);
-
-signals:
-    void check_next_item_sig(bool start = false);
-    void self_check_finished_sig(bool result);
+    void self_check_item_ret_sig_hdlr(SelfCheckWidget::self_check_type_e_t chk_type, bool ret);
 };
 
 #endif // SELFCHECKWIDGET_H

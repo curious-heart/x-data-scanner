@@ -49,8 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);
     ui->buttonsHBoxLayout->addWidget(m_mainmenubtns_widget);
 
-    connect(m_self_chk_widget, &SelfCheckWidget::self_check_finished_sig,
-            this, &MainWindow::self_check_finished_sig_hdlr, Qt::QueuedConnection);
     connect(m_login_widget, &LoginWidget::login_chk_passed_sig,
             this, &MainWindow::login_chk_passed_sig_hdlr, Qt::QueuedConnection);
 
@@ -59,20 +57,83 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::pb_monitor_check_st, this, &MainWindow::pb_monitor_check_st_hdlr,
             Qt::QueuedConnection);
 
-    start_self_chk();
+    connect(this, &MainWindow::self_check_item_ret_sig,
+            m_self_chk_widget, &SelfCheckWidget::self_check_item_ret_sig_hdlr, Qt::QueuedConnection);
+    connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_chk,
+            Qt::QueuedConnection);
+    emit check_next_item_sig(true);
 }
 
-void MainWindow::start_self_chk()
+void MainWindow::self_chk(bool start)
+{
+    static int hdlr_idx = 0;
+    static bool ret = true;
+    if(start)
+    {
+        hdlr_idx = 0;
+        ret = true;
+    }
+    else if(hdlr_idx >= m_check_hdlrs.count())
+    {
+        hdlr_idx = 0;
+        bool final_ret = ret;
+        ret = true;
+
+        if(final_ret)
+        {
+            if(m_stacked_widget->indexOf(m_login_widget) < 0)
+            {
+                m_stacked_widget->addWidget(m_login_widget);
+            }
+            m_stacked_widget->setCurrentWidget(m_login_widget);
+
+            m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+        }
+        return;
+    }
+
+    bool sub_ret = (this->*m_check_hdlrs[hdlr_idx])();
+    ret = ret && sub_ret;
+
+    ++hdlr_idx;
+}
+
+bool MainWindow::pwr_st_check()
 {
     bool ret = open_sport();
-    if(!ret)
-    {return;}
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, ret);
 
-    bool self_chk_ret = m_self_chk_widget->self_check(true);
-    if(self_chk_ret)
-    {
+    emit check_next_item_sig();
 
-    }
+    return ret;
+}
+
+bool MainWindow::x_ray_source_st_check()
+{
+    bool ret = true;
+    QThread::msleep(800);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, ret);
+
+    emit check_next_item_sig();
+    return ret;
+}
+bool MainWindow::detector_st_check()
+{
+    bool ret = true;
+    QThread::msleep(800);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, ret);
+
+    emit check_next_item_sig();
+    return ret;
+}
+bool MainWindow::storage_st_check()
+{
+    bool ret = true;
+    QThread::msleep(800);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, ret);
+
+    emit check_next_item_sig();
+    return ret;
 }
 
 MainWindow::~MainWindow()

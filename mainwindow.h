@@ -45,7 +45,19 @@ private:
     QSerialPort m_pb_sport;
     bool m_pb_sport_open = false;
 
-    void start_self_chk();
+    using CheckHandler = bool (MainWindow::*)();
+    QVector<CheckHandler> m_check_hdlrs =
+    {
+        &MainWindow::pwr_st_check,
+        &MainWindow::x_ray_source_st_check,
+        &MainWindow::detector_st_check,
+        &MainWindow::storage_st_check,
+    };
+    bool pwr_st_check();
+    bool x_ray_source_st_check();
+    bool detector_st_check();
+    bool storage_st_check();
+    void self_chk(bool start = false);
 
 public slots:
     void self_check_finished_sig_hdlr(bool result);
@@ -54,6 +66,8 @@ public slots:
     void pb_monitor_check_st_hdlr();
 
 signals:
+    void check_next_item_sig(bool start = false);
+    void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t, bool ret);
     void pb_monitor_check_st();
 };
 #endif // MAINWINDOW_H

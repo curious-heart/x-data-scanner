@@ -2,10 +2,19 @@
 #include <QLabel>
 #include <QLayout>
 
+#include "common_tools/common_tool_func.h"
 #include "logger/logger.h"
 #include "selfcheckwidget.h"
 #include "ui_selfcheckwidget.h"
 #include "literal_strings/literal_strings.h"
+
+static const SelfCheckWidget::self_check_type_str_map_s_t gs_self_check_type_str_map[] =
+{
+    {SelfCheckWidget::SELF_CHECK_PWR, g_str_pwr_st},
+    {SelfCheckWidget::SELF_CHECK_XRAY, g_str_x_rar_source_st},
+    {SelfCheckWidget::SELF_CHECK_DETECTOR, g_str_detector_st},
+    {SelfCheckWidget::SELF_CHECK_STORAGE, g_str_storage_st},
+};
 
 SelfCheckWidget::SelfCheckWidget(QWidget *parent) :
     QWidget(parent),
@@ -13,13 +22,6 @@ SelfCheckWidget::SelfCheckWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(this, &SelfCheckWidget::check_next_item_sig,
-            this, &SelfCheckWidget::self_check, Qt::QueuedConnection);
-
-    m_simu_timer.setSingleShot(true);
-    connect(&m_simu_timer, &QTimer::timeout, this,
-            [=]()
-            {emit check_next_item_sig();});
 }
 
 SelfCheckWidget::~SelfCheckWidget()
@@ -27,77 +29,28 @@ SelfCheckWidget::~SelfCheckWidget()
     delete ui;
 }
 
-bool SelfCheckWidget::self_check(bool start)
+void SelfCheckWidget::self_check_item_ret_sig_hdlr(self_check_type_e_t chk_type, bool ret)
 {
-    static int hdlr_idx = 0;
-    static bool ret = true;
-    if(start)
-    {
-        hdlr_idx = 0;
-        ret = true;
-    }
-    else if(hdlr_idx >= m_check_hdlrs.count())
-    {
-        DIY_LOG(LOG_INFO, QString("self_check call: hdlr_idx %1 exceeds count %2, end.")
-                .arg(hdlr_idx).arg(m_check_hdlrs.count()));
-
-        hdlr_idx = 0;
-        bool final_ret = ret;
-        ret = true;
-
-        emit self_check_finished_sig(final_ret);
-        return final_ret;
-    }
-
+    int idx;
     QString title;
-    bool sub_ret = (this->*m_check_hdlrs[hdlr_idx])(title);
-    ret = ret && sub_ret;
+    for(idx = 0; idx < ARRAY_COUNT(gs_self_check_type_str_map); ++idx)
+    {
+        if(gs_self_check_type_str_map[idx].self_check_type == chk_type)
+        {
+            title = gs_self_check_type_str_map[idx].type_str;
+            break;
+        }
+    }
+    if(idx >= ARRAY_COUNT(gs_self_check_type_str_map))
+    {
+        DIY_LOG(LOG_WARN, QString("unknown self_check_type: %1").arg((int)chk_type));
+        return;
+    }
 
-    QString sub_ret_str = sub_ret ? g_str_normal : g_str_abnormal;
-    QString disp_str = title + ":" + sub_ret_str;
+    QString ret_str = ret ? g_str_normal : g_str_abnormal;
+    QString disp_str = title + ":" + ret_str;
     QLabel * self_chk_lbl = new QLabel(this);
     self_chk_lbl->setAlignment(Qt::AlignHCenter);
     self_chk_lbl->setText(disp_str);
     ui->selfChkVBoxLayout->addWidget(self_chk_lbl);
-
-    ++hdlr_idx;
-
-    return ret;
-}
-
-void SelfCheckWidget::go_to_next_check_item()
-{
-    m_simu_timer.start(500);
-}
-
-bool SelfCheckWidget::pwr_st_check(QString &title_str)
-{
-    title_str = g_str_pwr_st;
-
-    go_to_next_check_item();
-    return true;
-}
-
-bool SelfCheckWidget::x_ray_source_st_check(QString &title_str)
-{
-    title_str = g_str_x_rar_source_st;
-
-    go_to_next_check_item();
-    return true;
-}
-
-bool SelfCheckWidget::detector_st_check(QString &title_str)
-{//fpga. ethernet.
-    title_str = g_str_detector_st;
-
-    go_to_next_check_item();
-    return true;
-}
-
-bool SelfCheckWidget::storage_st_check(QString &title_str)
-{
-    title_str = g_str_storage_st;
-
-    go_to_next_check_item();
-    return true;
 }
