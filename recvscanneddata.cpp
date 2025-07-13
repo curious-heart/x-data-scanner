@@ -43,7 +43,7 @@ RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex
     m_recv_dura_timer->setSingleShot(true);
     m_recv_dura_timer->setInterval(g_sys_settings_blk.max_scan_dura_sec * 1000);
     connect(m_recv_dura_timer, &QTimer::timeout,
-            this, &RecvScannedData::stopCollection, Qt::QueuedConnection);
+            this, &RecvScannedData::stop_collect_sc_data_hdlr, Qt::QueuedConnection);
 
     if (!udpSocket->bind(QHostAddress::AnyIPv4, m_localPort))
     {
@@ -110,6 +110,8 @@ void RecvScannedData::stopCollection()
 
     connTimer->stop();
     m_recv_dura_timer->stop();
+
+    emit recv_data_finished_sig();
 }
 
 #define ENQUE_DATA(note) \
@@ -228,8 +230,6 @@ void RecvScannedData::conn_timeout_hdlr()
 
     if (collectingState == ST_WAIT_CONN_ACK)
     {
-        collectingState = ST_IDLE;
-
         rpt_str = "start collect: connecting timeout.";
         log_lvl = LOG_ERROR;
         emit recv_worker_report_sig(log_lvl, rpt_str, COLLECT_RPT_EVT_CONN_TIMEOUT);
@@ -239,6 +239,7 @@ void RecvScannedData::conn_timeout_hdlr()
         rpt_str = "unexpected connecting-timeout signal.";
         log_lvl = LOG_WARN;
     }
+    collectingState = ST_IDLE;
     DIY_LOG(log_lvl, rpt_str);
 }
 
@@ -249,8 +250,6 @@ void RecvScannedData::disconn_timeout_hdlr()
 
     if (collectingState == ST_WAIT_DISCONN_ACK)
     {
-        collectingState = ST_IDLE;
-
         rpt_str = "stop collect: disconnecting timeout.";
         emit recv_worker_report_sig(log_lvl, rpt_str, COLLECT_RPT_EVT_DISCONN_TIMEOUT);
     }
@@ -258,6 +257,7 @@ void RecvScannedData::disconn_timeout_hdlr()
     {
         rpt_str = "unexpected disconnecting-timeout signal.";
     }
+    collectingState = ST_IDLE;
     DIY_LOG(log_lvl, rpt_str);
 }
 

@@ -127,7 +127,7 @@ public:
     void add_keys_to_filter(const QSet<Qt::Key> & keys);
 };
 
-QImage convertGrayscale16To8(const QImage &img16);
+QImage convertGrayscale16To8(const QImage &img16, QRect area = QRect());
 // 求最大公约数
 template <typename T>
 T gcd(T a, T b)

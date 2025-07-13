@@ -830,13 +830,22 @@ bool CToolKeyFilter::eventFilter(QObject * obj, QEvent * evt)
 }
 
 
-QImage convertGrayscale16To8(const QImage &img16)
+QImage convertGrayscale16To8(const QImage &img16, const QRect area)
 {
     if (img16.format() != QImage::Format_Grayscale16)
     {
         qWarning("Input image is not Grayscale16");
         return QImage();
     }
+
+    QRect work_area = area;
+    if(work_area.isNull())
+    {
+        work_area.setRect(0, 0, img16.width(), img16.height());
+    }
+
+    int x_s = work_area.left(), x_e = x_s + work_area.width();
+    int y_s = work_area.top(), y_e = y_s + work_area.height();
 
     int w = img16.width();
     int h = img16.height();
@@ -846,10 +855,10 @@ QImage convertGrayscale16To8(const QImage &img16)
     quint16 minV = 0xFFFF;
     quint16 maxV = 0;
 
-    for (int y = 0; y < h; ++y)
+    for (int y = y_s; y < y_e; ++y)
     {
         const quint16 *line16 = reinterpret_cast<const quint16 *>(img16.constScanLine(y));
-        for (int x = 0; x < w; ++x)
+        for (int x = x_s; x < x_e; ++x)
         {
             quint16 v = line16[x];
             if (v < minV) minV = v;
@@ -872,7 +881,14 @@ QImage convertGrayscale16To8(const QImage &img16)
         for (int x = 0; x < w; ++x)
         {
             quint16 v = line16[x];
-            line8[x] = (v - minV) * 255 / (maxV - minV);
+            if(work_area.contains(x, y))
+            {
+                line8[x] = (v - minV) * 255 / (maxV - minV);
+            }
+            else
+            {
+                line8[x] = (quint8)v;
+            }
         }
     }
 

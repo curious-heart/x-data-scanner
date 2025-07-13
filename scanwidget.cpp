@@ -1,4 +1,5 @@
-﻿#include <QMessageBox>
+﻿#include <cstring>
+#include <QMessageBox>
 #include <QByteArray>
 
 #include "scanwidget.h"
@@ -8,6 +9,8 @@
 #include "common_tools/common_tool_func.h"
 #include "syssettings.h"
 #include "literal_strings/literal_strings.h"
+
+bool g_data_scanning_now = false;
 
 static const char* gs_str_sc_data_txt_file_type = ".txt";
 static const char* gs_str_img_raw_type = ".raw";
@@ -47,11 +50,24 @@ ScanWidget::ScanWidget(QWidget *parent) :
             this, &ScanWidget::handleNewDataReady, Qt::QueuedConnection);
     connect(recv_data_worker, &RecvScannedData::recv_worker_report_sig,
             this, &ScanWidget::recv_worker_report_sig_hdlr, Qt::QueuedConnection);
+    connect(recv_data_worker, &RecvScannedData::recv_data_finished_sig,
+            this, &ScanWidget::recv_data_finished_sig_hdlr, Qt::QueuedConnection);
 
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
+    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
+    if(disp_pt_per_row > g_sys_configs_block.max_pt_number || disp_pt_per_row < 0)
+    {
+        disp_pt_per_row = g_sys_configs_block.max_pt_number;
+    }
+    m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
+                               QImage::Format_Grayscale16);
+    clear_display_img();
+
     recv_data_workerThread->start();
+
+    btns_refresh();
 }
 
 ScanWidget::~ScanWidget()
@@ -65,9 +81,18 @@ ScanWidget::~ScanWidget()
     delete ui;
 }
 
+void ScanWidget::clear_display_img()
+{
+    QColor bgColor = this->palette().color(QPalette::Window);
+    m_display_buf_img.img_buffer.fill(bgColor.rgb());
+    m_display_buf_img.valid_line_cnt = 0;
+}
+
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
     clear_gray_img_lines();
+    clear_display_img();
+    ui->grayImgLbl->clear();
 
     QString curr_date_str = common_tool_get_curr_date_str();
     QString curr_path = g_sys_settings_blk.img_save_path + "/" + curr_date_str;
@@ -77,21 +102,20 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
     quint16 port = (quint16)g_sys_configs_block.data_src_port;
 
     emit start_collect_sc_data_sig(ip, port, g_sys_settings_blk.conn_data_src_timeout_sec);
+    g_data_scanning_now = true;
 
     m_scan_dura_timer.start();
+
+    btns_refresh();
 }
 
 void ScanWidget::stop_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
+    if(!g_data_scanning_now) return;
+
     m_scan_dura_timer.stop();
 
     emit stop_collect_sc_data_sig();
-
-    close_sc_data_file_rec();
-
-    generate_gray_img(DISPLAY_IMG_REAL);
-    display_gray_img(DISPLAY_IMG_REAL);
-    save_local_imgs(DISPLAY_IMG_REAL);
 }
 
 void ScanWidget::setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str)
@@ -136,6 +160,8 @@ QString ScanWidget::log_disp_prepender_str()
 
 void ScanWidget::handleNewDataReady()
 {
+    if(!g_data_scanning_now) return;
+
     recv_data_with_notes_s_t packet;
     {
         QMutexLocker locker(&queueMutex);
@@ -162,7 +188,7 @@ void ScanWidget::handleNewDataReady()
 }
 
 int ScanWidget::split_data_into_channels(QByteArray& ori_data,
-                              QVector<quint32> &dv_ch1, QVector<quint32> &dv_ch2,
+                              QVector<gray_pixel_data_type> &dv_ch1, QVector<gray_pixel_data_type> &dv_ch2,
                               quint64 &pkt_idx)
 {
     /*two channels, all_bytes_cnt_per_pt * 4 bits per point for each channel.*/
@@ -199,7 +225,7 @@ int ScanWidget::split_data_into_channels(QByteArray& ori_data,
     dv_ch1.fill(0); dv_ch2.fill(0);
 
     unsigned char byte;
-    QVector<quint32> * curr_dv = nullptr;
+    QVector<gray_pixel_data_type> * curr_dv = nullptr;
     for(int idx = 0, hb_idx = 0, hb_idx_in_pt = 0, pt_idx = 0;
         idx < disp_bytes_per_row; ++idx)
     {
@@ -281,36 +307,75 @@ void ScanWidget::clear_gray_img_lines()
     for (auto &line: m_gray_img_lines.lines) line.clear();
 
     m_gray_img_lines.lines.clear();
-    m_gray_img_lines.max_line_len = 0;
     m_gray_img_lines.refreshed = false;
 }
 
 void ScanWidget::record_gray_img_line()
 {
-    if(m_curr_line_pt_cnt > m_gray_img_lines.max_line_len)
-    {
-        m_gray_img_lines.max_line_len = m_curr_line_pt_cnt;
-    }
-
-    QVector<quint32> line;
+    QVector<gray_pixel_data_type> line;
+    quint32 px_sum;
     line.resize(m_curr_line_pt_cnt);
     for(int idx = 0; idx < m_curr_line_pt_cnt; ++idx)
     {
-        line[idx] = (m_ch1_data_vec[idx] + m_ch2_data_vec[idx])/2;
+        px_sum = (quint32)(m_ch1_data_vec[idx]) + (quint32)(m_ch2_data_vec[idx]);
+        line[idx] = px_sum/2;
     }
     m_gray_img_lines.lines.append(line);
+    m_gray_img_lines.line_len = m_curr_line_pt_cnt;
     m_gray_img_lines.refreshed = true;
+
+    add_line_to_display(line);
 }
 
-static inline void pt_data_to_image(QVector<QVector<quint32>> &data, QImage &img, int width, int height)
+void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line)
+{
+    int img_disp_area_height = m_display_buf_img.img_buffer.height();
+    int bytesPerLine = m_display_buf_img.img_buffer.bytesPerLine();  // 注意：不是 width * 2，包含对齐
+    int target_line_idx;
+
+    uchar *data = m_display_buf_img.img_buffer.bits();
+
+    if (line.count() > m_display_buf_img.img_buffer.width())
+    {
+        DIY_LOG(LOG_ERROR, "this line is too long");
+        return;
+    }
+
+    if(m_display_buf_img.valid_line_cnt >= img_disp_area_height)
+    {
+        // 上移一行（height - 1 行拷贝到顶部）
+        memmove(data, data + bytesPerLine, bytesPerLine * (img_disp_area_height - 1));
+
+        target_line_idx = img_disp_area_height - 1;
+    }
+    else
+    {
+        target_line_idx = m_display_buf_img.valid_line_cnt;
+        ++m_display_buf_img.valid_line_cnt;
+    }
+
+    // 拷贝新行到底部
+    memcpy(data + bytesPerLine * target_line_idx, line.constData(),
+               line.count()*sizeof(gray_pixel_data_type));
+
+    QRect valid_area = QRect(0, 0, m_display_buf_img.img_buffer.width(),
+                                   m_display_buf_img.valid_line_cnt);
+    QImage disp_img = convertGrayscale16To8(m_display_buf_img.img_buffer, valid_area);
+    QPixmap scaled = QPixmap::fromImage(disp_img)
+                .scaled(ui->grayImgLbl->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    ui->grayImgLbl->setPixmap(scaled);
+}
+
+static inline void pt_data_to_image(QVector<QVector<gray_pixel_data_type>> &data,
+                                    QImage &img, int width, int height)
 {
     for (int y = 0; y < height; ++y)
     {
-        const QVector<quint32>& row = data[y];
+        const QVector<gray_pixel_data_type>& row = data[y];
         uchar* line = img.scanLine(y);
         for (int x = 0; x < width; ++x)
         {
-            quint16 gray = static_cast<quint16>(row[x]); // 截断高位
+            quint16 gray = static_cast<quint16>(row[x]);
             // 写入16位灰度（低字节在前）
             line[2 * x]     = gray & 0xFF;         // LSB
             line[2 * x + 1] = (gray >> 8) & 0xFF;  // MSB
@@ -320,7 +385,7 @@ static inline void pt_data_to_image(QVector<QVector<quint32>> &data, QImage &img
 
 void ScanWidget::generate_gray_img(gray_img_disp_type_e_t disp_type)
 {
-    static quint32 append_val = (1 << g_sys_configs_block.all_bytes_per_pt * 4) - 1;
+    static gray_pixel_data_type append_val = (1 << g_sys_configs_block.all_bytes_per_pt * 4) - 1;
     static bool real_img_gened = false, layfull_img_gened = false;
 
     if(m_gray_img_lines.refreshed)
@@ -336,14 +401,14 @@ void ScanWidget::generate_gray_img(gray_img_disp_type_e_t disp_type)
             for (auto &line: img_lines.lines)
             {
                 int extra_cnt;
-                extra_cnt = img_lines.max_line_len - line.size();
+                extra_cnt = img_lines.line_len - line.size();
                 if(extra_cnt > 0)
                 {
                     int pos = line.size();
                     line.insert(pos, extra_cnt, append_val);
                 }
             }
-            int width = img_lines.max_line_len,
+            int width = img_lines.line_len,
                 height = img_lines.lines.size();
             QImage img(width, height, QImage::Format_Grayscale16);
             pt_data_to_image(img_lines.lines, img, width, height);
@@ -389,7 +454,7 @@ void ScanWidget::generate_gray_img(gray_img_disp_type_e_t disp_type)
                 }
                 for(int cnt_idx = 0, ori_idx = 0, added_cnt = 0; added_cnt < total_extra_line_cnt; ++cnt_idx)
                 {
-                    QVector<quint32> &ori_line = img_lines.lines[ori_idx];
+                    QVector<gray_pixel_data_type> &ori_line = img_lines.lines[ori_idx];
                     int added_cnt_this_line = added_cnt_v[cnt_idx];
                     img_lines.lines.insert(ori_idx + 1, added_cnt_this_line, ori_line);
 
@@ -416,6 +481,7 @@ void ScanWidget::display_gray_img(gray_img_disp_type_e_t disp_type)
 {
     QPixmap scaled;
 
+    ui->grayImgLbl->clear();
     if(DISPLAY_IMG_REAL == disp_type)
     {
         if(m_local_img.isNull())
@@ -474,6 +540,20 @@ void ScanWidget::on_dataCollStartPbt_clicked()
     start_collect();
 }
 
+void ScanWidget::recv_data_finished_sig_hdlr()
+{
+    g_data_scanning_now = false;
+
+    close_sc_data_file_rec();
+
+    if(m_gray_img_lines.refreshed)
+    {
+        generate_gray_img(DISPLAY_IMG_REAL);
+        display_gray_img(DISPLAY_IMG_REAL);
+        save_local_imgs(DISPLAY_IMG_REAL);
+    }
+    btns_refresh();
+}
 
 void ScanWidget::on_dataCollStopPbt_clicked()
 {
@@ -490,4 +570,10 @@ bool ScanWidget::chk_mk_pth_and_warn(QString &pth_str)
         return false;
     }
     return true;
+}
+
+void ScanWidget::btns_refresh()
+{
+    ui->dataCollStartPbt->setEnabled(!g_data_scanning_now);
+    ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
 }

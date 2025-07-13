@@ -33,8 +33,11 @@ STR_DELCARE_STMT(g_str_pwr_st, "电源状态") \
 STR_DELCARE_STMT(g_str_x_rar_source_st, "射线源状态") \
 STR_DELCARE_STMT(g_str_detector_st, "探测器状态") \
 STR_DELCARE_STMT(g_str_storage_st, "数据存储状态") \
-STR_DELCARE_STMT(g_str_invalid_ip_addr, "无效的ip地址")
-
+STR_DELCARE_STMT(g_str_invalid_ip_addr, "无效的ip地址") \
+STR_DELCARE_STMT(g_str_plz_conn_dev_firstly, "请先连接设备") \
+STR_DELCARE_STMT(g_str_charging, "正在充电") \
+STR_DELCARE_STMT(gs_str_sport_open_succeed, "串口打开成功") \
+STR_DELCARE_STMT(gs_str_sport_open_fail, "串口打开失败")
 
 
 LIT_STRINGS_LIST

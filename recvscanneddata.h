@@ -48,6 +48,7 @@ signals:
     void new_data_ready_sig();
     void recv_worker_report_sig(LOG_LEVEL lvl, QString report_str,
                                 collect_rpt_evt_e_t evt = COLLECT_RPT_EVT_IGNORE);
+    void recv_data_finished_sig();
 
 public slots:
     void start_collect_sc_data_hdlr(QString ip, quint16 port, int connTimeout);

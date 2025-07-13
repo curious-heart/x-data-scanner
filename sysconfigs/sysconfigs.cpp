@@ -1,4 +1,5 @@
 ﻿#include <QSettings>
+#include <QSerialPort>
 
 #include "logger/logger.h"
 #include "common_tools/common_tool_func.h"
@@ -67,6 +68,13 @@ static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
 static const char* gs_ini_key_pb_monitor_log = "pb_monitor_log";
 
+
+static const char* gs_ini_key_sport_name = "sport_name";
+static const char* gs_ini_key_sport_baudrate = "sport_baudrate";
+static const char* gs_ini_key_sport_databits = "sport_databits";
+static const char* gs_ini_key_sport_parity = "sport_parity";
+static const char* gs_ini_key_sport_stopbits = "sport_stopbits";
+
 sys_configs_struct_t g_sys_configs_block;
 
 static const int gs_def_log_level = LOG_ERROR;
@@ -131,6 +139,13 @@ static const int gs_allowed_max_scan_dura_sec = 25;
 static const int gs_def_limit_recvd_line_number = 0;
 
 static const int gs_def_pb_monitor_log = false;
+
+static const char* gs_def_sport_name_com1 = "COM1";
+static const char* gs_def_sport_name_com2 = "COM2";
+static const int gs_def_sport_baudrate = 115200;
+static const int gs_def_sport_databits = 8;
+static const int gs_def_sport_parity = (int)(QSerialPort::NoParity);
+static const int gs_def_sport_stopbits = 1;
 
 static RangeChecker<int> gs_cfg_file_log_level_ranger((int)LOG_DEBUG, (int)LOG_ERROR, "",
                      EDGE_INCLUDED, EDGE_INCLUDED);
@@ -277,6 +292,22 @@ bool fill_sys_configs(QString * ret_str_ptr)
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_test_proc_monitor_period_ms, toInt,
                    g_sys_configs_block.test_proc_monitor_period_ms, gs_def_test_proc_monitor_period_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
+
+    g_sys_configs_block.x_sport_params.com_port_s
+            = settings.value(gs_ini_key_sport_name, gs_def_sport_name_com1).toString();
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_baudrate, toInt,
+                   g_sys_configs_block.x_sport_params.boudrate, gs_def_sport_baudrate,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_databits, toInt,
+                   g_sys_configs_block.x_sport_params.databits, gs_def_sport_databits,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_parity, toInt,
+                   g_sys_configs_block.x_sport_params.parity, gs_def_sport_parity,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_stopbits, toInt,
+                   g_sys_configs_block.x_sport_params.stopbits, gs_def_sport_stopbits,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+
     settings.endGroup();
 
     /*check the validation of config parameters.*/
@@ -462,6 +493,21 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_monitor_log, toInt,
                            g_sys_configs_block.pb_monitor_log, gs_def_pb_monitor_log,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+
+    g_sys_configs_block.pb_sport_params.com_port_s
+            = settings.value(gs_ini_key_sport_name, gs_def_sport_name_com2).toString();
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_baudrate, toInt,
+                   g_sys_configs_block.pb_sport_params.boudrate, gs_def_sport_baudrate,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_databits, toInt,
+                   g_sys_configs_block.pb_sport_params.databits, gs_def_sport_databits,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_parity, toInt,
+                   g_sys_configs_block.pb_sport_params.parity, gs_def_sport_parity,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_stopbits, toInt,
+                   g_sys_configs_block.pb_sport_params.stopbits, gs_def_sport_stopbits,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     settings.endGroup();
     /*--------------------*/

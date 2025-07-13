@@ -32,6 +32,12 @@ typedef enum
 
 typedef struct
 {
+    QString com_port_s;
+    int boudrate, databits, parity, stopbits;
+}serial_port_params_struct_t;
+
+typedef struct
+{
     int log_level;
 
     float cool_dura_factor;
@@ -72,6 +78,8 @@ typedef struct
 
     QString data_src_ip;
     int data_src_port;
+
+    serial_port_params_struct_t pb_sport_params, x_sport_params;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;

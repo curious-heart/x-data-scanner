@@ -73,6 +73,7 @@ void SelfCheckWidget::go_to_next_check_item()
 bool SelfCheckWidget::pwr_st_check(QString &title_str)
 {
     title_str = g_str_pwr_st;
+
     go_to_next_check_item();
     return true;
 }
@@ -86,7 +87,7 @@ bool SelfCheckWidget::x_ray_source_st_check(QString &title_str)
 }
 
 bool SelfCheckWidget::detector_st_check(QString &title_str)
-{
+{//fpga. ethernet.
     title_str = g_str_detector_st;
 
     go_to_next_check_item();

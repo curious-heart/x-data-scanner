@@ -67,6 +67,9 @@
      </item>
      <item>
       <widget class="QSpinBox" name="ptPerRowSpinBox">
+       <property name="minimum">
+        <number>1</number>
+       </property>
        <property name="maximum">
         <number>2048</number>
        </property>

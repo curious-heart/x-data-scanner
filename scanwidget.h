@@ -12,6 +12,8 @@ namespace Ui {
 class ScanWidget;
 }
 
+typedef quint16 gray_pixel_data_type;
+
 typedef enum
 {
     COLLECT_CMD_SW_BTN,
@@ -20,8 +22,8 @@ typedef enum
 
 typedef struct
 {
-    QVector<QVector<quint32>> lines;
-    int max_line_len;
+    QVector<QVector<gray_pixel_data_type>> lines;
+    int line_len;
     bool refreshed;
 }gray_lines_s_t;
 
@@ -30,6 +32,12 @@ typedef enum
     DISPLAY_IMG_REAL,
     DISPLAY_IMG_LAYFULL,
 }gray_img_disp_type_e_t;
+
+typedef struct
+{
+    int valid_line_cnt;
+    QImage img_buffer;
+}display_buf_img_s_t;
 
 class ScanWidget : public QWidget
 {
@@ -49,11 +57,12 @@ private:
     QMutex queueMutex;
 
     int m_curr_line_pt_cnt;
-    QVector<quint32> m_ch1_data_vec, m_ch2_data_vec;
+    QVector<gray_pixel_data_type> m_ch1_data_vec, m_ch2_data_vec;
     gray_lines_s_t m_gray_img_lines;
 
     QImage m_local_img, m_local_img_8bit;
     QImage m_local_layfull_img, m_local_layfull_img_8bit;
+    display_buf_img_s_t m_display_buf_img;
 
     QTimer m_scan_dura_timer;
 
@@ -68,16 +77,20 @@ private:
     void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);
     void close_sc_data_file_rec();
     void clear_gray_img_lines();
-    void record_gray_img_line();
     int split_data_into_channels(QByteArray& ori_data,
-                                  QVector<quint32> &dv_ch1, QVector<quint32> &dv_ch2,
+                                  QVector<gray_pixel_data_type> &dv_ch1, QVector<gray_pixel_data_type> &dv_ch2,
                                   quint64 &pkt_idx);
+    void record_gray_img_line();
+    void add_line_to_display(QVector<gray_pixel_data_type> &line);
     void generate_gray_img(gray_img_disp_type_e_t disp_type);
     void display_gray_img(gray_img_disp_type_e_t disp_type);
     void save_local_imgs(gray_img_disp_type_e_t disp_type);
 
     QString log_disp_prepender_str();
     bool chk_mk_pth_and_warn(QString &pth_str);
+    void clear_display_img();
+
+    void btns_refresh();
 
 private slots:
     void handleNewDataReady();
@@ -89,6 +102,8 @@ private slots:
     void on_dataCollStartPbt_clicked();
 
     void on_dataCollStopPbt_clicked();
+
+    void recv_data_finished_sig_hdlr();
 
 signals:
     void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);
