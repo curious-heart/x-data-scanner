@@ -160,14 +160,13 @@ QString ScanWidget::log_disp_prepender_str()
 
 void ScanWidget::handleNewDataReady()
 {
-    if(!g_data_scanning_now) return;
-
     recv_data_with_notes_s_t packet;
     {
         QMutexLocker locker(&queueMutex);
         if(dataQueue.isEmpty()) return;
         packet = dataQueue.dequeue();
     }
+    if(!g_data_scanning_now) return;
 
     QString data_str = log_disp_prepender_str();
 
@@ -308,6 +307,7 @@ void ScanWidget::clear_gray_img_lines()
 
     m_gray_img_lines.lines.clear();
     m_gray_img_lines.refreshed = false;
+    m_gray_img_lines.line_len = 0;
 }
 
 void ScanWidget::record_gray_img_line()
