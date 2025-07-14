@@ -5,6 +5,7 @@
 #include <QStackedWidget>
 #include <QTimer>
 #include <QtSerialPort/QSerialPort>
+#include <QModbusClient>
 
 #include <selfcheckwidget.h>
 #include <loginwidget.h>
@@ -53,17 +54,27 @@ private:
         &MainWindow::detector_st_check,
         &MainWindow::storage_st_check,
     };
+    QTimer m_self_check_finish_timer;
     bool pwr_st_check();
     bool x_ray_source_st_check();
     bool detector_st_check();
     bool storage_st_check();
     void self_chk(bool start = false);
 
+    void goto_login_widget();
+
+    QModbusClient * m_modbus_device = nullptr;
+    QTimer m_reconn_wait_timer;
+    void setup_modbus_client();
+
 public slots:
     void self_check_finished_sig_hdlr(bool result);
     void login_chk_passed_sig_hdlr();
     void pb_monitor_timer_hdlr();
     void pb_monitor_check_st_hdlr();
+
+    void modbus_error_sig_handler(QModbusDevice::Error error);
+    void modbus_state_changed_sig_handler(QModbusDevice::State state);
 
 signals:
     void check_next_item_sig(bool start = false);

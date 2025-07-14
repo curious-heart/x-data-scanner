@@ -41,6 +41,8 @@ static const char* gs_ini_key_mb_dura_intf_unit = "mb_dura_intf_unit";
 static const char* gs_ini_key_hidden_ui_mb_dura_unit = "hidden_ui_mb_dura_unit";
 
 static const char* gs_ini_key_test_proc_monitor_period_ms = "test_proc_monitor_period_ms";
+static const char* gs_ini_key_mb_srv_addr = "mb_srv_addr";
+static const char* gs_ini_key_mb_resp_wait_time_ms = "mb_resp_wait_time_ms";
 
 static const char* gs_ini_grp_ui_disp_cfg = "ui_disp_cfg";
 static const char* gs_ini_key_distance_group_disp = "distance_group_disp";
@@ -99,6 +101,8 @@ static const int gs_def_test_time_stat_grain_sec = 3;
 static const int gs_def_mb_one_cmd_round_time_ms = 150;
 
 static const int gs_def_test_proc_monitor_period_ms = 1000;
+static const int gs_def_key_mb_srv_addr = 1;
+static const int gs_def_key_mb_resp_wait_time_ms = 3000;
 
 static const int gs_def_distance_group_disp = 1;
 static const int gs_def_sw_ver_disp = 1;
@@ -293,19 +297,25 @@ bool fill_sys_configs(QString * ret_str_ptr)
                    g_sys_configs_block.test_proc_monitor_period_ms, gs_def_test_proc_monitor_period_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
 
-    g_sys_configs_block.x_sport_params.com_port_s
+    g_sys_configs_block.x_ray_mb_conn_params.serial_params.com_port_s
             = settings.value(gs_ini_key_sport_name, gs_def_sport_name_com1).toString();
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_baudrate, toInt,
-                   g_sys_configs_block.x_sport_params.boudrate, gs_def_sport_baudrate,
+                   g_sys_configs_block.x_ray_mb_conn_params.serial_params.boudrate, gs_def_sport_baudrate,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_databits, toInt,
-                   g_sys_configs_block.x_sport_params.databits, gs_def_sport_databits,
+                   g_sys_configs_block.x_ray_mb_conn_params.serial_params.databits, gs_def_sport_databits,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_parity, toInt,
-                   g_sys_configs_block.x_sport_params.parity, gs_def_sport_parity,
+                   g_sys_configs_block.x_ray_mb_conn_params.serial_params.parity, gs_def_sport_parity,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_stopbits, toInt,
-                   g_sys_configs_block.x_sport_params.stopbits, gs_def_sport_stopbits,
+                   g_sys_configs_block.x_ray_mb_conn_params.serial_params.stopbits, gs_def_sport_stopbits,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_srv_addr, toInt,
+                   g_sys_configs_block.x_ray_mb_conn_params.srvr_address, gs_def_key_mb_srv_addr,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_resp_wait_time_ms, toInt,
+                   g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms, gs_def_key_mb_resp_wait_time_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
 
     settings.endGroup();

@@ -1,4 +1,5 @@
 ﻿#include <QMessageBox>
+#include <QModbusRtuSerialMaster>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -61,7 +62,11 @@ MainWindow::MainWindow(QWidget *parent)
             m_self_chk_widget, &SelfCheckWidget::self_check_item_ret_sig_hdlr, Qt::QueuedConnection);
     connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_chk,
             Qt::QueuedConnection);
-    emit check_next_item_sig(true);
+
+    connect(&m_self_check_finish_timer, &QTimer::timeout,
+            this, &MainWindow::goto_login_widget, Qt::QueuedConnection);
+
+    QTimer::singleShot(0, this, [this]() { self_chk(true); });
 }
 
 void MainWindow::self_chk(bool start)
@@ -81,13 +86,7 @@ void MainWindow::self_chk(bool start)
 
         if(final_ret)
         {
-            if(m_stacked_widget->indexOf(m_login_widget) < 0)
-            {
-                m_stacked_widget->addWidget(m_login_widget);
-            }
-            m_stacked_widget->setCurrentWidget(m_login_widget);
-
-            m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+            m_self_check_finish_timer.start(1000);
         }
         return;
     }
@@ -158,6 +157,17 @@ void MainWindow::self_check_finished_sig_hdlr(bool result)
     }
 }
 
+void MainWindow::goto_login_widget()
+{
+    if(m_stacked_widget->indexOf(m_login_widget) < 0)
+    {
+        m_stacked_widget->addWidget(m_login_widget);
+    }
+    m_stacked_widget->setCurrentWidget(m_login_widget);
+
+    m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+}
+
 void MainWindow::login_chk_passed_sig_hdlr()
 {
     if(m_stacked_widget->indexOf(m_scan_widget) < 0)
@@ -225,7 +235,7 @@ void MainWindow::pb_monitor_check_st_hdlr()
                     gs_dif_byte_pwr_st};
     int byte_cnt = ARRAY_COUNT(data_arr);
 
-    set_ok = write_to_sport(data_arr, byte_cnt, false, g_sys_configs_block.pb_monitor_log);
+    set_ok = write_to_sport(data_arr, byte_cnt, true, g_sys_configs_block.pb_monitor_log);
     if(set_ok)
     {
         quint16 volt_val, bat_pct;
@@ -382,3 +392,31 @@ bool MainWindow::close_sport()
 {
     return true;
 }
+
+void MainWindow::setup_modbus_client()
+{
+    m_modbus_device = new QModbusRtuSerialMaster(this);
+
+    m_modbus_device->setConnectionParameter(QModbusDevice::SerialPortNameParameter,
+                                g_sys_configs_block.x_ray_mb_conn_params.serial_params.com_port_s);
+    m_modbus_device->setConnectionParameter(QModbusDevice::SerialBaudRateParameter,
+                                g_sys_configs_block.x_ray_mb_conn_params.serial_params.boudrate);
+    m_modbus_device->setConnectionParameter(QModbusDevice::SerialDataBitsParameter,
+                                g_sys_configs_block.x_ray_mb_conn_params.serial_params.databits);
+    m_modbus_device->setConnectionParameter(QModbusDevice::SerialParityParameter,
+                                g_sys_configs_block.x_ray_mb_conn_params.serial_params.parity);
+    m_modbus_device->setConnectionParameter(QModbusDevice::SerialStopBitsParameter,
+                                g_sys_configs_block.x_ray_mb_conn_params.serial_params.stopbits);
+    m_modbus_device->setTimeout(g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms);
+
+    connect(m_modbus_device, &QModbusClient::errorOccurred,
+            this, &MainWindow::modbus_error_sig_handler, Qt::QueuedConnection);
+    connect(m_modbus_device, &QModbusClient::stateChanged,
+            this, &MainWindow::modbus_state_changed_sig_handler, Qt::QueuedConnection);
+}
+
+void MainWindow::modbus_error_sig_handler(QModbusDevice::Error error)
+{}
+
+void MainWindow::modbus_state_changed_sig_handler(QModbusDevice::State state)
+{}

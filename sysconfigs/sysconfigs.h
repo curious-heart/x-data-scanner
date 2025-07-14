@@ -38,6 +38,13 @@ typedef struct
 
 typedef struct
 {
+    serial_port_params_struct_t serial_params;
+    int resp_wait_time_ms;
+    int srvr_address;
+}modbus_conn_parameters_struct_t;
+
+typedef struct
+{
     int log_level;
 
     float cool_dura_factor;
@@ -79,7 +86,8 @@ typedef struct
     QString data_src_ip;
     int data_src_port;
 
-    serial_port_params_struct_t pb_sport_params, x_sport_params;
+    serial_port_params_struct_t pb_sport_params;
+    modbus_conn_parameters_struct_t x_ray_mb_conn_params;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;
