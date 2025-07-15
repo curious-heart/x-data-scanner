@@ -830,7 +830,7 @@ bool CToolKeyFilter::eventFilter(QObject * obj, QEvent * evt)
 }
 
 
-QImage convertGrayscale16To8(const QImage &img16, const QRect area)
+QImage convertGrayscale16To8(const QImage &img16, const QRect area, QColor bg)
 {
     bool opt_flag = false;
 
@@ -883,9 +883,11 @@ QImage convertGrayscale16To8(const QImage &img16, const QRect area)
         }
         else
         {
-            quint8 * line8 = reinterpret_cast<quint8 *>(img8.scanLine(y_s));
+            if(bg.isValid())img8.fill(bg.rgb());
+            quint8 * line8;
             for(int y = y_s; y < y_e ; ++y)
             {
+                line8 = reinterpret_cast<quint8 *>(img8.scanLine(y));
                 memset(&line8[x_s], val, work_area.width());
             }
         }

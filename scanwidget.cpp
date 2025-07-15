@@ -378,7 +378,8 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line)
 
     QRect valid_area = QRect(0, 0, m_display_buf_img.img_buffer.width(),
                                    m_display_buf_img.valid_line_cnt);
-    QImage disp_img = convertGrayscale16To8(m_display_buf_img.img_buffer, valid_area);
+    QImage disp_img = convertGrayscale16To8(m_display_buf_img.img_buffer, valid_area,
+                                            this->palette().color(QPalette::Window));
     QPixmap scaled = QPixmap::fromImage(disp_img)
                 .scaled(ui->grayImgLbl->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     ui->grayImgLbl->setPixmap(scaled);
