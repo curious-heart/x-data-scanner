@@ -22,7 +22,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QString sw_about_str = "", QWidget *parent = nullptr);
     ~MainWindow();
 
     SelfCheckWidget * m_self_chk_widget;

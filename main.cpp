@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
     update_log_level((LOG_LEVEL)(g_sys_configs_block.log_level));
 
     /*create main window.*/
-    MainWindow w;
     QString title_str = QString("%1 %2").arg(a.applicationName(), APP_VER_STR);
+    MainWindow w(title_str);
     w.setWindowTitle(title_str);
 
     w.showFullScreen();

@@ -25,11 +25,13 @@ static const quint16 gs_wkup_val = 0, gs_slp_val = 1;
 
 static const int gs_sport_read_try_cnt = 3;
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    ui->swAboutLbl->setText(sw_about_str);
 
     /*this widget should be newed first since it loads sys settings.*/
     m_syssettings_widget = new SysSettingsWidget(this);
