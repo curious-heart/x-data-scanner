@@ -65,6 +65,8 @@ static const char* gs_ini_key_scrn_w = "scrn_w";
 static const char* gs_ini_key_scrn_h = "scrn_h";
 static const char* gs_ini_key_allowed_max_scan_dura_sec = "allowed_max_scan_dura_sec";
 static const char* gs_ini_key_limit_recvd_line_number = "limit_recvd_line_number";
+static const char* gs_ini_key_enable_self_check = "enable_self_check";
+static const char* gs_ini_key_disable_monitor_during_scan = "disable_monitor_during_scan";
 
 static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
@@ -141,6 +143,8 @@ static const int gs_def_scrn_h = 800;
 static const int gs_def_allowed_max_scan_dura_sec = 25;
 static const int gs_allowed_max_scan_dura_sec = 25;
 static const int gs_def_limit_recvd_line_number = 0;
+static const int gs_def_enable_self_check = 1;
+static const int gs_def_disable_monitor_during_scan = 1;
 
 static const int gs_def_pb_monitor_log = false;
 
@@ -485,6 +489,12 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            1, &gs_cfg_file_allow_scan_dura_sec_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_limit_recvd_line_number, toInt,
                            g_sys_configs_block.limit_recvd_line_number, gs_def_limit_recvd_line_number,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_self_check, toInt,
+                           g_sys_configs_block.enable_self_check, gs_def_enable_self_check,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_disable_monitor_during_scan, toInt,
+                           g_sys_configs_block.disable_monitor_during_scan, gs_def_disable_monitor_during_scan,
                            1, (RangeChecker<int>*)0, (bool));
     settings.endGroup();
 

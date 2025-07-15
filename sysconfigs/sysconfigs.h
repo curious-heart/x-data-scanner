@@ -88,6 +88,9 @@ typedef struct
 
     serial_port_params_struct_t pb_sport_params;
     modbus_conn_parameters_struct_t x_ray_mb_conn_params;
+
+    bool enable_self_check;
+    bool disable_monitor_during_scan;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;

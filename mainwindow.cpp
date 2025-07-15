@@ -63,10 +63,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_chk,
             Qt::QueuedConnection);
 
+    m_self_check_finish_timer.setSingleShot(true);
     connect(&m_self_check_finish_timer, &QTimer::timeout,
             this, &MainWindow::goto_login_widget, Qt::QueuedConnection);
 
-    QTimer::singleShot(0, this, [this]() { self_chk(true); });
+    if(g_sys_configs_block.enable_self_check)
+    {
+        QTimer::singleShot(0, this, [this]() { self_chk(true); });
+    }
+    else
+    {
+        m_self_check_finish_timer.start(1000);
+    }
 }
 
 void MainWindow::self_chk(bool start)
@@ -219,7 +227,7 @@ QString hv_work_st_str(quint16 st_reg_val)
 
 void MainWindow::pb_monitor_timer_hdlr()
 {
-    if(!g_data_scanning_now)
+    if(!g_sys_configs_block.disable_monitor_during_scan || !g_data_scanning_now)
     {
         emit pb_monitor_check_st();
     }
