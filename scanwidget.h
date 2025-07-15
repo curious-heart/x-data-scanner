@@ -7,6 +7,7 @@
 #include <QMutex>
 
 #include "recvscanneddata.h"
+#include "config_recorder/uiconfigrecorder.h"
 
 namespace Ui {
 class ScanWidget;
@@ -44,8 +45,10 @@ class ScanWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ScanWidget(QWidget *parent = nullptr);
+    explicit ScanWidget(UiConfigRecorder * cfg_recorder = nullptr, QWidget *parent = nullptr);
     ~ScanWidget();
+    void rec_ui_settings();
+    void load_ui_settings();
 
 private:
     Ui::ScanWidget *ui;
@@ -72,6 +75,9 @@ private:
     QFile m_curr_sc_txt_file;
     QTextStream m_curr_sc_txt_stream;
 
+    UiConfigRecorder * m_cfg_recorder = nullptr;
+    qobj_ptr_set_t m_rec_ui_cfg_fin, m_rec_ui_cfg_fout;
+
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);
@@ -80,6 +86,8 @@ private:
     int split_data_into_channels(QByteArray& ori_data,
                                   QVector<gray_pixel_data_type> &dv_ch1, QVector<gray_pixel_data_type> &dv_ch2,
                                   quint64 &pkt_idx);
+    void clear_recv_data_queue();
+
     void record_gray_img_line();
     void add_line_to_display(QVector<gray_pixel_data_type> &line);
     void generate_gray_img(gray_img_disp_type_e_t disp_type);
@@ -88,6 +96,7 @@ private:
 
     QString log_disp_prepender_str();
     bool chk_mk_pth_and_warn(QString &pth_str);
+    void reset_display_img_buffer();
     void clear_display_img();
 
     void btns_refresh();

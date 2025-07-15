@@ -13,6 +13,8 @@
 #include <syssettingswidget.h>
 #include <mainmenubtnswidget.h>
 
+#include "config_recorder/uiconfigrecorder.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -35,6 +37,9 @@ public:
 private:
     Ui::MainWindow *ui;
     QStackedWidget *m_stacked_widget;
+
+    UiConfigRecorder m_cfg_recorder;
+    qobj_ptr_set_t m_rec_ui_cfg_fin, m_rec_ui_cfg_fout;
 
     LoginWidget * m_login_widget;
     ScanWidget * m_scan_widget;
@@ -66,6 +71,9 @@ private:
     QModbusClient * m_modbus_device = nullptr;
     QTimer m_reconn_wait_timer;
     void setup_modbus_client();
+
+    void load_widgets_ui_settings();
+    void rec_widgets_ui_settings();
 
 public slots:
     void self_check_finished_sig_hdlr(bool result);

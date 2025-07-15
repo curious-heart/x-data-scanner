@@ -832,6 +832,8 @@ bool CToolKeyFilter::eventFilter(QObject * obj, QEvent * evt)
 
 QImage convertGrayscale16To8(const QImage &img16, const QRect area)
 {
+    bool opt_flag = false;
+
     if (img16.format() != QImage::Format_Grayscale16)
     {
         qWarning("Input image is not Grayscale16");
@@ -842,6 +844,10 @@ QImage convertGrayscale16To8(const QImage &img16, const QRect area)
     if(work_area.isNull())
     {
         work_area.setRect(0, 0, img16.width(), img16.height());
+    }
+    if(work_area == QRect(0, 0, img16.width(), img16.height()))
+    {
+        opt_flag = true;
     }
 
     int x_s = work_area.left(), x_e = x_s + work_area.width();
@@ -868,8 +874,21 @@ QImage convertGrayscale16To8(const QImage &img16, const QRect area)
 
     if(minV == maxV)
     {
-        // 所有像素一样，直接置为0或255
-        img8.fill( (minV > 0) ? 255 : 0 );
+        // 所有像素一样，直接将workarea置为0或255
+        quint8 val = (minV > 0) ? 255 : 0 ;
+        if(opt_flag)
+        {
+            //workarea is the whole img area.
+            img8.fill(val);
+        }
+        else
+        {
+            quint8 * line8 = reinterpret_cast<quint8 *>(img8.scanLine(y_s));
+            for(int y = y_s; y < y_e ; ++y)
+            {
+                memset(&line8[x_s], val, work_area.width());
+            }
+        }
         return img8;
     }
 

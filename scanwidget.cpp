@@ -21,9 +21,9 @@ static const char* gs_str_8bit_img_apx = "-8bit";
 #define RECV_DATA_NOTE_E(e) #e
 static const char* gs_recv_data_note_str [] = {RECV_DATA_NOTES};
 
-ScanWidget::ScanWidget(QWidget *parent) :
+ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::ScanWidget)
+    ui(new Ui::ScanWidget), m_cfg_recorder(cfg_recorder)
 {
     ui->setupUi(this);
 
@@ -56,13 +56,7 @@ ScanWidget::ScanWidget(QWidget *parent) :
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
-    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
-    if(disp_pt_per_row > g_sys_configs_block.max_pt_number || disp_pt_per_row < 0)
-    {
-        disp_pt_per_row = g_sys_configs_block.max_pt_number;
-    }
-    m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
-                               QImage::Format_Grayscale16);
+    reset_display_img_buffer();
     clear_display_img();
 
     recv_data_workerThread->start();
@@ -81,6 +75,17 @@ ScanWidget::~ScanWidget()
     delete ui;
 }
 
+void ScanWidget::reset_display_img_buffer()
+{
+    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
+    if(disp_pt_per_row > g_sys_configs_block.max_pt_number || disp_pt_per_row < 0)
+    {
+        disp_pt_per_row = g_sys_configs_block.max_pt_number;
+    }
+    m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
+                               QImage::Format_Grayscale16);
+}
+
 void ScanWidget::clear_display_img()
 {
     QColor bgColor = this->palette().color(QPalette::Window);
@@ -90,6 +95,11 @@ void ScanWidget::clear_display_img()
 
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
+    clear_recv_data_queue();
+
+    reset_display_img_buffer();
+    ui->ptPerRowSpinBox->setDisabled(true);
+
     clear_gray_img_lines();
     clear_display_img();
     ui->grayImgLbl->clear();
@@ -111,9 +121,9 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 
 void ScanWidget::stop_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
-    if(!g_data_scanning_now) return;
-
     m_scan_dura_timer.stop();
+
+    if(!g_data_scanning_now) return;
 
     emit stop_collect_sc_data_sig();
 }
@@ -156,6 +166,14 @@ void ScanWidget::close_sc_data_file_rec()
 QString ScanWidget::log_disp_prepender_str()
 {
     return (common_tool_get_curr_date_str() + "," + common_tool_get_curr_time_str() + ",");
+}
+
+void ScanWidget::clear_recv_data_queue()
+{
+    {
+        QMutexLocker locker(&queueMutex);
+        dataQueue.clear();
+    }
 }
 
 void ScanWidget::handleNewDataReady()
@@ -553,6 +571,8 @@ void ScanWidget::recv_data_finished_sig_hdlr()
         save_local_imgs(DISPLAY_IMG_REAL);
     }
     btns_refresh();
+
+    ui->ptPerRowSpinBox->setEnabled(true);
 }
 
 void ScanWidget::on_dataCollStopPbt_clicked()
@@ -576,4 +596,20 @@ void ScanWidget::btns_refresh()
 {
     ui->dataCollStartPbt->setEnabled(!g_data_scanning_now);
     ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
+}
+
+void ScanWidget::rec_ui_settings()
+{
+    if(m_cfg_recorder)
+    {
+        m_cfg_recorder->record_ui_configs(this, m_rec_ui_cfg_fin, m_rec_ui_cfg_fout);
+    }
+}
+
+void ScanWidget::load_ui_settings()
+{
+    if(m_cfg_recorder)
+    {
+        m_cfg_recorder->load_configs_to_ui(this, m_rec_ui_cfg_fin, m_rec_ui_cfg_fout);
+    }
 }

@@ -27,11 +27,15 @@ static const int gs_sport_read_try_cnt = 3;
 
 MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    , ui(new Ui::MainWindow), m_cfg_recorder(this)
 {
     ui->setupUi(this);
 
     ui->swAboutLbl->setText(sw_about_str);
+
+    m_rec_ui_cfg_fin.clear();
+    m_rec_ui_cfg_fout.clear();
+    m_cfg_recorder.load_configs_to_ui(this, m_rec_ui_cfg_fin, m_rec_ui_cfg_fout);
 
     /*this widget should be newed first since it loads sys settings.*/
     m_syssettings_widget = new SysSettingsWidget(this);
@@ -46,11 +50,13 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     m_login_widget = new LoginWidget(this);
     m_login_widget->hide();
 
-    m_scan_widget = new ScanWidget(this);
+    m_scan_widget = new ScanWidget(&m_cfg_recorder, this);
     m_scan_widget->hide();
 
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);
     ui->buttonsHBoxLayout->addWidget(m_mainmenubtns_widget);
+
+    load_widgets_ui_settings();
 
     connect(m_login_widget, &LoginWidget::login_chk_passed_sig,
             this, &MainWindow::login_chk_passed_sig_hdlr, Qt::QueuedConnection);
@@ -149,6 +155,8 @@ MainWindow::~MainWindow()
 {
     close_sport();
     m_pb_monitor_timer.stop();
+
+    rec_widgets_ui_settings();
 
     delete ui;
 }
@@ -430,3 +438,13 @@ void MainWindow::modbus_error_sig_handler(QModbusDevice::Error error)
 
 void MainWindow::modbus_state_changed_sig_handler(QModbusDevice::State state)
 {}
+
+void MainWindow::load_widgets_ui_settings()
+{
+    m_scan_widget->load_ui_settings();
+}
+
+void MainWindow::rec_widgets_ui_settings()
+{
+    m_scan_widget->rec_ui_settings();
+}
