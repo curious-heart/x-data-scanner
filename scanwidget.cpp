@@ -32,6 +32,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     ui->setupUi(this);
 
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
+    ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
 
     m_scan_dura_timer.setSingleShot(true);
     m_scan_dura_timer.setInterval(g_sys_settings_blk.max_scan_dura_sec * 1000);
@@ -60,7 +61,10 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
-    reset_display_img_buffer();
+    load_cali_datum_from_file();
+
+    proc_pt_per_row_cnt_related_work();
+
     m_display_buf_img.img_line_min_vs.resize(g_sys_configs_block.scrn_h);
     m_display_buf_img.img_line_max_vs.resize(g_sys_configs_block.scrn_h);
     m_display_buf_img.img_line_min_vs2.resize(g_sys_configs_block.scrn_h);
@@ -82,17 +86,24 @@ ScanWidget::~ScanWidget()
     delete ui;
 }
 
+void ScanWidget::proc_pt_per_row_cnt_related_work()
+{
+    reload_cali_datum();
+    reset_display_img_buffer();
+
+    m_pt_per_row_changed = false;
+}
+
 void ScanWidget::reset_display_img_buffer()
 {
-    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
-    if(disp_pt_per_row > g_sys_configs_block.max_pt_number || disp_pt_per_row < 0)
+    if(m_pt_per_row_changed)
     {
-        disp_pt_per_row = g_sys_configs_block.max_pt_number;
+        int disp_pt_per_row = ui->ptPerRowSpinBox->value();
+        m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
+                                   QImage::Format_Grayscale16);
+        m_display_buf_img.img_buffer2 = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
+                                   QImage::Format_Grayscale16);
     }
-    m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
-                               QImage::Format_Grayscale16);
-    m_display_buf_img.img_buffer2 = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
-                               QImage::Format_Grayscale16);
 
     QColor bgColor = this->palette().color(QPalette::Window);
     m_display_buf_img.img_buffer.fill(bgColor.rgb());
@@ -101,14 +112,112 @@ void ScanWidget::reset_display_img_buffer()
     m_display_buf_img.curr_work_img_ind = 0;
 }
 
+void ScanWidget::adjust_bg_data_size(QVector<gray_pixel_data_type> &tgt,
+                         const QVector<gray_pixel_data_type>& data, int tgt_size)
+{
+    if(data.size() >= tgt_size)
+    {
+        tgt = data.mid(0, tgt_size);
+    }
+    else
+    {
+        tgt = data;
+        tgt.resize(tgt_size);
+        std::fill(tgt.begin() + data.size(), tgt.end(), g_sys_configs_block.def_scan_bg_value);
+    }
+}
+void ScanWidget::adjust_stre_factor_data_size(QVector<double> &tgt, const QVector<double>& data,
+                                              int tgt_size)
+{
+    if(data.size() >= tgt_size)
+    {
+        tgt = data.mid(0, tgt_size);
+    }
+    else
+    {
+        tgt = data;
+        tgt.resize(tgt_size);
+        std::fill(tgt.begin() + data.size(), tgt.end(), g_sys_configs_block.def_scan_stre_factor_value);
+    }
+}
+void ScanWidget::load_cali_datum_from_file()
+{
+    static bool ls_init_load = true;
+
+    if(ls_init_load)
+    {
+        int disp_pt_per_row = ui->ptPerRowSpinBox->value();
+
+        QFile bg_file(QString(gs_scan_cali_file_path) + "/" + gs_scan_bg_value_fn);
+        if(!bg_file.open(QIODevice::ReadOnly))
+        {
+            m_scan_bg_value_loaded.resize(disp_pt_per_row);
+            m_scan_bg_value_loaded.fill(g_sys_configs_block.def_scan_bg_value);
+        }
+        else
+        {
+            QDataStream bg_in(&bg_file);
+            bg_in.setVersion(QDataStream::Qt_5_15);
+
+            QVector<gray_pixel_data_type> tmp_bg;
+            bg_in >> tmp_bg;
+            bg_file.close();
+
+            adjust_bg_data_size(m_scan_bg_value_loaded, tmp_bg, disp_pt_per_row);
+        }
+
+        QFile stre_factor_file(QString(gs_scan_cali_file_path) + "/" + gs_scan_stre_factor_value_fn);
+        if(!stre_factor_file.open(QIODevice::ReadOnly))
+        {
+            m_scan_stre_factor_value_loaded.resize(disp_pt_per_row);
+            m_scan_stre_factor_value_loaded.fill(g_sys_configs_block.def_scan_stre_factor_value);
+        }
+        else
+        {
+            QDataStream stre_in(&stre_factor_file);
+            stre_in.setVersion(QDataStream::Qt_5_15);
+
+            QVector<double> tmp_stre;
+            stre_in >> tmp_stre;
+            stre_factor_file.close();
+
+            adjust_stre_factor_data_size(m_scan_stre_factor_value_loaded, tmp_stre,
+                                         disp_pt_per_row);
+        }
+
+        ls_init_load = false;
+    }
+}
+
+void ScanWidget::reload_cali_datum()
+{
+    if(!m_pt_per_row_changed) return;
+
+    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
+
+    //asuming m_scan_bg_value_for_work and m_scan_stre_factor_value_for_work
+    //are always the same size.
+    if(disp_pt_per_row < m_scan_bg_value_for_work.size())
+    {
+        m_scan_bg_value_for_work.resize(disp_pt_per_row);
+        m_scan_stre_factor_value_for_work.resize(disp_pt_per_row);
+    }
+    else
+    {
+        adjust_bg_data_size(m_scan_bg_value_for_work, m_scan_bg_value_loaded, disp_pt_per_row);
+        adjust_stre_factor_data_size(m_scan_stre_factor_value_for_work,
+                                     m_scan_stre_factor_value_loaded, disp_pt_per_row);
+    }
+}
+
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
     ui->grayImgLbl->clear();
+    ui->ptPerRowSpinBox->setDisabled(true);
 
     clear_recv_data_queue();
 
-    reset_display_img_buffer();
-    ui->ptPerRowSpinBox->setDisabled(true);
+    proc_pt_per_row_cnt_related_work();
 
     clear_gray_img_lines();
 
@@ -223,10 +332,6 @@ int ScanWidget::split_data_into_channels(QByteArray& ori_data,
     static const bool odd_hb_per_chpt = ((all_bytes_cnt_per_pt % 2) == 1);
 
     int disp_pt_per_row = ui->ptPerRowSpinBox->value();
-    if(disp_pt_per_row > g_sys_configs_block.max_pt_number)
-    {//normally this branch would never be reached. just for assurance...
-        disp_pt_per_row = g_sys_configs_block.max_pt_number;
-    }
     if(disp_pt_per_row <= 0) return 0;
 
     int disp_bytes_per_row = disp_pt_per_row * all_bytes_cnt_per_pt;
@@ -347,6 +452,8 @@ void ScanWidget::record_gray_img_line()
         px_sum = (quint32)(m_ch1_data_vec[idx]) + (quint32)(m_ch2_data_vec[idx]);
         line[idx] = px_sum/2;
     }
+    calibrate_px_line(line);
+
     m_gray_img_lines.lines.append(line);
     m_gray_img_lines.line_len = m_curr_line_pt_cnt;
     m_gray_img_lines.refreshed = true;
@@ -356,6 +463,24 @@ void ScanWidget::record_gray_img_line()
     if(*mmpair.second > m_gray_img_lines.max_v) m_gray_img_lines.max_v = *mmpair.second;
 
     add_line_to_display(line, *mmpair.first, *mmpair.second);
+}
+
+void ScanWidget::calibrate_px_line(QVector<gray_pixel_data_type> &line)
+{
+    std::transform(line.begin(), line.end(), m_scan_bg_value_for_work.begin(), line.begin(),
+               [](gray_pixel_data_type x, gray_pixel_data_type y)
+                    { return (x > y) ? (x - y) : 0; });
+
+    std::transform(line.begin(), line.end(),
+               m_scan_stre_factor_value_for_work.begin(),
+               line.begin(),
+               [](gray_pixel_data_type val, double factor) -> gray_pixel_data_type
+               {
+                   double result = val * factor;
+                   if (result < 0.0) return 0;
+                   if (result > g_12bitpx_max_v) return g_12bitpx_max_v;
+                   return static_cast<gray_pixel_data_type>(result);
+               });
 }
 
 void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_pixel_data_type min_v, gray_pixel_data_type max_v)
@@ -685,3 +810,9 @@ void ScanWidget::load_ui_settings()
         m_cfg_recorder->load_configs_to_ui(this, m_rec_ui_cfg_fin, m_rec_ui_cfg_fout);
     }
 }
+
+void ScanWidget::on_ptPerRowSpinBox_valueChanged(int /*arg1*/)
+{
+    m_pt_per_row_changed = true;
+}
+

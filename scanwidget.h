@@ -79,8 +79,9 @@ private:
     UiConfigRecorder * m_cfg_recorder = nullptr;
     qobj_ptr_set_t m_rec_ui_cfg_fin, m_rec_ui_cfg_fout;
 
-    QVector<gray_pixel_data_type> m_scan_bg_value;
-    QVector<double> m_scan_stre_factor_value;
+    QVector<gray_pixel_data_type> m_scan_bg_value_loaded, m_scan_bg_value_for_work;
+    QVector<double> m_scan_stre_factor_value_loaded, m_scan_stre_factor_value_for_work;
+    bool m_pt_per_row_changed = true;
 
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
@@ -102,6 +103,15 @@ private:
     bool chk_mk_pth_and_warn(QString &pth_str);
     void reset_display_img_buffer();
 
+    void adjust_bg_data_size(QVector<gray_pixel_data_type> &tgt,
+                             const QVector<gray_pixel_data_type>& data, int tgt_size);
+    void adjust_stre_factor_data_size(QVector<double> &tgt, const QVector<double>& data, int tgt_size);
+    void load_cali_datum_from_file();
+    void reload_cali_datum();
+    void calibrate_px_line(QVector<gray_pixel_data_type> &line);
+
+    void proc_pt_per_row_cnt_related_work();
+
     void btns_refresh();
 
 private slots:
@@ -116,6 +126,8 @@ private slots:
     void on_dataCollStopPbt_clicked();
 
     void recv_data_finished_sig_hdlr();
+
+    void on_ptPerRowSpinBox_valueChanged(int arg1);
 
 signals:
     void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);
