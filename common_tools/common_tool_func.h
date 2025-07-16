@@ -167,4 +167,6 @@ T lcm(T a, T b)
 
 bool ip_addr_valid(QString &ip_str);
 
+extern const gray_pixel_data_type g_12bitpx_max_v;
+
 #endif // COMMON_TOOL_FUNC_H

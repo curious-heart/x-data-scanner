@@ -17,6 +17,10 @@ static const char* gs_str_img_raw_type = ".raw";
 static const char* gs_str_img_png_type = ".png";
 static const char* gs_str_8bit_img_apx = "-8bit";
 
+static const char* gs_scan_cali_file_path = "./scan_cali_datum";
+static const char* gs_scan_bg_value_fn = "scan_bg_data";
+static const char* gs_scan_stre_factor_value_fn = "scan_stre_factor_data";
+
 #undef RECV_DATA_NOTE_E
 #define RECV_DATA_NOTE_E(e) #e
 static const char* gs_recv_data_note_str [] = {RECV_DATA_NOTES};

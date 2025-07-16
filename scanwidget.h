@@ -79,6 +79,9 @@ private:
     UiConfigRecorder * m_cfg_recorder = nullptr;
     qobj_ptr_set_t m_rec_ui_cfg_fin, m_rec_ui_cfg_fout;
 
+    QVector<gray_pixel_data_type> m_scan_bg_value;
+    QVector<double> m_scan_stre_factor_value;
+
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);

@@ -2,7 +2,6 @@
 #include <QSerialPort>
 
 #include "logger/logger.h"
-#include "common_tools/common_tool_func.h"
 #include "sysconfigs/sysconfigs.h"
 #include "literal_strings/literal_strings.h"
 
@@ -67,11 +66,12 @@ static const char* gs_ini_key_allowed_max_scan_dura_sec = "allowed_max_scan_dura
 static const char* gs_ini_key_limit_recvd_line_number = "limit_recvd_line_number";
 static const char* gs_ini_key_enable_self_check = "enable_self_check";
 static const char* gs_ini_key_disable_monitor_during_scan = "disable_monitor_during_scan";
+static const char* gs_ini_key_def_scan_bg_value = "def_scan_bg_value";
+static const char* gs_ini_key_def_scan_stre_factor_value = "def_scan_stre_factor_value";
 
 static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
 static const char* gs_ini_key_pb_monitor_log = "pb_monitor_log";
-
 
 static const char* gs_ini_key_sport_name = "sport_name";
 static const char* gs_ini_key_sport_baudrate = "sport_baudrate";
@@ -145,6 +145,8 @@ static const int gs_def_allowed_max_scan_dura_sec = 30; //def val should not exc
 static const int gs_def_limit_recvd_line_number = 0;
 static const int gs_def_enable_self_check = 1;
 static const int gs_def_disable_monitor_during_scan = 1;
+static const gray_pixel_data_type gs_def_def_scan_bg_value = 10;
+static const double gs_def_def_scan_stre_factor_value = 2;
 
 static const int gs_def_pb_monitor_log = false;
 
@@ -177,6 +179,10 @@ static RangeChecker<int> gs_cfg_file_allow_scan_dura_sec_ranger(0, gs_allowed_ma
                         "", EDGE_EXCLUDED, EDGE_INCLUDED);
 
 RangeChecker<int> g_ip_port_ranger(0, 65535, "", EDGE_INCLUDED, EDGE_INCLUDED);
+RangeChecker<int> g_12bitpx_value_ranger(0, g_12bitpx_max_v, "", EDGE_INCLUDED, EDGE_INCLUDED);
+RangeChecker<double> g_12bitpx_stre_factor_ranger(1, g_12bitpx_max_v, "",
+                       EDGE_INCLUDED, EDGE_INCLUDED);
+
 
 /*the __VA_ARGS__ should be empty or a type converter like (cust_type).*/
 #define GET_INF_CFG_NUMBER_VAL(settings, key, type_func, var, def, factor, checker, ...)\
@@ -496,6 +502,12 @@ bool fill_sys_configs(QString * ret_str_ptr)
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_disable_monitor_during_scan, toInt,
                            g_sys_configs_block.disable_monitor_during_scan, gs_def_disable_monitor_during_scan,
                            1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_def_scan_bg_value, toInt,
+                           g_sys_configs_block.def_scan_bg_value, gs_def_def_scan_bg_value,
+                           1, &g_12bitpx_value_ranger, (gray_pixel_data_type));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_def_scan_stre_factor_value, toDouble,
+                           g_sys_configs_block.def_scan_stre_factor_value, gs_def_def_scan_stre_factor_value,
+                           1, &g_12bitpx_stre_factor_ranger);
     settings.endGroup();
 
     if(g_sys_configs_block.expo_to_coll_delay_def_ms >

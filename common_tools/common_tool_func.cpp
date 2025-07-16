@@ -679,6 +679,7 @@ template <typename T> void RangeChecker<T>::set_unit_str(QString unit_s)
 
 template class RangeChecker<int>;
 template class RangeChecker<float>;
+template class RangeChecker<double>;
 /*end of RangeChecker------------------------------*/
 
 const char* g_prop_name_def_color = "def_color";
@@ -929,3 +930,5 @@ bool ip_addr_valid(QString &ip_str)
     QHostAddress addr_checker;
     return addr_checker.setAddress(ip_str);
 }
+
+const gray_pixel_data_type g_12bitpx_max_v = 4095;

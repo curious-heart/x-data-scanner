@@ -2,6 +2,7 @@
 #define SYSCONFIGS_H
 
 #include <QString>
+#include "common_tools/common_tool_func.h"
 
 #define ENUM_NAME_DEF(e) e,
 #define MB_CUBE_CURRENT_UNIT_E \
@@ -91,6 +92,9 @@ typedef struct
 
     bool enable_self_check;
     bool disable_monitor_during_scan;
+
+    gray_pixel_data_type def_scan_bg_value;
+    double def_scan_stre_factor_value;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;
