@@ -11,6 +11,12 @@
 #include <type_traits>  // std::make_unsigned
 #include <QImage>
 
+typedef quint16 gray_pixel_data_type;
+typedef struct
+{
+    gray_pixel_data_type min_v, max_v;
+}pixel_mmpairt_s_t;
+
 typedef enum
 {
     IP_SET_TYPE_IPV4_DYNAMIC = 0,
@@ -127,7 +133,8 @@ public:
     void add_keys_to_filter(const QSet<Qt::Key> & keys);
 };
 
-QImage convertGrayscale16To8(const QImage &img16, QRect area = QRect(), QColor bg = QColor());
+QImage convertGrayscale16To8(const QImage &img16, QRect area = QRect(), QColor bg = QColor(),
+                             pixel_mmpairt_s_t *mmpair = nullptr);
 // 求最大公约数
 template <typename T>
 T gcd(T a, T b)

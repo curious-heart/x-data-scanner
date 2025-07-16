@@ -8,12 +8,11 @@
 
 #include "recvscanneddata.h"
 #include "config_recorder/uiconfigrecorder.h"
+#include "common_tools/common_tool_func.h"
 
 namespace Ui {
 class ScanWidget;
 }
-
-typedef quint16 gray_pixel_data_type;
 
 typedef enum
 {
@@ -26,6 +25,7 @@ typedef struct
     QVector<QVector<gray_pixel_data_type>> lines;
     int line_len;
     bool refreshed;
+    gray_pixel_data_type min_v, max_v;
 }gray_lines_s_t;
 
 typedef enum
@@ -36,8 +36,9 @@ typedef enum
 
 typedef struct
 {
-    int valid_line_cnt;
-    QImage img_buffer;
+    int valid_line_cnt, curr_work_img_ind;
+    QImage img_buffer, img_buffer2;
+    QVector<gray_pixel_data_type> img_line_min_vs, img_line_max_vs, img_line_min_vs2, img_line_max_vs2;
 }display_buf_img_s_t;
 
 class ScanWidget : public QWidget
@@ -89,7 +90,7 @@ private:
     void clear_recv_data_queue();
 
     void record_gray_img_line();
-    void add_line_to_display(QVector<gray_pixel_data_type> &line);
+    void add_line_to_display(QVector<gray_pixel_data_type> &line, gray_pixel_data_type min_v, gray_pixel_data_type max_v);
     void generate_gray_img(gray_img_disp_type_e_t disp_type);
     void display_gray_img(gray_img_disp_type_e_t disp_type);
     void save_local_imgs(gray_img_disp_type_e_t disp_type);
@@ -97,7 +98,6 @@ private:
     QString log_disp_prepender_str();
     bool chk_mk_pth_and_warn(QString &pth_str);
     void reset_display_img_buffer();
-    void clear_display_img();
 
     void btns_refresh();
 

@@ -830,7 +830,7 @@ bool CToolKeyFilter::eventFilter(QObject * obj, QEvent * evt)
 }
 
 
-QImage convertGrayscale16To8(const QImage &img16, const QRect area, QColor bg)
+QImage convertGrayscale16To8(const QImage &img16, const QRect area, QColor bg, pixel_mmpairt_s_t *mmpair)
 {
     bool opt_flag = false;
 
@@ -861,14 +861,22 @@ QImage convertGrayscale16To8(const QImage &img16, const QRect area, QColor bg)
     quint16 minV = 0xFFFF;
     quint16 maxV = 0;
 
-    for (int y = y_s; y < y_e; ++y)
+    if(mmpair)
     {
-        const quint16 *line16 = reinterpret_cast<const quint16 *>(img16.constScanLine(y));
-        for (int x = x_s; x < x_e; ++x)
+        minV = mmpair->min_v;
+        maxV = mmpair->max_v;
+    }
+    else
+    {
+        for (int y = y_s; y < y_e; ++y)
         {
-            quint16 v = line16[x];
-            if (v < minV) minV = v;
-            if (v > maxV) maxV = v;
+            const quint16 *line16 = reinterpret_cast<const quint16 *>(img16.constScanLine(y));
+            for (int x = x_s; x < x_e; ++x)
+            {
+                quint16 v = line16[x];
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
         }
     }
 

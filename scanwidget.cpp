@@ -1,4 +1,5 @@
 ﻿#include <cstring>
+#include <algorithm>
 #include <QMessageBox>
 #include <QByteArray>
 
@@ -6,7 +7,6 @@
 #include "ui_scanwidget.h"
 
 #include "sysconfigs/sysconfigs.h"
-#include "common_tools/common_tool_func.h"
 #include "syssettings.h"
 #include "literal_strings/literal_strings.h"
 
@@ -57,7 +57,10 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
     reset_display_img_buffer();
-    clear_display_img();
+    m_display_buf_img.img_line_min_vs.resize(g_sys_configs_block.scrn_h);
+    m_display_buf_img.img_line_max_vs.resize(g_sys_configs_block.scrn_h);
+    m_display_buf_img.img_line_min_vs2.resize(g_sys_configs_block.scrn_h);
+    m_display_buf_img.img_line_max_vs2.resize(g_sys_configs_block.scrn_h);
 
     recv_data_workerThread->start();
 
@@ -84,25 +87,26 @@ void ScanWidget::reset_display_img_buffer()
     }
     m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
                                QImage::Format_Grayscale16);
-}
+    m_display_buf_img.img_buffer2 = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
+                               QImage::Format_Grayscale16);
 
-void ScanWidget::clear_display_img()
-{
     QColor bgColor = this->palette().color(QPalette::Window);
     m_display_buf_img.img_buffer.fill(bgColor.rgb());
+    m_display_buf_img.img_buffer2.fill(bgColor.rgb());
     m_display_buf_img.valid_line_cnt = 0;
+    m_display_buf_img.curr_work_img_ind = 0;
 }
 
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
+    ui->grayImgLbl->clear();
+
     clear_recv_data_queue();
 
     reset_display_img_buffer();
     ui->ptPerRowSpinBox->setDisabled(true);
 
     clear_gray_img_lines();
-    clear_display_img();
-    ui->grayImgLbl->clear();
 
     QString curr_date_str = common_tool_get_curr_date_str();
     QString curr_path = g_sys_settings_blk.img_save_path + "/" + curr_date_str;
@@ -326,6 +330,7 @@ void ScanWidget::clear_gray_img_lines()
     m_gray_img_lines.lines.clear();
     m_gray_img_lines.refreshed = false;
     m_gray_img_lines.line_len = 0;
+    m_gray_img_lines.max_v = m_gray_img_lines.min_v = 0;
 }
 
 void ScanWidget::record_gray_img_line()
@@ -342,16 +347,21 @@ void ScanWidget::record_gray_img_line()
     m_gray_img_lines.line_len = m_curr_line_pt_cnt;
     m_gray_img_lines.refreshed = true;
 
-    add_line_to_display(line);
+    auto mmpair = std::minmax_element(line.begin(), line.end());
+    if(*mmpair.first < m_gray_img_lines.min_v) m_gray_img_lines.min_v = *mmpair.first;
+    if(*mmpair.second > m_gray_img_lines.max_v) m_gray_img_lines.max_v = *mmpair.second;
+
+    add_line_to_display(line, *mmpair.first, *mmpair.second);
 }
 
-void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line)
+void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_pixel_data_type min_v, gray_pixel_data_type max_v)
 {
     int img_disp_area_height = m_display_buf_img.img_buffer.height();
     int bytesPerLine = m_display_buf_img.img_buffer.bytesPerLine();  // 注意：不是 width * 2，包含对齐
     int target_line_idx;
-
-    uchar *data = m_display_buf_img.img_buffer.bits();
+    QImage *work_img;
+    gray_pixel_data_type work_area_min_v, work_area_max_v;
+    int work_area_height;
 
     if (line.count() > m_display_buf_img.img_buffer.width())
     {
@@ -359,27 +369,84 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line)
         return;
     }
 
-    if(m_display_buf_img.valid_line_cnt >= img_disp_area_height)
+    if(m_display_buf_img.valid_line_cnt < img_disp_area_height)
     {
-        // 上移一行（height - 1 行拷贝到顶部）
-        memmove(data, data + bytesPerLine, bytesPerLine * (img_disp_area_height - 1));
+        //just copy the line into buffer.
+        uchar *data = m_display_buf_img.img_buffer.bits();
+        target_line_idx = m_display_buf_img.valid_line_cnt;
+        memcpy(data + bytesPerLine * target_line_idx, line.constData(),
+                   line.count()*sizeof(gray_pixel_data_type));
+        m_display_buf_img.img_line_min_vs[target_line_idx] = min_v;
+        m_display_buf_img.img_line_max_vs[target_line_idx] = max_v;
 
-        target_line_idx = img_disp_area_height - 1;
+        work_img = &m_display_buf_img.img_buffer;
+
+        work_area_min_v = *(std::min_element(m_display_buf_img.img_line_min_vs.begin(),
+                               m_display_buf_img.img_line_min_vs.begin() + target_line_idx + 1));
+        work_area_max_v = *(std::max_element(m_display_buf_img.img_line_max_vs.begin(),
+                               m_display_buf_img.img_line_max_vs.begin() + target_line_idx + 1));
+
+        work_area_height = target_line_idx + 1;
     }
     else
     {
-        target_line_idx = m_display_buf_img.valid_line_cnt;
-        ++m_display_buf_img.valid_line_cnt;
+        //switch work image.
+        uchar *src, *dst;
+        QVector<gray_pixel_data_type> *src_minv, *src_maxv, *dst_minv, *dst_maxv;
+        if(0 == m_display_buf_img.curr_work_img_ind)
+        {
+            src = m_display_buf_img.img_buffer.bits();
+            src_minv = &m_display_buf_img.img_line_min_vs;
+            src_maxv = &m_display_buf_img.img_line_max_vs;
+
+            dst = m_display_buf_img.img_buffer2.bits();
+            dst_minv = &m_display_buf_img.img_line_min_vs2;
+            dst_maxv = &m_display_buf_img.img_line_max_vs2;
+
+
+            m_display_buf_img.curr_work_img_ind = 1;
+            work_img = &m_display_buf_img.img_buffer2;
+        }
+        else
+        {
+            src = m_display_buf_img.img_buffer2.bits();
+            src_minv = &m_display_buf_img.img_line_min_vs2;
+            src_maxv = &m_display_buf_img.img_line_max_vs2;
+
+            dst = m_display_buf_img.img_buffer.bits();
+            dst_minv = &m_display_buf_img.img_line_min_vs;
+            dst_maxv = &m_display_buf_img.img_line_max_vs;
+
+            m_display_buf_img.curr_work_img_ind = 0;
+            work_img = &m_display_buf_img.img_buffer;
+        }
+        //copy img data
+        memcpy(dst, src + bytesPerLine,
+               bytesPerLine * (m_display_buf_img.img_buffer.height() - 1));
+
+        target_line_idx = m_display_buf_img.img_buffer.height() - 1;
+        memcpy(dst + bytesPerLine * target_line_idx, line.constData(),
+                   line.count()*sizeof(gray_pixel_data_type));
+
+        //copy mm pairs
+        std::copy(src_minv->begin() + 1, src_minv->end(), dst_minv->begin());
+        std::copy(src_maxv->begin() + 1, src_maxv->end(), dst_maxv->begin());
+        (*dst_minv)[dst_minv->size() - 1] = min_v;
+        (*dst_maxv)[dst_maxv->size() - 1] = max_v;
+
+        work_area_min_v = *(std::min_element(dst_minv->begin(),dst_minv->end()));
+        work_area_max_v = *(std::max_element(dst_maxv->begin(),dst_maxv->end()));
+
+        work_area_height = work_img->height();
     }
+    ++m_display_buf_img.valid_line_cnt;
 
-    // 拷贝新行到底部
-    memcpy(data + bytesPerLine * target_line_idx, line.constData(),
-               line.count()*sizeof(gray_pixel_data_type));
+    pixel_mmpairt_s_t mmpair;
+    mmpair.min_v = work_area_min_v; mmpair.max_v = work_area_max_v;
 
-    QRect valid_area = QRect(0, 0, m_display_buf_img.img_buffer.width(),
-                                   m_display_buf_img.valid_line_cnt);
-    QImage disp_img = convertGrayscale16To8(m_display_buf_img.img_buffer, valid_area,
-                                            this->palette().color(QPalette::Window));
+    QRect valid_area = QRect(0, 0, m_display_buf_img.img_buffer.width(), work_area_height);
+    QImage disp_img = convertGrayscale16To8(*work_img, valid_area,
+                                        this->palette().color(QPalette::Window), &mmpair);
     QPixmap scaled = QPixmap::fromImage(disp_img)
                 .scaled(ui->grayImgLbl->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     ui->grayImgLbl->setPixmap(scaled);
