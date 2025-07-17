@@ -5,14 +5,14 @@
 #include "common_tools/common_tool_func.h"
 
 #define ENUM_NAME_DEF(e) e,
-#define MB_CUBE_CURRENT_UNIT_E \
-    ENUM_NAME_DEF(MB_CUBE_CURRENT_UNIT_UA)\
-    ENUM_NAME_DEF(MB_CUBE_CURRENT_UNIT_MA)\
-    ENUM_NAME_DEF(MB_CUBE_CURRENT_UNIT_A)
+#define MB_TUBE_CURRENT_UNIT_E \
+    ENUM_NAME_DEF(MB_TUBE_CURRENT_UNIT_UA)\
+    ENUM_NAME_DEF(MB_TUBE_CURRENT_UNIT_MA)\
+    ENUM_NAME_DEF(MB_TUBE_CURRENT_UNIT_A)
 typedef enum
 {
-    MB_CUBE_CURRENT_UNIT_E
-}mb_cube_current_unit_e_t;
+    MB_TUBE_CURRENT_UNIT_E
+}mb_tube_current_unit_e_t;
 
 #define MB_DURA_UNIT_E \
     ENUM_NAME_DEF(MB_DURA_UNIT_MS) \
@@ -48,25 +48,25 @@ typedef struct
 {
     int log_level;
 
-    float cool_dura_factor;
+    double cool_dura_factor;
     int extra_cool_time_ms;
     int expo_prepare_time_ms, consec_rw_wait_ms;
 
-    int cube_volt_kv_min;
-    int cube_volt_kv_max;
-    float cube_current_ma_min;
-    float cube_current_ma_max;
-    float dura_ms_min;
-    float dura_ms_max;
+    int tube_volt_kv_min;
+    int tube_volt_kv_max;
+    double tube_current_ma_min;
+    double tube_current_ma_max;
+    double dura_ms_min;
+    double dura_ms_max;
 
-    float coil_current_a_min, coil_current_a_max;
+    double coil_current_a_min, coil_current_a_max;
 
     int mb_reconnect_wait_ms, mb_err_retry_wait_ms;
     int test_time_stat_grain_sec;
     int mb_one_cmd_round_time_ms;
 
-    mb_cube_current_unit_e_t mb_cube_current_intf_unit, ui_current_unit;
-    mb_dura_unit_e_t mb_dura_intf_unit, hidden_ui_mb_dura_unit;
+    mb_tube_current_unit_e_t mb_tube_current_intf_unit, ui_current_unit;
+    mb_dura_unit_e_t mb_dura_intf_unit, ui_mb_dura_unit;
 
     int test_proc_monitor_period_ms;
 
@@ -91,6 +91,8 @@ typedef struct
     modbus_conn_parameters_struct_t x_ray_mb_conn_params;
 
     bool enable_self_check;
+    bool skip_pwr_self_chk, skip_x_src_self_chk, skip_detector_self_chk, skip_storage_self_chk;
+
     bool disable_monitor_during_scan;
 
     gray_pixel_data_type def_scan_bg_value;

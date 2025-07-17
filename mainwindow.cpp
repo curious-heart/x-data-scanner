@@ -38,7 +38,7 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     m_cfg_recorder.load_configs_to_ui(this, m_rec_ui_cfg_fin, m_rec_ui_cfg_fout);
 
     /*this widget should be newed first since it loads sys settings.*/
-    m_syssettings_widget = new SysSettingsWidget(this);
+    m_syssettings_widget = new SysSettingsWidget(&m_cfg_recorder, this);
     m_syssettings_widget->hide();
 
     m_stacked_widget = new QStackedWidget(this);
@@ -68,24 +68,36 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
 
     connect(this, &MainWindow::self_check_item_ret_sig,
             m_self_chk_widget, &SelfCheckWidget::self_check_item_ret_sig_hdlr, Qt::QueuedConnection);
-    connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_chk,
+    connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_check_next_item_hdlr,
             Qt::QueuedConnection);
+    connect(this, &MainWindow::self_check_finished_sig,
+            this, &MainWindow::self_check_finished_sig_hdlr,Qt::QueuedConnection);
 
-    m_self_check_finish_timer.setSingleShot(true);
-    connect(&m_self_check_finish_timer, &QTimer::timeout,
-            this, &MainWindow::goto_login_widget, Qt::QueuedConnection);
+    setup_sport_parameters();
 
-    if(g_sys_configs_block.enable_self_check)
+    setup_hv_conn_client();
+
+    m_scan_widget->setup_tools(m_hv_conn_device);
+
+    self_check(g_sys_configs_block.enable_self_check);
+}
+
+void MainWindow::self_check(bool go_check)
+{
+    if(!m_pb_sport_open) open_sport();
+    if(m_hv_conn_state != QModbusDevice::ConnectedState) hv_connect();
+
+    if(go_check)
     {
-        QTimer::singleShot(0, this, [this]() { self_chk(true); });
+        emit check_next_item_sig(true);
     }
     else
     {
-        m_self_check_finish_timer.start(1000);
+        emit self_check_finished_sig(true);
     }
 }
 
-void MainWindow::self_chk(bool start)
+void MainWindow::self_check_next_item_hdlr(bool start)
 {
     static int hdlr_idx = 0;
     static bool ret = true;
@@ -102,7 +114,7 @@ void MainWindow::self_chk(bool start)
 
         if(final_ret)
         {
-            m_self_check_finish_timer.start(1000);
+            emit self_check_finished_sig(final_ret);
         }
         return;
     }
@@ -115,7 +127,8 @@ void MainWindow::self_chk(bool start)
 
 bool MainWindow::pwr_st_check()
 {
-    bool ret = open_sport();
+    bool ret = pb_monitor_check_st_hdlr();
+
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, ret);
 
     emit check_next_item_sig();
@@ -156,6 +169,9 @@ MainWindow::~MainWindow()
     close_sport();
     m_pb_monitor_timer.stop();
 
+    hv_disconnect();
+    m_hv_reconn_wait_timer.stop();
+
     rec_widgets_ui_settings();
 
     delete ui;
@@ -165,14 +181,9 @@ void MainWindow::self_check_finished_sig_hdlr(bool result)
 {
     if(result)
     {
-        if(m_stacked_widget->indexOf(m_login_widget) < 0)
-        {
-            m_stacked_widget->addWidget(m_login_widget);
-        }
-        m_stacked_widget->setCurrentWidget(m_login_widget);
-
-        m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+        goto_login_widget();
     }
+    m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
 }
 
 void MainWindow::goto_login_widget()
@@ -182,8 +193,6 @@ void MainWindow::goto_login_widget()
         m_stacked_widget->addWidget(m_login_widget);
     }
     m_stacked_widget->setCurrentWidget(m_login_widget);
-
-    m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
 }
 
 void MainWindow::login_chk_passed_sig_hdlr()
@@ -243,29 +252,37 @@ void MainWindow::pb_monitor_timer_hdlr()
     }
 }
 
-void MainWindow::pb_monitor_check_st_hdlr()
+#define CHECK_SPORT_AND_OPEN(...) \
+if(!m_pb_sport_open && !open_sport())\
+{\
+    return __VA_ARGS__;\
+}
+
+bool MainWindow::pb_monitor_check_st_hdlr()
 {
     QString log_str;
     LOG_LEVEL log_lvl = LOG_INFO;
     bool set_ok;
-    char data_arr[] = {gs_addr_byte,
+    static char data_arr[] = {gs_addr_byte,
                     (char)((gs_pwr_st_chk_val >> 8) & 0xFF), (char)(gs_pwr_st_chk_val& 0xFF),
                     gs_dif_byte_pwr_st};
     int byte_cnt = ARRAY_COUNT(data_arr);
+    QString charging_str = g_str_unkonw_st, bat_lvl_str = g_str_unkonw_st;
 
-    set_ok = write_to_sport(data_arr, byte_cnt, true, g_sys_configs_block.pb_monitor_log);
+    CHECK_SPORT_AND_OPEN(false);
+
+    set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
     if(set_ok)
     {
         quint16 volt_val, bat_pct;
         qint16 current_val;
         int val_byte_idx = 1;
         char read_data[gs_pwr_st_msg_len];
-        bool read_ret;
-        read_ret = read_from_sport(read_data, gs_pwr_st_msg_len,
+        set_ok = read_from_sport(read_data, gs_pwr_st_msg_len,
                                    g_sys_configs_block.pb_monitor_log);
         do
         {
-            if(!read_ret)
+            if(!set_ok)
             {
                 log_lvl = LOG_ERROR;
                 log_str += "read serial port error.\n";
@@ -276,7 +293,9 @@ void MainWindow::pb_monitor_check_st_hdlr()
                     || read_data[gs_pwr_st_msg_len - 1] != gs_dif_byte_pwr_st)
             {
                 log_lvl = LOG_ERROR;
-                log_str += "bytes array format error.\n";
+                log_str += "bytes array format error:\n";
+                log_str += QByteArray(read_data, sizeof(read_data)).toHex(' ').toUpper() + "\n";
+                set_ok = false;
                 break;
             }
             volt_val = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
@@ -285,33 +304,35 @@ void MainWindow::pb_monitor_check_st_hdlr()
             *((char*)(&current_val) + 1) = read_data[val_byte_idx];
             *(char*)(&current_val) = read_data[val_byte_idx + 1];
             val_byte_idx += 2;
-            QString charging_str = current_val > 0 ? g_str_charging : "";
-            ui->batImgLbl->setText(charging_str);
+            charging_str = current_val > 0 ? g_str_charging : "";
 
             bat_pct = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
             val_byte_idx += 2;
-            ui->batLvlDispLbl->setText(QString::number(bat_pct) + "%");
+            bat_lvl_str = QString::number(bat_pct) + "%";
             break;
         }while(true);
 
-        if(g_sys_configs_block.pb_monitor_log && !log_str.isEmpty())
-        {
-            DIY_LOG(log_lvl, log_str);
-        }
     }
+    else
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "write serial port error.\n";
+    }
+
+    ui->batImgLbl->setText(charging_str);
+    ui->batLvlDispLbl->setText(bat_lvl_str);
+
+    if(g_sys_configs_block.pb_monitor_log && !log_str.isEmpty())
+    {
+        DIY_LOG(log_lvl, log_str);
+    }
+    return set_ok;
 }
 
-#define CHECK_SPORT_OPEN(ret, silent) \
-if(!m_pb_sport_open)\
-{\
-    if(!silent) QMessageBox::critical(this, "", g_str_plz_conn_dev_firstly);\
-    return ret;\
-}
-
-bool MainWindow::write_to_sport(char* data_arr, qint64 byte_cnt, bool silent, bool log_rw)
+bool MainWindow::write_to_sport(char* data_arr, qint64 byte_cnt, bool log_rw)
 {
     bool set_ok = false;
-    CHECK_SPORT_OPEN(set_ok, silent);
+    CHECK_SPORT_AND_OPEN(set_ok);
 
     QString log_str;
     LOG_LEVEL log_lvl;
@@ -347,6 +368,8 @@ bool MainWindow::read_from_sport(char* read_data, qint64 buf_size, bool log_rw)
     QString log_str;
     LOG_LEVEL log_lvl = LOG_INFO;
 
+    CHECK_SPORT_AND_OPEN(false);
+
     int idx = 0;
     qint64 bytes_read_this_op = 0, total_bytes_read = 0;
     while(idx < gs_sport_read_try_cnt && total_bytes_read < buf_size)
@@ -372,7 +395,7 @@ bool MainWindow::read_from_sport(char* read_data, qint64 buf_size, bool log_rw)
     return ret;
 }
 
-bool MainWindow::open_sport()
+void MainWindow::setup_sport_parameters()
 {
     m_pb_sport.setPortName(g_sys_configs_block.pb_sport_params.com_port_s);
     m_pb_sport.setBaudRate((QSerialPort::BaudRate)g_sys_configs_block.pb_sport_params.boudrate);
@@ -380,7 +403,10 @@ bool MainWindow::open_sport()
     m_pb_sport.setParity((QSerialPort::Parity)g_sys_configs_block.pb_sport_params.parity);
     m_pb_sport.setStopBits((QSerialPort::StopBits)g_sys_configs_block.pb_sport_params.stopbits);
     m_pb_sport.setFlowControl(QSerialPort::NoFlowControl);
+}
 
+bool MainWindow::open_sport()
+{
     QString sport_info_str = QString("name: %1, baudrate: %2, databits: %3,"
                                      "parity: %4, stopbits: %5")
                             .arg(g_sys_configs_block.pb_sport_params.com_port_s)
@@ -408,43 +434,134 @@ bool MainWindow::open_sport()
 
 bool MainWindow::close_sport()
 {
+    m_pb_sport.close();
+
+    m_pb_sport_open = false;
     return true;
 }
 
-void MainWindow::setup_modbus_client()
+void MainWindow::setup_hv_conn_client()
 {
-    m_modbus_device = new QModbusRtuSerialMaster(this);
+    m_hv_conn_device = new QModbusRtuSerialMaster(this);
 
-    m_modbus_device->setConnectionParameter(QModbusDevice::SerialPortNameParameter,
+    m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialPortNameParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.com_port_s);
-    m_modbus_device->setConnectionParameter(QModbusDevice::SerialBaudRateParameter,
+    m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialBaudRateParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.boudrate);
-    m_modbus_device->setConnectionParameter(QModbusDevice::SerialDataBitsParameter,
+    m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialDataBitsParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.databits);
-    m_modbus_device->setConnectionParameter(QModbusDevice::SerialParityParameter,
+    m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialParityParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.parity);
-    m_modbus_device->setConnectionParameter(QModbusDevice::SerialStopBitsParameter,
+    m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialStopBitsParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.stopbits);
-    m_modbus_device->setTimeout(g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms);
+    m_hv_conn_device->setTimeout(g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms);
 
-    connect(m_modbus_device, &QModbusClient::errorOccurred,
-            this, &MainWindow::modbus_error_sig_handler, Qt::QueuedConnection);
-    connect(m_modbus_device, &QModbusClient::stateChanged,
-            this, &MainWindow::modbus_state_changed_sig_handler, Qt::QueuedConnection);
+    connect(m_hv_conn_device, &QModbusClient::errorOccurred,
+            this, &MainWindow::hv_conn_error_sig_handler, Qt::QueuedConnection);
+    connect(m_hv_conn_device, &QModbusClient::stateChanged,
+            this, &MainWindow::hv_conn_state_changed_sig_handler, Qt::QueuedConnection);
+
+    m_hv_reconn_wait_timer.setSingleShot(true);
+    connect(&m_hv_reconn_wait_timer, &QTimer::timeout,
+            this, &MainWindow::hv_reconn_wait_timer_sig_handler, Qt::QueuedConnection);
+}
+void MainWindow::hv_connect()
+{
+    if(m_hv_conn_device)
+    {
+        m_hv_conn_device->connectDevice();
+    }
 }
 
-void MainWindow::modbus_error_sig_handler(QModbusDevice::Error error)
-{}
+void MainWindow::hv_disconnect()
+{
+    if(m_hv_conn_device)
+    {
+        m_hv_conn_device->disconnectDevice();
+    }
+}
 
-void MainWindow::modbus_state_changed_sig_handler(QModbusDevice::State state)
-{}
+void MainWindow::hv_conn_error_sig_handler(QModbusDevice::Error error)
+{
+    /*The strings below are in the same order of enum QModbusDevice::Error.*/
+    static const char* err_str[] =
+    {
+        "No errors have occurred.",
+        "An error occurred during a read operation.",
+        "An error occurred during a write operation.",
+        "An error occurred when attempting to open the backend.",
+        "An error occurred when attempting to set a configuration parameter.",
+        "A timeout occurred during I/O. An I/O operation did not finish within a given time frame.",
+        "A Modbus specific protocol error occurred.",
+        "The reply was aborted due to a disconnection of the device.",
+        "An unknown error occurred.",
+    };
+    QString curr_str;
+
+    curr_str = (error < 0 || error >= ARRAY_COUNT(err_str)) ?
+                    QString("%1:%2").arg(g_str_modbus_exceptional_error, QString::number(error))
+                    : err_str[error];
+
+    if((error < 0) || (QModbusDevice::NoError != error))
+    {
+        DIY_LOG(LOG_ERROR, curr_str);
+    }
+    QString stylesheet = (QModbusDevice::NoError == error) ? "QLabel { color : black; }"
+                                                : "QLabel { color : red; }";
+    ui->hvConnLbl->setStyleSheet(stylesheet);
+    ui->hvConnLbl->setText(QString::number(error));
+}
+
+void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
+{
+    /*The following strings are in the same order with enum QModbusDevice::State*/
+    static const char* state_str[] =
+    {
+        "The device is disconnected.",
+        "The device is being connected.",
+        "The device is connected to the Modbus network.",
+        "The device is being closed.",
+    };
+
+    m_hv_conn_state = state;
+
+    QString curr_str = (state < 0 || (int)state >= ARRAY_COUNT(state_str)) ?
+                QString("%1:%2").arg(g_str_modbus_unkonwn_state, QString::number(state))
+              : state_str[state];
+    DIY_LOG(LOG_INFO, curr_str);
+
+    QString lbl_str, stylesheet;
+    if(QModbusDevice::ConnectedState == state)
+    {
+        lbl_str = g_str_connected;
+        stylesheet = "QLabel { color : darkgreen; }";
+    }
+    else
+    {
+        lbl_str = g_str_disconnected;
+        stylesheet = "QLabel { color : red; }";
+        if(QModbusDevice::UnconnectedState == state)
+        {
+            m_hv_reconn_wait_timer.start(g_sys_configs_block.mb_reconnect_wait_ms);
+        }
+    }
+    ui->hvConnLbl->setStyleSheet(stylesheet);
+    ui->hvConnLbl->setText(lbl_str);
+}
+
+void MainWindow::hv_reconn_wait_timer_sig_handler()
+{
+    hv_connect();
+}
 
 void MainWindow::load_widgets_ui_settings()
 {
     m_scan_widget->load_ui_settings();
+    m_syssettings_widget->load_ui_settings();
 }
 
 void MainWindow::rec_widgets_ui_settings()
 {
     m_scan_widget->rec_ui_settings();
+    m_syssettings_widget->rec_ui_settings();
 }

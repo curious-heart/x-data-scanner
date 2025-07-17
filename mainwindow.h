@@ -29,9 +29,10 @@ public:
 
     SelfCheckWidget * m_self_chk_widget;
 
+    void setup_sport_parameters();
     bool open_sport();
     bool close_sport();
-    bool write_to_sport(char* data_arr, qint64 byte_cnt, bool silent, bool log_rw);
+    bool write_to_sport(char* data_arr, qint64 byte_cnt, bool log_rw);
     bool read_from_sport(char* read_data, qint64 buf_size, bool log_rw);
 
 private:
@@ -59,18 +60,21 @@ private:
         &MainWindow::detector_st_check,
         &MainWindow::storage_st_check,
     };
-    QTimer m_self_check_finish_timer;
+    void self_check(bool go_check = true);
     bool pwr_st_check();
     bool x_ray_source_st_check();
     bool detector_st_check();
     bool storage_st_check();
-    void self_chk(bool start = false);
+    void self_check_next_item_hdlr(bool start = false);
 
     void goto_login_widget();
 
-    QModbusClient * m_modbus_device = nullptr;
-    QTimer m_reconn_wait_timer;
-    void setup_modbus_client();
+    QModbusClient * m_hv_conn_device = nullptr;
+    QTimer m_hv_reconn_wait_timer;
+    QModbusDevice::State m_hv_conn_state = QModbusDevice::UnconnectedState;
+    void setup_hv_conn_client();
+    void hv_connect();
+    void hv_disconnect();
 
     void load_widgets_ui_settings();
     void rec_widgets_ui_settings();
@@ -79,14 +83,16 @@ public slots:
     void self_check_finished_sig_hdlr(bool result);
     void login_chk_passed_sig_hdlr();
     void pb_monitor_timer_hdlr();
-    void pb_monitor_check_st_hdlr();
+    bool pb_monitor_check_st_hdlr();
 
-    void modbus_error_sig_handler(QModbusDevice::Error error);
-    void modbus_state_changed_sig_handler(QModbusDevice::State state);
+    void hv_conn_error_sig_handler(QModbusDevice::Error error);
+    void hv_conn_state_changed_sig_handler(QModbusDevice::State state);
+    void hv_reconn_wait_timer_sig_handler();
 
 signals:
     void check_next_item_sig(bool start = false);
     void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t, bool ret);
+    void self_check_finished_sig(bool result);
     void pb_monitor_check_st();
 };
 #endif // MAINWINDOW_H

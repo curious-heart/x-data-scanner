@@ -31,6 +31,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
+
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
 
@@ -73,6 +75,11 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     recv_data_workerThread->start();
 
     btns_refresh();
+}
+
+void ScanWidget::setup_tools(QModbusClient * modbus_device)
+{
+    m_hv_conn_device = modbus_device;
 }
 
 ScanWidget::~ScanWidget()

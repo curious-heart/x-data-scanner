@@ -5,10 +5,12 @@
 #include <QTimer>
 #include <QFile>
 #include <QMutex>
+#include <QModbusClient>
 
 #include "recvscanneddata.h"
 #include "config_recorder/uiconfigrecorder.h"
 #include "common_tools/common_tool_func.h"
+#include "hv_ops_internal.h"
 
 namespace Ui {
 class ScanWidget;
@@ -51,8 +53,12 @@ public:
     void rec_ui_settings();
     void load_ui_settings();
 
+    void setup_tools(QModbusClient * modbus_device);
+
 private:
     Ui::ScanWidget *ui;
+
+    QModbusClient * m_hv_conn_device = nullptr;
 
     RecvScannedData *recv_data_worker;
     QThread *recv_data_workerThread;
@@ -113,6 +119,8 @@ private:
     void proc_pt_per_row_cnt_related_work();
 
     void btns_refresh();
+
+    void hv_construct_mb_du(hv_op_enum_t op, QModbusDataUnit &mb_du);
 
 private slots:
     void handleNewDataReady();

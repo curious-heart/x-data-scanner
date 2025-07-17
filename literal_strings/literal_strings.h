@@ -5,8 +5,8 @@
     extern const char* var_name;
 
 #define LIT_STRINGS_LIST \
-STR_DELCARE_STMT(g_str_cube_volt, "管电压") \
-STR_DELCARE_STMT(g_str_cube_current, "管电流") \
+STR_DELCARE_STMT(g_str_tube_volt, "管电压") \
+STR_DELCARE_STMT(g_str_tube_current, "管电流") \
 STR_DELCARE_STMT(g_str_current, "电流") \
 STR_DELCARE_STMT(g_str_expo_dura, "曝光时间") \
 STR_DELCARE_STMT(g_str_coil_current, "灯丝电流") \
@@ -37,8 +37,9 @@ STR_DELCARE_STMT(g_str_invalid_ip_addr, "无效的ip地址") \
 STR_DELCARE_STMT(g_str_plz_conn_dev_firstly, "请先连接设备") \
 STR_DELCARE_STMT(g_str_charging, "正在充电") \
 STR_DELCARE_STMT(gs_str_sport_open_succeed, "串口打开成功") \
-STR_DELCARE_STMT(gs_str_sport_open_fail, "串口打开失败")
-
+STR_DELCARE_STMT(gs_str_sport_open_fail, "串口打开失败") \
+STR_DELCARE_STMT(g_str_modbus_exceptional_error, "异常的modbus错误") \
+STR_DELCARE_STMT(g_str_modbus_unkonwn_state ,"未知的modbus连接状态")
 
 LIT_STRINGS_LIST
 

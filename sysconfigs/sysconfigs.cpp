@@ -21,10 +21,10 @@ static const char* gs_ini_key_mb_consec_rw_wait_ms = "mb_consec_rw_wait_ms";
 static const char* gs_ini_key_mb_err_retry_wait_ms = "mb_err_retry_wait_ms";
 static const char* gs_ini_key_mb_one_cmd_round_time_ms = "mb_one_cmd_round_time_ms";
 
-static const char* gs_ini_key_cube_volt_kv_min = "cube_volt_kv_min";
-static const char* gs_ini_key_cube_volt_kv_max = "cube_volt_kv_max";
-static const char* gs_ini_key_cube_current_ma_min = "cube_current_ma_min";
-static const char* gs_ini_key_cube_current_ma_max = "cube_current_ma_max";
+static const char* gs_ini_key_tube_volt_kv_min = "tube_volt_kv_min";
+static const char* gs_ini_key_tube_volt_kv_max = "tube_volt_kv_max";
+static const char* gs_ini_key_tube_current_ma_min = "tube_current_ma_min";
+static const char* gs_ini_key_tube_current_ma_max = "tube_current_ma_max";
 static const char* gs_ini_key_dura_sec_min = "dura_sec_min";
 static const char* gs_ini_key_dura_sec_max = "dura_sec_max";
 static const char* gs_ini_key_mb_reconnect_wait_sep_ms = "mb_reconnect_wait_sep_ms";
@@ -33,11 +33,11 @@ static const char* gs_ini_key_test_time_stat_grain_sec = "test_time_stat_grain_s
 static const char* gs_ini_key_coil_current_a_min = "coil_current_a_min";
 static const char* gs_ini_key_coil_current_a_max = "coil_current_a_max";
 
-static const char* gs_ini_key_mb_cube_current_intf_unit = "mb_cube_current_intf_unit";
+static const char* gs_ini_key_mb_tube_current_intf_unit = "mb_tube_current_intf_unit";
 static const char* gs_ini_key_ui_current_unit = "ui_current_unit";
 
 static const char* gs_ini_key_mb_dura_intf_unit = "mb_dura_intf_unit";
-static const char* gs_ini_key_hidden_ui_mb_dura_unit = "hidden_ui_mb_dura_unit";
+static const char* gs_ini_key_ui_mb_dura_unit = "ui_mb_dura_unit";
 
 static const char* gs_ini_key_test_proc_monitor_period_ms = "test_proc_monitor_period_ms";
 static const char* gs_ini_key_mb_srv_addr = "mb_srv_addr";
@@ -52,6 +52,13 @@ static const char* gs_ini_key_tube_or_oilbox_no_disp = "tube_or_oilbox_no_disp";
 static const char* gs_ini_key_test_params_settings_disp = "test_params_settings_disp";
 static const char* gs_ini_key_pause_test_disp = "pause_test_disp";
 
+static const char* gs_ini_grp_self_check_cfg = "self_check_cfg";
+static const char* gs_ini_key_enable_self_check = "enable_self_check";
+static const char* gs_ini_key_skip_pwr_self_chk = "skip_pwr_self_chk";
+static const char* gs_ini_key_skip_x_src_self_chk = "skip_x_src_self_chk";
+static const char* gs_ini_key_skip_detector_self_chk = "skip_detector_self_chk";
+static const char* gs_ini_key_skip_storage_self_chk = "skip_storage_self_chk";
+
 static const char* gs_ini_grp_sc_data_cfg = "sc_data_cfg";
 static const char* gs_ini_key_data_src_ip = "data_src_ip";
 static const char* gs_ini_key_data_src_port = "data_src_port";
@@ -64,7 +71,6 @@ static const char* gs_ini_key_scrn_w = "scrn_w";
 static const char* gs_ini_key_scrn_h = "scrn_h";
 static const char* gs_ini_key_allowed_max_scan_dura_sec = "allowed_max_scan_dura_sec";
 static const char* gs_ini_key_limit_recvd_line_number = "limit_recvd_line_number";
-static const char* gs_ini_key_enable_self_check = "enable_self_check";
 static const char* gs_ini_key_disable_monitor_during_scan = "disable_monitor_during_scan";
 static const char* gs_ini_key_def_scan_bg_value = "def_scan_bg_value";
 static const char* gs_ini_key_def_scan_stre_factor_value = "def_scan_stre_factor_value";
@@ -83,17 +89,17 @@ sys_configs_struct_t g_sys_configs_block;
 
 static const int gs_def_log_level = LOG_ERROR;
 
-static const int gs_def_cube_volt_kv_min = 40;
-static const int gs_def_cube_volt_kv_max = 90;
-static const float gs_def_cube_current_ma_min = 0.5;
-static const float gs_def_cube_current_ma_max = 5;
-static const float gs_def_dura_sec_min = 0.5;
-static const float gs_def_dura_sec_max = (float)1.4;
+static const int gs_def_tube_volt_kv_min = 40;
+static const int gs_def_tube_volt_kv_max = 90;
+static const double gs_def_tube_current_ma_min = 0.5;
+static const double gs_def_tube_current_ma_max = 5;
+static const double gs_def_dura_sec_min = 0.5;
+static const double gs_def_dura_sec_max = (double)1.4;
 
-static const float gs_def_coil_current_a_min = 0;
-static const float gs_def_coil_current_a_max = 2;
+static const double gs_def_coil_current_a_min = 0;
+static const double gs_def_coil_current_a_max = 2;
 
-static const float gs_def_cool_dura_factor = 30;
+static const double gs_def_cool_dura_factor = 30;
 static const int gs_def_extra_cool_time_ms = 2000;
 static const int gs_def_expo_prepare_time_ms = 3500;
 static const int gs_def_mb_consec_rw_wait_ms = 500;
@@ -122,14 +128,20 @@ static const char* gs_str_mb_intf_unit_error = "接口单位配置错误";
 static const char* gs_str_ui_unit_error = "ui显示单位配置错误";
 static const char* gs_str_should_be_one_val_of = "应为如下值之一：";
 static const char* gs_str_actual_val = "实际值";
-static const char* gs_str_hidden_ui_mb_dura_unit = "GUI隐藏的曝光时间单位选项";
+static const char* gs_str_ui_mb_dura_unit = "GUI曝光时间单位";
 static const char* gs_str_cannot_be_the_same = "不能相等";
 
-static const mb_cube_current_unit_e_t gs_def_mb_cube_current_intf_unit = MB_CUBE_CURRENT_UNIT_UA;
-static const mb_cube_current_unit_e_t gs_def_ui_current_unit = MB_CUBE_CURRENT_UNIT_UA;
+static const mb_tube_current_unit_e_t gs_def_mb_tube_current_intf_unit = MB_TUBE_CURRENT_UNIT_UA;
+static const mb_tube_current_unit_e_t gs_def_ui_current_unit = MB_TUBE_CURRENT_UNIT_UA;
 
 static const mb_dura_unit_e_t gs_def_mb_dura_intf_unit = MB_DURA_UNIT_MS;
-static const mb_dura_unit_e_t gs_def_hidden_ui_mb_dura_unit = MB_DURA_UNIT_MIN;
+static const mb_dura_unit_e_t gs_def_ui_mb_dura_unit = MB_DURA_UNIT_MIN;
+
+static const int gs_def_enable_self_check = 1;
+static const int gs_def_skip_pwr_self_chk = 0;
+static const int gs_def_skip_x_src_self_chk = 0;
+static const int gs_def_skip_detector_self_chk = 0;
+static const int gs_def_skip_storage_self_chk = 0;
 
 static const char* gs_def_data_src_ip = "192.168.1.123";
 static const int gs_def_data_src_port = 8020;
@@ -143,7 +155,6 @@ static const int gs_def_scrn_h = 800;
 static const int gs_allowed_max_scan_dura_sec = 30;
 static const int gs_def_allowed_max_scan_dura_sec = 30; //def val should not exceed above max val
 static const int gs_def_limit_recvd_line_number = 0;
-static const int gs_def_enable_self_check = 1;
 static const int gs_def_disable_monitor_during_scan = 1;
 static const gray_pixel_data_type gs_def_def_scan_bg_value = 10;
 static const double gs_def_def_scan_stre_factor_value = 2;
@@ -163,7 +174,7 @@ static RangeChecker<int> gs_cfg_file_log_level_ranger((int)LOG_DEBUG, (int)LOG_E
 static RangeChecker<int> gs_cfg_file_value_ge0_int_ranger(0, 0, "",
                            EDGE_INCLUDED, EDGE_INFINITE);
 
-static RangeChecker<float> gs_cfg_file_value_ge0_float_ranger(0, 0, "",
+static RangeChecker<double> gs_cfg_file_value_ge0_double_ranger(0, 0, "",
                        EDGE_INCLUDED, EDGE_INFINITE);
 
 static RangeChecker<int> gs_cfg_file_value_gt0_int_ranger(0, 0, "",
@@ -172,7 +183,7 @@ static RangeChecker<int> gs_cfg_file_value_gt0_int_ranger(0, 0, "",
 static RangeChecker<int> gs_cfg_file_value_01_int_ranger(0, 1, "",
                        EDGE_INCLUDED, EDGE_INCLUDED);
 
-static RangeChecker<float> gs_cfg_file_value_gt0_float_ranger(0, 0, "",
+static RangeChecker<double> gs_cfg_file_value_gt0_double_ranger(0, 0, "",
                        EDGE_EXCLUDED, EDGE_INFINITE);
 
 static RangeChecker<int> gs_cfg_file_allow_scan_dura_sec_ranger(0, gs_allowed_max_scan_dura_sec,
@@ -216,43 +227,43 @@ bool fill_sys_configs(QString * ret_str_ptr)
     /*--------------------*/
     settings.beginGroup(gs_ini_grp_expo_ctrl);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cube_volt_kv_min, toInt,
-                           g_sys_configs_block.cube_volt_kv_min, gs_def_cube_volt_kv_min,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_tube_volt_kv_min, toInt,
+                           g_sys_configs_block.tube_volt_kv_min, gs_def_tube_volt_kv_min,
                            1, (RangeChecker<int>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cube_volt_kv_max, toInt,
-                           g_sys_configs_block.cube_volt_kv_max, gs_def_cube_volt_kv_max,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_tube_volt_kv_max, toInt,
+                           g_sys_configs_block.tube_volt_kv_max, gs_def_tube_volt_kv_max,
                            1, (RangeChecker<int>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cube_current_ma_min, toFloat,
-                           g_sys_configs_block.cube_current_ma_min, gs_def_cube_current_ma_min,
-                           1, (RangeChecker<float>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_tube_current_ma_min, toDouble,
+                           g_sys_configs_block.tube_current_ma_min, gs_def_tube_current_ma_min,
+                           1, (RangeChecker<double>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cube_current_ma_max, toFloat,
-                           g_sys_configs_block.cube_current_ma_max, gs_def_cube_current_ma_max,
-                           1, (RangeChecker<float>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_tube_current_ma_max, toDouble,
+                           g_sys_configs_block.tube_current_ma_max, gs_def_tube_current_ma_max,
+                           1, (RangeChecker<double>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_min, toFloat,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_min, toDouble,
                            g_sys_configs_block.dura_ms_min, gs_def_dura_sec_min,
-                           1000, (RangeChecker<float>*)0);
+                           1000, (RangeChecker<double>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_max, toFloat,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_max, toDouble,
                            g_sys_configs_block.dura_ms_max, gs_def_dura_sec_max,
-                           1000, (RangeChecker<float>*)0);
+                           1000, (RangeChecker<double>*)0);
 
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_coil_current_a_min, toFloat,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_coil_current_a_min, toDouble,
                            g_sys_configs_block.coil_current_a_min, gs_def_coil_current_a_min,
-                           1, (RangeChecker<float>*)0);
+                           1, (RangeChecker<double>*)0);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_coil_current_a_max, toFloat,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_coil_current_a_max, toDouble,
                            g_sys_configs_block.coil_current_a_max, gs_def_coil_current_a_max,
-                           1, (RangeChecker<float>*)0);
+                           1, (RangeChecker<double>*)0);
 
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cool_dura_factor, toFloat,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_cool_dura_factor, toDouble,
                            g_sys_configs_block.cool_dura_factor, gs_def_cool_dura_factor,
-                           1, &gs_cfg_file_value_ge0_float_ranger);
+                           1, &gs_cfg_file_value_ge0_double_ranger);
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_extra_cool_time_ms, toInt,
                            g_sys_configs_block.extra_cool_time_ms, gs_def_extra_cool_time_ms,
@@ -282,24 +293,24 @@ bool fill_sys_configs(QString * ret_str_ptr)
                    g_sys_configs_block.mb_one_cmd_round_time_ms, gs_def_mb_one_cmd_round_time_ms,
                            1, &gs_cfg_file_value_ge0_int_ranger);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_cube_current_intf_unit, toInt,
-                           g_sys_configs_block.mb_cube_current_intf_unit,
-                           gs_def_mb_cube_current_intf_unit,
-                           1, (RangeChecker<int>*)0, (mb_cube_current_unit_e_t));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_tube_current_intf_unit, toInt,
+                           g_sys_configs_block.mb_tube_current_intf_unit,
+                           gs_def_mb_tube_current_intf_unit,
+                           1, (RangeChecker<int>*)0, (mb_tube_current_unit_e_t));
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_ui_current_unit, toInt,
                            g_sys_configs_block.ui_current_unit,
                            gs_def_ui_current_unit,
-                           1, (RangeChecker<int>*)0, (mb_cube_current_unit_e_t));
+                           1, (RangeChecker<int>*)0, (mb_tube_current_unit_e_t));
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_dura_intf_unit, toInt,
                            g_sys_configs_block.mb_dura_intf_unit,
                            gs_def_mb_dura_intf_unit,
                            1, (RangeChecker<int>*)0, (mb_dura_unit_e_t));
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_hidden_ui_mb_dura_unit, toInt,
-                           g_sys_configs_block.hidden_ui_mb_dura_unit,
-                           gs_def_hidden_ui_mb_dura_unit,
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_ui_mb_dura_unit, toInt,
+                           g_sys_configs_block.ui_mb_dura_unit,
+                           gs_def_ui_mb_dura_unit,
                            1, (RangeChecker<int>*)0, (mb_dura_unit_e_t));
 
 
@@ -343,21 +354,21 @@ bool fill_sys_configs(QString * ret_str_ptr)
     }\
     ret = ret && cfg_ret;
 
-    CHECK_LIMIT_RANGE(g_str_cube_volt,
-                g_sys_configs_block.cube_volt_kv_min, g_sys_configs_block.cube_volt_kv_max,
+    CHECK_LIMIT_RANGE(g_str_tube_volt,
+                g_sys_configs_block.tube_volt_kv_min, g_sys_configs_block.tube_volt_kv_max,
                 &gs_cfg_file_value_gt0_int_ranger, g_str_volt_unit_kv)
 
-    CHECK_LIMIT_RANGE(g_str_cube_current,
-                g_sys_configs_block.cube_current_ma_min, g_sys_configs_block.cube_current_ma_max,
-                &gs_cfg_file_value_gt0_float_ranger, g_str_current_unit_ma)
+    CHECK_LIMIT_RANGE(g_str_tube_current,
+                g_sys_configs_block.tube_current_ma_min, g_sys_configs_block.tube_current_ma_max,
+                &gs_cfg_file_value_gt0_double_ranger, g_str_current_unit_ma)
 
     CHECK_LIMIT_RANGE(g_str_expo_dura,
                 (g_sys_configs_block.dura_ms_min/1000), (g_sys_configs_block.dura_ms_max/1000),
-                &gs_cfg_file_value_gt0_float_ranger, g_str_dura_unit_s)
+                &gs_cfg_file_value_gt0_double_ranger, g_str_dura_unit_s)
 
     CHECK_LIMIT_RANGE(g_str_coil_current,
                 g_sys_configs_block.coil_current_a_min, g_sys_configs_block.coil_current_a_max,
-                &gs_cfg_file_value_ge0_float_ranger, g_str_current_unit_a)
+                &gs_cfg_file_value_ge0_double_ranger, g_str_current_unit_a)
 
     if(!ret)  ret_str += QString(gs_str_cfg_param_limit_error) + "," + gs_str_plz_check + "\n" + ret_str;
 #undef CHECK_LIMIT_RANGE
@@ -376,32 +387,32 @@ bool fill_sys_configs(QString * ret_str_ptr)
     }\
     ret = ret && cfg_ret;
 
-    QSet<mb_cube_current_unit_e_t> cube_current_unit_set;
-    cube_current_unit_set MB_CUBE_CURRENT_UNIT_E;
+    QSet<mb_tube_current_unit_e_t> tube_current_unit_set;
+    tube_current_unit_set MB_TUBE_CURRENT_UNIT_E;
     CHECK_ENUM((QString(g_str_current) + gs_str_mb_intf_unit_error + "," + gs_str_plz_check),
-               g_sys_configs_block.mb_cube_current_intf_unit,
-               cube_current_unit_set, QString::number)
+               g_sys_configs_block.mb_tube_current_intf_unit,
+               tube_current_unit_set, QString::number)
     CHECK_ENUM((QString(g_str_current) + gs_str_ui_unit_error + "," + gs_str_plz_check),
                g_sys_configs_block.ui_current_unit,
-               cube_current_unit_set, QString::number)
+               tube_current_unit_set, QString::number)
 
     QSet<mb_dura_unit_e_t> dura_unit_set;
     dura_unit_set MB_DURA_UNIT_E;
     CHECK_ENUM((QString(g_str_expo_dura) + gs_str_mb_intf_unit_error + "," + gs_str_plz_check),
                g_sys_configs_block.mb_dura_intf_unit,
                dura_unit_set, QString::number)
-    CHECK_ENUM((QString(gs_str_hidden_ui_mb_dura_unit) + gs_str_mb_intf_unit_error + "," + gs_str_plz_check),
-               g_sys_configs_block.hidden_ui_mb_dura_unit,
+    CHECK_ENUM((QString(gs_str_ui_mb_dura_unit) + gs_str_ui_unit_error + "," + gs_str_plz_check),
+               g_sys_configs_block.ui_mb_dura_unit,
                dura_unit_set, QString::number)
 
     if(ret)
     {
-        if(g_sys_configs_block.hidden_ui_mb_dura_unit == g_sys_configs_block.mb_dura_intf_unit)
+        if(g_sys_configs_block.ui_mb_dura_unit == g_sys_configs_block.mb_dura_intf_unit)
         {
             ret = false;
             ret_str += QString(g_str_expo_dura) + gs_str_mb_intf_unit
                     + " " + g_str_and + " "
-                    + gs_str_hidden_ui_mb_dura_unit + " " + gs_str_cannot_be_the_same;
+                    + gs_str_ui_mb_dura_unit + " " + gs_str_cannot_be_the_same;
         }
     }
 
@@ -437,6 +448,26 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            g_sys_configs_block.pause_test_disp, gs_def_pause_test_disp,
                            1, &gs_cfg_file_value_01_int_ranger);
 
+    settings.endGroup();
+
+    /*--------------------*/
+    settings.beginGroup(gs_ini_grp_self_check_cfg);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_self_check, toInt,
+                           g_sys_configs_block.enable_self_check, gs_def_enable_self_check,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_skip_pwr_self_chk, toInt,
+                           g_sys_configs_block.skip_pwr_self_chk, gs_def_skip_pwr_self_chk,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_skip_x_src_self_chk, toInt,
+                           g_sys_configs_block.skip_x_src_self_chk, gs_def_skip_x_src_self_chk,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_skip_detector_self_chk, toInt,
+                           g_sys_configs_block.skip_detector_self_chk, gs_def_skip_detector_self_chk,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_skip_storage_self_chk, toInt,
+                           g_sys_configs_block.skip_storage_self_chk, gs_def_skip_storage_self_chk,
+                           1, (RangeChecker<int>*)0, (bool));
     settings.endGroup();
 
     /*--------------------*/
@@ -495,9 +526,6 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            1, &gs_cfg_file_allow_scan_dura_sec_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_limit_recvd_line_number, toInt,
                            g_sys_configs_block.limit_recvd_line_number, gs_def_limit_recvd_line_number,
-                           1, (RangeChecker<int>*)0, (bool));
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_self_check, toInt,
-                           g_sys_configs_block.enable_self_check, gs_def_enable_self_check,
                            1, (RangeChecker<int>*)0, (bool));
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_disable_monitor_during_scan, toInt,
                            g_sys_configs_block.disable_monitor_during_scan, gs_def_disable_monitor_during_scan,

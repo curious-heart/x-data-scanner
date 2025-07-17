@@ -11,6 +11,7 @@ CONFIG += c++17
 SOURCES += \
     common_tools/common_tool_func.cpp \
     config_recorder/uiconfigrecorder.cpp \
+    hv_ops.cpp \
     literal_strings/literal_strings.cpp \
     logger/logger.cpp \
     loginwidget.cpp \
@@ -27,11 +28,13 @@ SOURCES += \
 HEADERS += \
     common_tools/common_tool_func.h \
     config_recorder/uiconfigrecorder.h \
+    hv_ops_internal.h \
     literal_strings/literal_strings.h \
     logger/logger.h \
     loginwidget.h \
     mainmenubtnswidget.h \
     mainwindow.h \
+    modbus_regs.h \
     recvscanneddata.h \
     sc_data_proc.h \
     scanwidget.h \
