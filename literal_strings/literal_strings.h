@@ -39,7 +39,14 @@ STR_DELCARE_STMT(g_str_charging, "正在充电") \
 STR_DELCARE_STMT(gs_str_sport_open_succeed, "串口打开成功") \
 STR_DELCARE_STMT(gs_str_sport_open_fail, "串口打开失败") \
 STR_DELCARE_STMT(g_str_modbus_exceptional_error, "异常的modbus错误") \
-STR_DELCARE_STMT(g_str_modbus_unkonwn_state ,"未知的modbus连接状态")
+STR_DELCARE_STMT(g_str_modbus_unkonwn_state ,"未知的modbus连接状态") \
+STR_DELCARE_STMT(g_str_cannt ,"不能") \
+STR_DELCARE_STMT(g_str_exceed ,"超过") \
+STR_DELCARE_STMT(g_str_scan_dura_time ,"扫描时间")\
+STR_DELCARE_STMT(g_str_param_in_cfg_file_error ,"配置文件参数错误")\
+STR_DELCARE_STMT(g_str_syssettings_error ,"设置参数错误")\
+STR_DELCARE_STMT(g_str_plz_check ,"请检查！") \
+STR_DELCARE_STMT(g_str_set_succeeds,"设置成功")
 
 LIT_STRINGS_LIST
 

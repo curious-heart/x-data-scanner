@@ -61,6 +61,11 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     connect(m_login_widget, &LoginWidget::login_chk_passed_sig,
             this, &MainWindow::login_chk_passed_sig_hdlr, Qt::QueuedConnection);
 
+    connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::go_to_syssettings_widget_sig,
+            this, &MainWindow::go_to_syssettings_widget_sig_hdlr, Qt::QueuedConnection);
+    connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::go_to_scan_widget_sig,
+            this, &MainWindow::go_to_scan_widget_sig_hdlr, Qt::QueuedConnection);
+
     connect(&m_pb_monitor_timer, &QTimer::timeout, this, &MainWindow::pb_monitor_timer_hdlr,
             Qt::QueuedConnection);
     connect(this, &MainWindow::pb_monitor_check_st, this, &MainWindow::pb_monitor_check_st_hdlr,
@@ -195,13 +200,37 @@ void MainWindow::goto_login_widget()
     m_stacked_widget->setCurrentWidget(m_login_widget);
 }
 
-void MainWindow::login_chk_passed_sig_hdlr()
+void MainWindow::goto_syssettings_widget()
+{
+    if(m_stacked_widget->indexOf(m_syssettings_widget) < 0)
+    {
+        m_stacked_widget->addWidget(m_syssettings_widget);
+    }
+    m_stacked_widget->setCurrentWidget(m_syssettings_widget);
+}
+
+void MainWindow::go_to_scan_widget()
 {
     if(m_stacked_widget->indexOf(m_scan_widget) < 0)
     {
         m_stacked_widget->addWidget(m_scan_widget);
     }
     m_stacked_widget->setCurrentWidget(m_scan_widget);
+}
+
+void MainWindow::go_to_syssettings_widget_sig_hdlr()
+{
+    goto_syssettings_widget();
+}
+
+void MainWindow::go_to_scan_widget_sig_hdlr()
+{
+    go_to_scan_widget();
+}
+
+void MainWindow::login_chk_passed_sig_hdlr()
+{
+    go_to_scan_widget();
 }
 
 QString hv_work_st_str(quint16 st_reg_val)

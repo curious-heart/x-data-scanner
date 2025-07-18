@@ -19,6 +19,8 @@ public:
 
     void load_ui_settings();
     void rec_ui_settings();
+    bool get_sysettings_from_ui(bool succ_silent = true);
+    bool check_expo_and_scan_time(bool succ_silent);
 
 private slots:
     void on_pushButton_clicked();

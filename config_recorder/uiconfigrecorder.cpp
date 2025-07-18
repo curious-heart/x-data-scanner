@@ -29,15 +29,18 @@ UiConfigRecorder::UiConfigRecorder(QObject *parent, QString cfg_file_fpn)
     DEF_CTRL(QComboBox)\
     DEF_CTRL(QRadioButton)\
     DEF_CTRL(QCheckBox)\
-    DEF_CTRL(QSpinBox)
+    DEF_CTRL(QSpinBox)\
+    DEF_CTRL(QDoubleSpinBox)
 #define BOX_CHECKED 1
 #define BOX_UNCHECKED 0
 
+//"for QSpinBox and QDoubleSpinBox, a "qt_spinbox_lineedit" is returned by findChildren. skip them.
 #define CTRL_WRITE_TO_CFG(ctrl_type, value) \
     LIST_VAR_NAME(ctrl_type) = ui_widget->findChildren<ctrl_type*>();\
     do_it = true;\
     for(idx = 0; idx < LIST_VAR_NAME(ctrl_type).size(); ++idx)        \
     {                                                                 \
+        if(LIST_VAR_NAME(ctrl_type)[idx]->objectName().startsWith("qt_")) continue; \
         if(check_in)\
             do_it = filter_in.contains(LIST_VAR_NAME(ctrl_type)[idx]);\
         else if(check_out)\
@@ -76,15 +79,18 @@ void UiConfigRecorder::record_ui_configs(QWidget * ui_widget,
     CTRL_WRITE_TO_CFG(QRadioButton, isChecked() ? BOX_CHECKED : BOX_UNCHECKED)
     CTRL_WRITE_TO_CFG(QCheckBox, isChecked() ? BOX_CHECKED : BOX_UNCHECKED)
     CTRL_WRITE_TO_CFG(QSpinBox, value())
+    CTRL_WRITE_TO_CFG(QDoubleSpinBox, value())
 
     cfg_setting.endGroup();
 }
 
+//"for QSpinBox and QDoubleSpinBox, a "qt_spinbox_lineedit" is returned by findChildren. skip them.
 #define READ_FROM_CFG(ctrl_type, val, cond, op) \
     LIST_VAR_NAME(ctrl_type) = ui_widget->findChildren<ctrl_type *>();\
     do_it = true;\
     for(idx = 0; idx < LIST_VAR_NAME(ctrl_type).size(); ++idx)\
     {\
+        if(LIST_VAR_NAME(ctrl_type)[idx]->objectName().startsWith("qt_")) continue; \
         if(check_in)\
             do_it = filter_in.contains(LIST_VAR_NAME(ctrl_type)[idx]);\
         else if(check_out)\
@@ -141,6 +147,7 @@ void UiConfigRecorder::load_configs_to_ui(QWidget * ui_widget,
     READ_FROM_CFG(QLineEdit, ,(!str_val.isEmpty()), setText(str_val));
     READ_FROM_CFG(QTextEdit, ,(!str_val.isEmpty()), setText(str_val));
     READ_FROM_CFG(QSpinBox, , true, setValue(str_val.toInt()));
+    READ_FROM_CFG(QDoubleSpinBox, , true, setValue(str_val.toDouble()));
 
     cfg_setting.endGroup();
 }

@@ -89,12 +89,12 @@ sys_configs_struct_t g_sys_configs_block;
 
 static const int gs_def_log_level = LOG_ERROR;
 
-static const int gs_def_tube_volt_kv_min = 40;
-static const int gs_def_tube_volt_kv_max = 90;
-static const double gs_def_tube_current_ma_min = 0.5;
-static const double gs_def_tube_current_ma_max = 5;
-static const double gs_def_dura_sec_min = 0.5;
-static const double gs_def_dura_sec_max = (double)1.4;
+static const int gs_def_tube_volt_kv_min = 90;
+static const int gs_def_tube_volt_kv_max = 140;
+static const double gs_def_tube_current_ma_min = 0.001;
+static const double gs_def_tube_current_ma_max = 0.071;
+static const double gs_def_dura_sec_min = 1;
+static const double gs_def_dura_sec_max = 30;
 
 static const double gs_def_coil_current_a_min = 0;
 static const double gs_def_coil_current_a_max = 2;
@@ -121,15 +121,12 @@ static const int gs_def_test_params_settings_disp = 0;
 static const int gs_def_pause_test_disp = 0;
 
 static const char* gs_str_cfg_param_limit_error = "参数门限配置错误";
-static const char* gs_str_param_in_cfg_file_error = "配置文件参数错误";
-static const char* gs_str_plz_check = "请检查！";
 static const char* gs_str_mb_intf_unit = "接口单位";
 static const char* gs_str_mb_intf_unit_error = "接口单位配置错误";
 static const char* gs_str_ui_unit_error = "ui显示单位配置错误";
 static const char* gs_str_should_be_one_val_of = "应为如下值之一：";
 static const char* gs_str_actual_val = "实际值";
 static const char* gs_str_ui_mb_dura_unit = "GUI曝光时间单位";
-static const char* gs_str_cannot_be_the_same = "不能相等";
 
 static const mb_tube_current_unit_e_t gs_def_mb_tube_current_intf_unit = MB_TUBE_CURRENT_UNIT_UA;
 static const mb_tube_current_unit_e_t gs_def_ui_current_unit = MB_TUBE_CURRENT_UNIT_UA;
@@ -243,10 +240,10 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            g_sys_configs_block.tube_current_ma_max, gs_def_tube_current_ma_max,
                            1, (RangeChecker<double>*)0);
 
+    //cfg files use "sec", but internal use ms
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_min, toDouble,
                            g_sys_configs_block.dura_ms_min, gs_def_dura_sec_min,
                            1000, (RangeChecker<double>*)0);
-
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dura_sec_max, toDouble,
                            g_sys_configs_block.dura_ms_max, gs_def_dura_sec_max,
                            1000, (RangeChecker<double>*)0);
@@ -370,7 +367,7 @@ bool fill_sys_configs(QString * ret_str_ptr)
                 g_sys_configs_block.coil_current_a_min, g_sys_configs_block.coil_current_a_max,
                 &gs_cfg_file_value_ge0_double_ranger, g_str_current_unit_a)
 
-    if(!ret)  ret_str += QString(gs_str_cfg_param_limit_error) + "," + gs_str_plz_check + "\n" + ret_str;
+    if(!ret)  ret_str += QString(gs_str_cfg_param_limit_error) + "," + g_str_plz_check + "\n" + ret_str;
 #undef CHECK_LIMIT_RANGE
 
 #define CHECK_ENUM(title_str, e_v, e_set, str_func) \
@@ -389,32 +386,21 @@ bool fill_sys_configs(QString * ret_str_ptr)
 
     QSet<mb_tube_current_unit_e_t> tube_current_unit_set;
     tube_current_unit_set MB_TUBE_CURRENT_UNIT_E;
-    CHECK_ENUM((QString(g_str_current) + gs_str_mb_intf_unit_error + "," + gs_str_plz_check),
+    CHECK_ENUM((QString(g_str_current) + gs_str_mb_intf_unit_error + "," + g_str_plz_check),
                g_sys_configs_block.mb_tube_current_intf_unit,
                tube_current_unit_set, QString::number)
-    CHECK_ENUM((QString(g_str_current) + gs_str_ui_unit_error + "," + gs_str_plz_check),
+    CHECK_ENUM((QString(g_str_current) + gs_str_ui_unit_error + "," + g_str_plz_check),
                g_sys_configs_block.ui_current_unit,
                tube_current_unit_set, QString::number)
 
     QSet<mb_dura_unit_e_t> dura_unit_set;
     dura_unit_set MB_DURA_UNIT_E;
-    CHECK_ENUM((QString(g_str_expo_dura) + gs_str_mb_intf_unit_error + "," + gs_str_plz_check),
+    CHECK_ENUM((QString(g_str_expo_dura) + gs_str_mb_intf_unit_error + "," + g_str_plz_check),
                g_sys_configs_block.mb_dura_intf_unit,
                dura_unit_set, QString::number)
-    CHECK_ENUM((QString(gs_str_ui_mb_dura_unit) + gs_str_ui_unit_error + "," + gs_str_plz_check),
+    CHECK_ENUM((QString(gs_str_ui_mb_dura_unit) + gs_str_ui_unit_error + "," + g_str_plz_check),
                g_sys_configs_block.ui_mb_dura_unit,
                dura_unit_set, QString::number)
-
-    if(ret)
-    {
-        if(g_sys_configs_block.ui_mb_dura_unit == g_sys_configs_block.mb_dura_intf_unit)
-        {
-            ret = false;
-            ret_str += QString(g_str_expo_dura) + gs_str_mb_intf_unit
-                    + " " + g_str_and + " "
-                    + gs_str_ui_mb_dura_unit + " " + gs_str_cannot_be_the_same;
-        }
-    }
 
     /*--------------------*/
     settings.beginGroup(gs_ini_grp_ui_disp_cfg);
@@ -479,7 +465,7 @@ bool fill_sys_configs(QString * ret_str_ptr)
     if(!ip_addr_valid(g_sys_configs_block.data_src_ip))
     {
         ret = false;
-        ret_str += QString(gs_str_param_in_cfg_file_error) + "," + gs_str_plz_check + "\n"
+        ret_str += QString(g_str_param_in_cfg_file_error) + "," + g_str_plz_check + "\n"
                     + gs_ini_key_data_src_ip + "=" + g_sys_configs_block.data_src_ip;
     }
 
@@ -490,7 +476,7 @@ bool fill_sys_configs(QString * ret_str_ptr)
     if(!g_ip_port_ranger.range_check(g_sys_configs_block.data_src_port))
     {
         ret = false;
-        ret_str += QString(gs_str_param_in_cfg_file_error) + "," + gs_str_plz_check + "\n"
+        ret_str += QString(g_str_param_in_cfg_file_error) + "," + g_str_plz_check + "\n"
                     + gs_ini_key_data_src_port + "="
                     + QString::number(g_sys_configs_block.data_src_port);
     }
@@ -542,7 +528,7 @@ bool fill_sys_configs(QString * ret_str_ptr)
             g_sys_configs_block.expo_to_coll_delay_max_ms)
     {
         ret = false;
-        ret_str += QString(gs_str_param_in_cfg_file_error) + ": "
+        ret_str += QString(g_str_param_in_cfg_file_error) + ": "
                  + gs_ini_key_expo_to_coll_delay_def_ms + " > "
                  + gs_ini_key_expo_to_coll_delay_max_ms;
     }
@@ -572,6 +558,18 @@ bool fill_sys_configs(QString * ret_str_ptr)
     settings.endGroup();
     /*--------------------*/
 
+    if((int)(g_sys_configs_block.dura_ms_max / 1000) > g_sys_configs_block.allowed_max_scan_dura_sec)
+    {
+        ret = false;
+        ret_str += QString(g_str_param_in_cfg_file_error) + "\n";
+        ret_str += QString("%1:%2=%3\n%4%5\n%6:%7=%8\n")
+                .arg(g_str_expo_dura, gs_ini_key_dura_sec_max).arg(g_sys_configs_block.dura_ms_max/1000)
+                .arg(g_str_cannt, g_str_exceed)
+                .arg(g_str_scan_dura_time, gs_ini_key_allowed_max_scan_dura_sec).arg(g_sys_configs_block.allowed_max_scan_dura_sec);
+        ret_str += g_str_plz_check;
+    }
+
+    /*--------------------*/
     if(ret_str_ptr) *ret_str_ptr = ret_str;
     return ret;
 

@@ -68,6 +68,8 @@ private:
     void self_check_next_item_hdlr(bool start = false);
 
     void goto_login_widget();
+    void go_to_scan_widget();
+    void goto_syssettings_widget();
 
     QModbusClient * m_hv_conn_device = nullptr;
     QTimer m_hv_reconn_wait_timer;
@@ -88,6 +90,9 @@ public slots:
     void hv_conn_error_sig_handler(QModbusDevice::Error error);
     void hv_conn_state_changed_sig_handler(QModbusDevice::State state);
     void hv_reconn_wait_timer_sig_handler();
+
+    void go_to_syssettings_widget_sig_hdlr();
+    void go_to_scan_widget_sig_hdlr();
 
 signals:
     void check_next_item_sig(bool start = false);

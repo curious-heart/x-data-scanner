@@ -118,7 +118,7 @@
         <item>
          <widget class="QLabel" name="expoDuraLbl">
           <property name="text">
-           <string>时间（s）</string>
+           <string>曝光时间（秒）</string>
           </property>
          </widget>
         </item>

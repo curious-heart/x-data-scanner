@@ -5,6 +5,7 @@
 
 typedef struct
 {
+    bool valid;
     int tube_volt_kV;
     double tube_current_mA, expo_dura_ms;
 
