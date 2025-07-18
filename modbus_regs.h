@@ -1,6 +1,9 @@
 ﻿#ifndef MODBUS_REGS_H
 #define MODBUS_REGS_H
 
+#include <QObject>
+#include <QMap>
+
 #define MB_REG_ENUM \
 {\
     C(HSV = 0),                            /*软硬件版本*/\
@@ -17,18 +20,17 @@
     C(ExposureStatus = 11),                /*曝光状态*/\
     C(RangeIndicationStart = 12),          /*范围指示启动*/\
     C(ExposureStart = 13),                 /*曝光启动*/\
-    C(BatteryLevel = 14),                  /*电池电量*/\
-    C(BatteryVoltmeter = 15),              /*电池电压*/\
-    C(OilBoxTemperature = 16),             /*电池电压高位*/\
-    C(Poweroff = 17),                      /*关机请求*/\
-    C(Fixpos = 18),                        /*校准定义*/\
-    C(Fixval = 19),                        /*校准值*/\
-    C(Workstatus = 20),                    /*充能状态*/\
-    C(exposureCount = 21),                 /*曝光次数*/\
 \
     C(MAX_HV_NORMAL_MB_REG_NUM),\
 }
 #undef C
 #define C(a) a
 typedef enum MB_REG_ENUM hv_mb_reg_e_t;
+
+#define START_EXPO_DATA 2
+#define STOP_EXPO_DATA 0
+
+typedef QMap<hv_mb_reg_e_t, quint16> mb_reg_val_map_t;
+Q_DECLARE_METATYPE(mb_reg_val_map_t)
+
 #endif // MODBUS_REGS_H

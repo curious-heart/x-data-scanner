@@ -46,7 +46,14 @@ STR_DELCARE_STMT(g_str_scan_dura_time ,"扫描时间")\
 STR_DELCARE_STMT(g_str_param_in_cfg_file_error ,"配置文件参数错误")\
 STR_DELCARE_STMT(g_str_syssettings_error ,"设置参数错误")\
 STR_DELCARE_STMT(g_str_plz_check ,"请检查！") \
-STR_DELCARE_STMT(g_str_set_succeeds,"设置成功")
+STR_DELCARE_STMT(g_str_set_succeeds,"设置成功") \
+STR_DELCARE_STMT(g_str_unknown_hv_op, "未知的高压操作") \
+STR_DELCARE_STMT(g_str_error, "错误") \
+STR_DELCARE_STMT(g_str_param_in_cfg_file, "配置文件参数") \
+STR_DELCARE_STMT(g_str_mb_op_null_reply, "modbus操作异常，返回空reply") \
+STR_DELCARE_STMT(g_str_mb_read_regs_invalid, "modbus读取常规寄存器数据无效") \
+STR_DELCARE_STMT(g_str_hv_op_error, "光机操作失败") \
+STR_DELCARE_STMT(g_str_hv_st, "光机状态")
 
 LIT_STRINGS_LIST
 

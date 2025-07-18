@@ -6,7 +6,7 @@
 #include "literal_strings/literal_strings.h"
 
 #undef ENUM_NAME_DEF
-#define ENUM_NAME_DEF(e) <<e
+#define ENUM_NAME_DEF(e, ...) <<e
 
 static const char* gs_sysconfigs_file_fpn = "configs/configs.ini";
 
@@ -42,6 +42,9 @@ static const char* gs_ini_key_ui_mb_dura_unit = "ui_mb_dura_unit";
 static const char* gs_ini_key_test_proc_monitor_period_ms = "test_proc_monitor_period_ms";
 static const char* gs_ini_key_mb_srv_addr = "mb_srv_addr";
 static const char* gs_ini_key_mb_resp_wait_time_ms = "mb_resp_wait_time_ms";
+
+static const char* gs_ini_key_mb_triple_w_start_reg = "mb_triple_w_start_reg";
+static const char* gs_ini_key_hv_expo_s_and_e_mode = "hv_expo_s_and_e_mode";
 
 static const char* gs_ini_grp_ui_disp_cfg = "ui_disp_cfg";
 static const char* gs_ini_key_distance_group_disp = "distance_group_disp";
@@ -111,6 +114,8 @@ static const int gs_def_mb_one_cmd_round_time_ms = 150;
 static const int gs_def_test_proc_monitor_period_ms = 1000;
 static const int gs_def_key_mb_srv_addr = 1;
 static const int gs_def_key_mb_resp_wait_time_ms = 3000;
+static const mb_triple_w_start_reg_e_t gs_def_mb_triple_w_start_reg = MB_TRIPLE_W_START_REG_CUR;
+static const hv_expo_s_and_e_mode_e_t gs_def_hv_expo_s_and_e_mode = HV_EXPO_S_AND_E_MODE_SET_TRIPLE;
 
 static const int gs_def_distance_group_disp = 1;
 static const int gs_def_sw_ver_disp = 1;
@@ -207,6 +212,33 @@ RangeChecker<double> g_12bitpx_stre_factor_ranger(1, g_12bitpx_max_v, "",
     RangeChecker<int> int_range_checker((low), (up), "", low_inc, up_inc);
 #define END_INT_RANGE_CHECK \
 }
+
+#define CHECK_ENUM(title_str, e_v, e_set, str_func) \
+    cfg_ret = true; ret_str += (ret_str.isEmpty() ? "" : "\n");\
+    if(!e_set.contains(e_v))\
+    {\
+        cfg_ret = false;\
+        ret_str += QString(title_str) + gs_str_should_be_one_val_of + "\n{";\
+        auto it = e_set.constBegin();\
+        while(it != e_set.constEnd()) {ret_str += str_func(*it) + ", "; ++it;}\
+        ret_str.chop(2);\
+        ret_str += "}\n";\
+        ret_str += QString(gs_str_actual_val) + str_func(e_v) + "\n";\
+    }\
+    ret = ret && cfg_ret;
+
+/*check the validation of config parameters.*/
+#define CHECK_LIMIT_RANGE(l_name, min_l, max_l, checker, unit_str) \
+    cfg_ret = true; \
+    if(((checker) && (!((checker)->range_check(min_l)) || !((checker)->range_check(max_l)))) \
+        || ((min_l) > (max_l)))\
+    {\
+        cfg_ret = false;\
+        ret_str += QString((l_name)) + \
+                   " [" + QString::number((min_l)) + ", " + QString::number((max_l)) + "] " +\
+                   (unit_str) + "\n";\
+    }\
+    ret = ret && cfg_ret;
 
 bool fill_sys_configs(QString * ret_str_ptr)
 {
@@ -336,20 +368,26 @@ bool fill_sys_configs(QString * ret_str_ptr)
                    g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms, gs_def_key_mb_resp_wait_time_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
 
-    settings.endGroup();
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_triple_w_start_reg, toInt,
+                   g_sys_configs_block.mb_triple_w_start_reg, gs_def_mb_triple_w_start_reg,
+                           1, (RangeChecker<int>*)0, (mb_triple_w_start_reg_e_t));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_hv_expo_s_and_e_mode, toInt,
+                   g_sys_configs_block.hv_expo_s_and_e_mode, gs_def_hv_expo_s_and_e_mode,
+                           1, (RangeChecker<int>*)0, (hv_expo_s_and_e_mode_e_t));
 
-    /*check the validation of config parameters.*/
-#define CHECK_LIMIT_RANGE(l_name, min_l, max_l, checker, unit_str) \
-    cfg_ret = true; \
-    if(((checker) && (!((checker)->range_check(min_l)) || !((checker)->range_check(max_l)))) \
-        || ((min_l) > (max_l)))\
-    {\
-        cfg_ret = false;\
-        ret_str += QString((l_name)) + \
-                   " [" + QString::number((min_l)) + ", " + QString::number((max_l)) + "] " +\
-                   (unit_str) + "\n";\
-    }\
-    ret = ret && cfg_ret;
+    QSet<mb_triple_w_start_reg_e_t> mb_triple_w_start_reg_set;
+    mb_triple_w_start_reg_set MB_TRIPLE_W_START_REG_E;
+    CHECK_ENUM((QString("%1 %2 %3，%4").arg(g_str_param_in_cfg_file, gs_ini_key_mb_triple_w_start_reg ,g_str_error, g_str_plz_check)),
+               g_sys_configs_block.mb_triple_w_start_reg,
+               mb_triple_w_start_reg_set, QString::number)
+
+    QSet<hv_expo_s_and_e_mode_e_t> hv_expo_s_and_e_mode_set;
+    hv_expo_s_and_e_mode_set HV_EXPO_S_AND_E_MODE_E;
+    CHECK_ENUM((QString("%1 %2 %3，%4").arg(g_str_param_in_cfg_file, gs_ini_key_hv_expo_s_and_e_mode ,g_str_error, g_str_plz_check)),
+               g_sys_configs_block.hv_expo_s_and_e_mode,
+               hv_expo_s_and_e_mode_set, QString::number)
+
+    settings.endGroup();
 
     CHECK_LIMIT_RANGE(g_str_tube_volt,
                 g_sys_configs_block.tube_volt_kv_min, g_sys_configs_block.tube_volt_kv_max,
@@ -368,21 +406,6 @@ bool fill_sys_configs(QString * ret_str_ptr)
                 &gs_cfg_file_value_ge0_double_ranger, g_str_current_unit_a)
 
     if(!ret)  ret_str += QString(gs_str_cfg_param_limit_error) + "," + g_str_plz_check + "\n" + ret_str;
-#undef CHECK_LIMIT_RANGE
-
-#define CHECK_ENUM(title_str, e_v, e_set, str_func) \
-    cfg_ret = true; ret_str += (ret_str.isEmpty() ? "" : "\n");\
-    if(!e_set.contains(e_v))\
-    {\
-        cfg_ret = false;\
-        ret_str += QString(title_str) + gs_str_should_be_one_val_of + "\n{";\
-        auto it = e_set.constBegin();\
-        while(it != e_set.constEnd()) {ret_str += str_func(*it) + ", "; ++it;}\
-        ret_str.chop(2);\
-        ret_str += "}\n";\
-        ret_str += QString(gs_str_actual_val) + str_func(e_v) + "\n";\
-    }\
-    ret = ret && cfg_ret;
 
     QSet<mb_tube_current_unit_e_t> tube_current_unit_set;
     tube_current_unit_set MB_TUBE_CURRENT_UNIT_E;

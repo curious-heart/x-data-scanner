@@ -10,6 +10,13 @@
 
 extern bool g_data_scanning_now;
 
+const quint16 g_hv_st_code_idle = 0x11;
+const quint16 g_hv_st_code_hs = 0x22;
+const quint16 g_hv_st_code_input1_fb_abn = 0xE1;
+const quint16 g_hv_st_code_curr_fb_abn = 0xE2;
+const quint16 g_hv_st_code_volt_fb_abn = 0xE3;
+const quint16 g_hv_st_code_mult_abn = 0xE4;
+
 static const char gs_addr_byte = 0x01;
 
 static const char gs_dif_byte_motor_rpm = 0x03;
@@ -65,6 +72,13 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::go_to_syssettings_widget_sig_hdlr, Qt::QueuedConnection);
     connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::go_to_scan_widget_sig,
             this, &MainWindow::go_to_scan_widget_sig_hdlr, Qt::QueuedConnection);
+
+    connect(m_scan_widget, &ScanWidget::mb_regs_read_ret_sig,
+            this, &MainWindow::mb_regs_read_ret_sig_hdlr, Qt::QueuedConnection);
+    connect(m_scan_widget, &ScanWidget::hv_op_finish_sig,
+            this, &MainWindow::hv_op_finish_sig_hdlr, Qt::QueuedConnection);
+    connect(m_scan_widget, &ScanWidget::detector_self_chk_ret_sig,
+            this, &MainWindow::detector_self_chk_ret_sig_hdlr, Qt::QueuedConnection);
 
     connect(&m_pb_monitor_timer, &QTimer::timeout, this, &MainWindow::pb_monitor_timer_hdlr,
             Qt::QueuedConnection);
@@ -132,7 +146,9 @@ void MainWindow::self_check_next_item_hdlr(bool start)
 
 bool MainWindow::pwr_st_check()
 {
-    bool ret = pb_monitor_check_st_hdlr();
+    bool ret;
+
+    ret = g_sys_configs_block.skip_pwr_self_chk ? true : pb_monitor_check_st_hdlr();
 
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, ret);
 
@@ -143,28 +159,40 @@ bool MainWindow::pwr_st_check()
 
 bool MainWindow::x_ray_source_st_check()
 {
-    bool ret = true;
-    QThread::msleep(800);
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, ret);
+    if(g_sys_configs_block.skip_x_src_self_chk)
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, true);
+        m_hv_op_for_self_chk = false;
 
-    emit check_next_item_sig();
-    return ret;
+        emit check_next_item_sig();
+    }
+    else
+    {
+        m_hv_op_for_self_chk = true;
+        m_scan_widget->hv_send_op_cmd(HV_OP_READ_REGS);
+    }
+
+    return true;
 }
+
 bool MainWindow::detector_st_check()
 {
-    bool ret = true;
-    QThread::msleep(800);
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, ret);
-
-    emit check_next_item_sig();
-    return ret;
+    if(g_sys_configs_block.skip_detector_self_chk)
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, true);
+        emit check_next_item_sig();
+    }
+    else
+    {
+        m_scan_widget->stop_collect(COLLECT_CMD_SELF_CHK);
+    }
+    return true;
 }
 bool MainWindow::storage_st_check()
 {
     bool ret = true;
-    QThread::msleep(800);
+    //if(g_sys_configs_block.skip_storage_self_chk)
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, ret);
-
     emit check_next_item_sig();
     return ret;
 }
@@ -184,6 +212,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::self_check_finished_sig_hdlr(bool result)
 {
+    m_self_check_passed = result;
+
     if(result)
     {
         goto_login_widget();
@@ -233,7 +263,49 @@ void MainWindow::login_chk_passed_sig_hdlr()
     go_to_scan_widget();
 }
 
-QString hv_work_st_str(quint16 st_reg_val)
+void MainWindow::detector_self_chk_ret_sig_hdlr(bool ret)
+{
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, ret);
+    emit check_next_item_sig();
+}
+
+void MainWindow::mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map)
+{
+    qint16 st_code = reg_val_map[State];
+    QString disp_str = g_str_hv_st;
+    QString stylesheet;
+
+    if(g_hv_st_code_idle == st_code || g_hv_st_code_hs == st_code)
+    {
+        disp_str += hv_work_st_str(st_code);
+        stylesheet =  "QLabel { color : black; }";
+    }
+    else
+    {
+        disp_str += QString::number(st_code, 16).toUpper().rightJustified(2, '0');
+        stylesheet =  "QLabel { color : red; }";
+    }
+    ui->hvConnLbl->setStyleSheet(stylesheet);
+    ui->hvConnLbl->setText(disp_str);
+}
+
+void MainWindow::hv_op_finish_sig_hdlr(bool ret, QString /*err_str*/)
+{
+    if(m_hv_op_for_self_chk)
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, ret);
+        m_hv_op_for_self_chk = false;
+
+        emit check_next_item_sig();
+    }
+    if(!ret)
+    {
+        ui->hvConnLbl->setStyleSheet("QLabel { color : red; }");
+        ui->hvConnLbl->setText(g_str_hv_op_error);
+    }
+}
+
+QString MainWindow::hv_work_st_str(quint16 st_reg_val)
 {
     static bool ls_first = true;
     typedef struct
@@ -242,12 +314,12 @@ QString hv_work_st_str(quint16 st_reg_val)
     }st_val_to_str_s_t;
     static const st_val_to_str_s_t ls_st_val_to_str_arr[] =
     {
-        {0x11, "空闲"},
-        {0x22, "散热"},
-        {0xE1, "input1状态反馈异常"},
-        {0xE2, "电流反馈异常"},
-        {0xE3, "电压反馈异常"},
-        {0xE4, "多个异常同时发生"},
+        {g_hv_st_code_idle, "空闲"},
+        {g_hv_st_code_hs, "散热"},
+        {g_hv_st_code_input1_fb_abn, "input1状态反馈异常"},
+        {g_hv_st_code_curr_fb_abn, "电流反馈异常"},
+        {g_hv_st_code_volt_fb_abn, "电压反馈异常"},
+        {g_hv_st_code_mult_abn, "多个异常同时发生"},
     };
     static QMap<quint16, QString> ls_st_val_to_str_map;
 

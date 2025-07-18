@@ -34,6 +34,7 @@ public:
     bool close_sport();
     bool write_to_sport(char* data_arr, qint64 byte_cnt, bool log_rw);
     bool read_from_sport(char* read_data, qint64 buf_size, bool log_rw);
+    QString hv_work_st_str(quint16 st_reg_val);
 
 private:
     Ui::MainWindow *ui;
@@ -47,6 +48,8 @@ private:
     SysSettingsWidget * m_syssettings_widget;
 
     MainmenuBtnsWidget * m_mainmenubtns_widget;
+
+    bool m_self_check_passed = false;
 
     QTimer m_pb_monitor_timer;
     QSerialPort m_pb_sport;
@@ -74,6 +77,7 @@ private:
     QModbusClient * m_hv_conn_device = nullptr;
     QTimer m_hv_reconn_wait_timer;
     QModbusDevice::State m_hv_conn_state = QModbusDevice::UnconnectedState;
+    bool m_hv_op_for_self_chk = false;
     void setup_hv_conn_client();
     void hv_connect();
     void hv_disconnect();
@@ -93,6 +97,10 @@ public slots:
 
     void go_to_syssettings_widget_sig_hdlr();
     void go_to_scan_widget_sig_hdlr();
+    void mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map);
+    void hv_op_finish_sig_hdlr(bool ret, QString err_str = "");
+
+    void detector_self_chk_ret_sig_hdlr(bool ret);
 
 signals:
     void check_next_item_sig(bool start = false);

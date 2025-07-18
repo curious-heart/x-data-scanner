@@ -11,6 +11,7 @@
 #include "config_recorder/uiconfigrecorder.h"
 #include "common_tools/common_tool_func.h"
 #include "hv_ops_internal.h"
+#include "modbus_regs.h"
 
 namespace Ui {
 class ScanWidget;
@@ -20,6 +21,7 @@ typedef enum
 {
     COLLECT_CMD_SW_BTN,
     COLLECT_CMD_PHY_KEY,
+    COLLECT_CMD_SELF_CHK,
 }src_of_collect_cmd_e_t;
 
 typedef struct
@@ -55,10 +57,15 @@ public:
 
     void setup_tools(QModbusClient * modbus_device);
 
+    void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+
+    bool hv_send_op_cmd(hv_op_enum_t op);
+
 private:
     Ui::ScanWidget *ui;
 
-    QModbusClient * m_hv_conn_device = nullptr;
+    QModbusClient * m_hv_device = nullptr;
 
     RecvScannedData *recv_data_worker;
     QThread *recv_data_workerThread;
@@ -76,6 +83,8 @@ private:
 
     QTimer m_scan_dura_timer;
 
+    bool m_detector_self_chk = false;
+
     QTimer m_expo_to_coll_delay_timer;
 
     QString m_curr_sc_txt_file_name;
@@ -89,8 +98,9 @@ private:
     QVector<double> m_scan_stre_factor_value_loaded, m_scan_stre_factor_value_for_work;
     bool m_pt_per_row_changed = true;
 
-    void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
-    void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    hv_op_enum_t m_hv_curr_op = HV_OP_NULL;
+    mb_reg_val_map_t m_regs_read_result;
+
     void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);
     void close_sc_data_file_rec();
     void clear_gray_img_lines();
@@ -120,7 +130,10 @@ private:
 
     void btns_refresh();
 
-    void hv_construct_mb_du(hv_op_enum_t op, QModbusDataUnit &mb_du);
+    bool hv_construct_mb_du(hv_op_enum_t op, QModbusDataUnit &mb_du);
+    void mb_rw_reply_received(hv_op_enum_t op, QModbusReply* mb_reply,
+                              void (ScanWidget::*finished_sig_handler)(),
+                              bool sync, bool error_notify);
 
 private slots:
     void handleNewDataReady();
@@ -137,9 +150,15 @@ private slots:
 
     void on_ptPerRowSpinBox_valueChanged(int arg1);
 
+    void mb_op_finished_sig_handler();
+    void mb_rw_error_sig_handler(QModbusDevice::Error error);
+
 signals:
     void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);
     void stop_collect_sc_data_sig();
+    void mb_regs_read_ret_sig(mb_reg_val_map_t reg_val_map);
+    void hv_op_finish_sig(bool ret, QString err_str = "");
+    void detector_self_chk_ret_sig(bool ret);
 };
 
 #endif // SCANWIDGET_H

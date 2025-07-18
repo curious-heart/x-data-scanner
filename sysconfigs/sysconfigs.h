@@ -3,8 +3,10 @@
 
 #include <QString>
 #include "common_tools/common_tool_func.h"
+#include "modbus_regs.h"
 
-#define ENUM_NAME_DEF(e) e,
+//__ARGS__ should be empty or as form "=5"
+#define ENUM_NAME_DEF(e, ...) e __VA_ARGS__,
 #define MB_TUBE_CURRENT_UNIT_E \
     ENUM_NAME_DEF(MB_TUBE_CURRENT_UNIT_UA)\
     ENUM_NAME_DEF(MB_TUBE_CURRENT_UNIT_MA)\
@@ -30,6 +32,22 @@ typedef enum
 {
     UI_DISP_TUBE_OR_OILBOX_E
 }ui_disp_tube_or_oilbox_str_e_t;
+
+#define MB_TRIPLE_W_START_REG_E \
+    ENUM_NAME_DEF(MB_TRIPLE_W_START_REG_CUR, =1) \
+    ENUM_NAME_DEF(MB_TRIPLE_W_START_REG_DR, =ExposureStart)
+typedef enum
+{
+    MB_TRIPLE_W_START_REG_E
+}mb_triple_w_start_reg_e_t;
+
+#define HV_EXPO_S_AND_E_MODE_E \
+    ENUM_NAME_DEF(HV_EXPO_S_AND_E_MODE_SET_TRIPLE) \
+    ENUM_NAME_DEF(HV_EXPO_S_AND_E_MODE_SET_OP_REG)
+typedef enum
+{
+    HV_EXPO_S_AND_E_MODE_E
+}hv_expo_s_and_e_mode_e_t;
 
 typedef struct
 {
@@ -97,6 +115,9 @@ typedef struct
 
     gray_pixel_data_type def_scan_bg_value;
     double def_scan_stre_factor_value;
+
+    mb_triple_w_start_reg_e_t mb_triple_w_start_reg;
+    hv_expo_s_and_e_mode_e_t hv_expo_s_and_e_mode;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;

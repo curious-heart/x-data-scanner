@@ -79,7 +79,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
 void ScanWidget::setup_tools(QModbusClient * modbus_device)
 {
-    m_hv_conn_device = modbus_device;
+    m_hv_device = modbus_device;
 }
 
 ScanWidget::~ScanWidget()
@@ -219,6 +219,8 @@ void ScanWidget::reload_cali_datum()
 
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 {
+    m_detector_self_chk = false;
+
     ui->grayImgLbl->clear();
     ui->ptPerRowSpinBox->setDisabled(true);
 
@@ -243,8 +245,16 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
     btns_refresh();
 }
 
-void ScanWidget::stop_collect(src_of_collect_cmd_e_t /*cmd_src*/)
+void ScanWidget::stop_collect(src_of_collect_cmd_e_t cmd_src)
 {
+    if(COLLECT_CMD_SELF_CHK == cmd_src)
+    {
+        m_detector_self_chk = true;
+        emit stop_collect_sc_data_sig();
+        return;
+    }
+    m_detector_self_chk = false;
+
     m_scan_dura_timer.stop();
 
     if(!g_data_scanning_now) return;
@@ -308,6 +318,16 @@ void ScanWidget::handleNewDataReady()
         if(dataQueue.isEmpty()) return;
         packet = dataQueue.dequeue();
     }
+    if(m_detector_self_chk)
+    {
+        if(STOP_ACK == packet.notes)
+        {
+            emit detector_self_chk_ret_sig(true);
+            m_detector_self_chk = false;
+        }
+        return;
+    }
+
     if(!g_data_scanning_now) return;
 
     QString data_str = log_disp_prepender_str();
@@ -422,6 +442,14 @@ void ScanWidget::recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
         ui->scanStLbl->setText(g_str_disconnected);
 
         close_sc_data_file_rec();
+        break;
+
+    case COLLECT_RPT_EVT_DISCONN_TIMEOUT:
+        if(m_detector_self_chk)
+        {
+            m_detector_self_chk = false;
+            emit detector_self_chk_ret_sig(false);
+        }
         break;
 
     default:
