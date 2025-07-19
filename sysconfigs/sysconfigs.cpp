@@ -8,7 +8,7 @@
 #undef ENUM_NAME_DEF
 #define ENUM_NAME_DEF(e, ...) <<e
 
-static const char* gs_sysconfigs_file_fpn = "configs/configs.ini";
+static const char* gs_sysconfigs_file_fpn = "./configs/configs.ini";
 
 static const char* gs_ini_grp_sys_cfgs = "sys_cfgs";
 static const char* gs_ini_key_log_level = "log_level";
@@ -141,8 +141,8 @@ static const char* gs_str_ui_mb_dura_unit = "GUI曝光时间单位";
 static const mb_tube_current_unit_e_t gs_def_mb_tube_current_intf_unit = MB_TUBE_CURRENT_UNIT_UA;
 static const mb_tube_current_unit_e_t gs_def_ui_current_unit = MB_TUBE_CURRENT_UNIT_UA;
 
-static const mb_dura_unit_e_t gs_def_mb_dura_intf_unit = MB_DURA_UNIT_MS;
-static const mb_dura_unit_e_t gs_def_ui_mb_dura_unit = MB_DURA_UNIT_MIN;
+static const mb_dura_unit_e_t gs_def_mb_dura_intf_unit = MB_DURA_UNIT_SEC;
+static const mb_dura_unit_e_t gs_def_ui_mb_dura_unit = MB_DURA_UNIT_SEC;
 
 static const int gs_def_enable_self_check = 1;
 static const int gs_def_skip_pwr_self_chk = 0;
