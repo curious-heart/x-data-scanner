@@ -36,7 +36,7 @@ void SysSettingsWidget::on_pushButton_clicked()
 
 void SysSettingsWidget::setup_scan_params_limit_on_ui()
 {
-    ui->maxScanDuraSpinBox->setMaximum(g_sys_configs_block.scan_dura_allowed_min_sec);
+    ui->maxScanDuraSpinBox->setMinimum(g_sys_configs_block.scan_dura_allowed_min_sec);
     ui->maxScanDuraSpinBox->setMaximum(g_sys_configs_block.scan_dura_allowed_max_sec);
 
     ui->connDataSrcTimeoutSpinBox->setMinimum(g_sys_configs_block.conn_data_src_tmo_allowed_min_sec);
