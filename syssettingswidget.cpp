@@ -145,7 +145,7 @@ void SysSettingsWidget::set_hv_params_limit_on_ui()
 
         default: //MB_TUBE_CURRENT_UNIT_A
             ui->tubeCurrentSpinBox->setMinimum(g_sys_configs_block.tube_current_ma_min / 1000);
-            ui->tubeCurrentSpinBox->setMaximum(g_sys_configs_block.tube_current_ma_max);
+            ui->tubeCurrentSpinBox->setMaximum(g_sys_configs_block.tube_current_ma_max / 1000);
             ui->tubeCurrentSpinBox->setDecimals(2);
             break;
 
