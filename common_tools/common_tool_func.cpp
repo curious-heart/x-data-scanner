@@ -63,7 +63,7 @@ static bool exec_external_process(QString cmd, QString cmd_args, bool as_admin =
     {
         DIY_LOG(LOG_WARN, QString("ShellExecuteEx, cmd is empty!"));
     }
-#elif defined(Q_OS_LINUX)
+#elif defined(Q_OS_UNIX)
 #else
 #endif
     return ret;
