@@ -94,12 +94,14 @@ typedef struct
 
     int max_pt_number, all_bytes_per_pt, pkt_idx_byte_cnt;
 
-    int expo_to_coll_delay_def_ms, expo_to_coll_delay_max_ms, pb_monitor_period_ms;
+    int expo_to_coll_max_allowed_delay_ms, expo_to_coll_min_allowed_delay_ms;
+    int pb_monitor_period_ms;
     bool pb_monitor_log;
 
     int scrn_w, scrn_h;
 
-    int allowed_max_scan_dura_sec;
+    int scan_dura_allowed_min_sec, scan_dura_allowed_max_sec;
+    int conn_data_src_tmo_allowed_min_sec, conn_data_src_tmo_allowed_max_sec;
     bool limit_recvd_line_number;
 
     QString data_src_ip;
@@ -118,6 +120,9 @@ typedef struct
 
     mb_triple_w_start_reg_e_t mb_triple_w_start_reg;
     hv_expo_s_and_e_mode_e_t hv_expo_s_and_e_mode;
+
+    bool scan_without_x;
+    int hv_monitor_period_ms;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;

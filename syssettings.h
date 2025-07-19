@@ -18,6 +18,8 @@ typedef struct
     QString img_save_path;
     int conn_data_src_timeout_sec;
     int max_scan_dura_sec;
+    int expo_to_coll_delay_ms;
+
     int max_recvd_line_number;
 
     hv_params_s_t hv_params;

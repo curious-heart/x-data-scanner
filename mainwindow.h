@@ -55,6 +55,8 @@ private:
     QSerialPort m_pb_sport;
     bool m_pb_sport_open = false;
 
+    QTimer m_hv_monitor_timer;
+
     using CheckHandler = bool (MainWindow::*)();
     QVector<CheckHandler> m_check_hdlrs =
     {
@@ -97,10 +99,12 @@ public slots:
 
     void go_to_syssettings_widget_sig_hdlr();
     void go_to_scan_widget_sig_hdlr();
-    void mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map);
     void hv_op_finish_sig_hdlr(bool ret, QString err_str = "");
 
     void detector_self_chk_ret_sig_hdlr(bool ret);
+
+    void hv_monitor_timer_sig_hdlr();
+    void mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map);
 
 signals:
     void check_next_item_sig(bool start = false);

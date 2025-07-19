@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>382</width>
-    <height>389</height>
+    <width>236</width>
+    <height>320</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,7 +35,7 @@
            <number>1</number>
           </property>
           <property name="value">
-           <number>30</number>
+           <number>25</number>
           </property>
          </widget>
         </item>
@@ -54,6 +54,30 @@
          <widget class="QSpinBox" name="connDataSrcTimeoutSpinBox">
           <property name="minimum">
            <number>1</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <widget class="QLabel" name="expoCollDelayLbl">
+          <property name="text">
+           <string>曝光-采图延迟（毫秒）</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="expoCollDelaySpinBox">
+          <property name="minimum">
+           <number>0</number>
+          </property>
+          <property name="maximum">
+           <number>2000</number>
+          </property>
+          <property name="value">
+           <number>100</number>
           </property>
          </widget>
         </item>
@@ -106,6 +130,12 @@
           <property name="decimals">
            <number>0</number>
           </property>
+          <property name="minimum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>1000.000000000000000</double>
+          </property>
           <property name="value">
            <double>71.000000000000000</double>
           </property>
@@ -126,6 +156,9 @@
          <widget class="QDoubleSpinBox" name="expoDuraSpinBox">
           <property name="decimals">
            <number>0</number>
+          </property>
+          <property name="minimum">
+           <double>1.000000000000000</double>
           </property>
           <property name="value">
            <double>25.000000000000000</double>

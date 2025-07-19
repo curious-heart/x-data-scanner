@@ -63,20 +63,25 @@ static const char* gs_ini_key_skip_detector_self_chk = "skip_detector_self_chk";
 static const char* gs_ini_key_skip_storage_self_chk = "skip_storage_self_chk";
 
 static const char* gs_ini_grp_sc_data_cfg = "sc_data_cfg";
+static const char* gs_ini_key_scan_without_x = "scan_without_x";
 static const char* gs_ini_key_data_src_ip = "data_src_ip";
 static const char* gs_ini_key_data_src_port = "data_src_port";
 static const char* gs_ini_key_max_pt_number = "max_pt_number";
 static const char* gs_ini_key_all_bytes_per_pt = "all_bytes_per_pt";
 static const char* gs_ini_key_pkt_idx_byte_cnt = "pkt_idx_byte_cnt";
-static const char* gs_ini_key_expo_to_coll_delay_def_ms = "expo_to_coll_delay_def_ms";
-static const char* gs_ini_key_expo_to_coll_delay_max_ms = "expo_to_coll_delay_max_ms";
+static const char* gs_ini_key_expo_to_coll_max_allowed_delay_ms= "expo_to_coll_max_allowed_delay_ms";
+static const char* gs_ini_key_expo_to_coll_min_allowed_delay_ms= "expo_to_coll_min_allowed_delay_ms";
 static const char* gs_ini_key_scrn_w = "scrn_w";
 static const char* gs_ini_key_scrn_h = "scrn_h";
-static const char* gs_ini_key_allowed_max_scan_dura_sec = "allowed_max_scan_dura_sec";
+static const char* gs_ini_key_conn_data_src_tmo_allowed_min_sec = "conn_data_src_tmo_allowed_min_sec";
+static const char* gs_ini_key_conn_data_src_tmo_allowed_max_sec = "conn_data_src_tmo_allowed_max_sec";
+static const char* gs_ini_key_scan_dura_allowed_min_sec = "scan_dura_allowed_min_sec";
+static const char* gs_ini_key_scan_dura_allowed_max_sec = "scan_dura_allowed_max_sec";
 static const char* gs_ini_key_limit_recvd_line_number = "limit_recvd_line_number";
 static const char* gs_ini_key_disable_monitor_during_scan = "disable_monitor_during_scan";
 static const char* gs_ini_key_def_scan_bg_value = "def_scan_bg_value";
 static const char* gs_ini_key_def_scan_stre_factor_value = "def_scan_stre_factor_value";
+static const char* gs_ini_key_hv_monitor_period_ms = "hv_monitor_period_ms";
 
 static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
@@ -145,21 +150,25 @@ static const int gs_def_skip_x_src_self_chk = 0;
 static const int gs_def_skip_detector_self_chk = 0;
 static const int gs_def_skip_storage_self_chk = 0;
 
+static const bool gs_def_scan_without_x = false;
 static const char* gs_def_data_src_ip = "192.168.1.123";
 static const int gs_def_data_src_port = 8020;
 static const int gs_def_max_pt_number = 200, gs_def_all_bytes_per_pt = 3,
                  gs_def_pkt_idx_byte_cnt = 2;
-static const int gs_def_expo_to_coll_delay_def_ms = 500,
-                 gs_def_expo_to_coll_delay_max_ms = 1000,
-                 gs_def_pb_monitor_period_ms = 3000;
+static const int gs_def_expo_to_coll_min_allowed_delay_ms = 0,
+                 gs_def_expo_to_coll_max_allowed_delay_ms = 2000;
+static const int gs_def_pb_monitor_period_ms = 3000;
 static const int gs_def_scrn_w = 600;
 static const int gs_def_scrn_h = 800;
-static const int gs_allowed_max_scan_dura_sec = 30;
-static const int gs_def_allowed_max_scan_dura_sec = 30; //def val should not exceed above max val
+static const int gs_def_conn_data_src_tmo_allowed_min_sec = 1;
+static const int gs_def_conn_data_src_tmo_allowed_max_sec = 3;
+static const int gs_def_scan_dura_allowed_min_sec = 1;
+static const int gs_def_scan_dura_allowed_max_sec = 30;
 static const int gs_def_limit_recvd_line_number = 0;
 static const int gs_def_disable_monitor_during_scan = 1;
 static const gray_pixel_data_type gs_def_def_scan_bg_value = 10;
 static const double gs_def_def_scan_stre_factor_value = 2;
+static const int gs_def_hv_monitor_period_ms = 3000;
 
 static const int gs_def_pb_monitor_log = false;
 
@@ -187,9 +196,6 @@ static RangeChecker<int> gs_cfg_file_value_01_int_ranger(0, 1, "",
 
 static RangeChecker<double> gs_cfg_file_value_gt0_double_ranger(0, 0, "",
                        EDGE_EXCLUDED, EDGE_INFINITE);
-
-static RangeChecker<int> gs_cfg_file_allow_scan_dura_sec_ranger(0, gs_allowed_max_scan_dura_sec,
-                        "", EDGE_EXCLUDED, EDGE_INCLUDED);
 
 RangeChecker<int> g_ip_port_ranger(0, 65535, "", EDGE_INCLUDED, EDGE_INCLUDED);
 RangeChecker<int> g_12bitpx_value_ranger(0, g_12bitpx_max_v, "", EDGE_INCLUDED, EDGE_INCLUDED);
@@ -482,6 +488,10 @@ bool fill_sys_configs(QString * ret_str_ptr)
     /*--------------------*/
     settings.beginGroup(gs_ini_grp_sc_data_cfg);
 
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_scan_without_x, toInt,
+                           g_sys_configs_block.scan_without_x, gs_def_scan_without_x,
+                           1, (RangeChecker<int>*)0, (bool));
+
     g_sys_configs_block.data_src_ip
             = settings.value(gs_ini_key_data_src_ip, QString(gs_def_data_src_ip)).toString();
     //check if addr is valid
@@ -516,13 +526,12 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            g_sys_configs_block.pkt_idx_byte_cnt, gs_def_pkt_idx_byte_cnt,
                            1, &gs_cfg_file_value_gt0_int_ranger);
 
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_expo_to_coll_delay_def_ms, toInt,
-                           g_sys_configs_block.expo_to_coll_delay_def_ms, gs_def_expo_to_coll_delay_def_ms,
-                           1, &gs_cfg_file_value_gt0_int_ranger);
-
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_expo_to_coll_delay_max_ms, toInt,
-                           g_sys_configs_block.expo_to_coll_delay_max_ms, gs_def_expo_to_coll_delay_max_ms,
-                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_expo_to_coll_min_allowed_delay_ms, toInt,
+                           g_sys_configs_block.expo_to_coll_min_allowed_delay_ms, gs_def_expo_to_coll_min_allowed_delay_ms,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_expo_to_coll_max_allowed_delay_ms, toInt,
+                           g_sys_configs_block.expo_to_coll_max_allowed_delay_ms, gs_def_expo_to_coll_max_allowed_delay_ms,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_scrn_w, toInt,
                            g_sys_configs_block.scrn_w, gs_def_scrn_w,
@@ -530,9 +539,20 @@ bool fill_sys_configs(QString * ret_str_ptr)
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_scrn_h, toInt,
                            g_sys_configs_block.scrn_h, gs_def_scrn_h,
                            1, &gs_cfg_file_value_gt0_int_ranger);
-    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_allowed_max_scan_dura_sec, toInt,
-                           g_sys_configs_block.allowed_max_scan_dura_sec, gs_def_allowed_max_scan_dura_sec,
-                           1, &gs_cfg_file_allow_scan_dura_sec_ranger);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_conn_data_src_tmo_allowed_min_sec, toInt,
+                           g_sys_configs_block.conn_data_src_tmo_allowed_min_sec, gs_def_conn_data_src_tmo_allowed_min_sec,
+                           1, (RangeChecker<int>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_conn_data_src_tmo_allowed_max_sec, toInt,
+                           g_sys_configs_block.conn_data_src_tmo_allowed_max_sec, gs_def_conn_data_src_tmo_allowed_max_sec,
+                           1, (RangeChecker<int>*)0);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_scan_dura_allowed_min_sec, toInt,
+                           g_sys_configs_block.scan_dura_allowed_min_sec, gs_def_scan_dura_allowed_min_sec,
+                           1, (RangeChecker<int>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_scan_dura_allowed_max_sec, toInt,
+                           g_sys_configs_block.scan_dura_allowed_max_sec, gs_def_scan_dura_allowed_max_sec,
+                           1, (RangeChecker<int>*)0);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_limit_recvd_line_number, toInt,
                            g_sys_configs_block.limit_recvd_line_number, gs_def_limit_recvd_line_number,
                            1, (RangeChecker<int>*)0, (bool));
@@ -545,16 +565,22 @@ bool fill_sys_configs(QString * ret_str_ptr)
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_def_scan_stre_factor_value, toDouble,
                            g_sys_configs_block.def_scan_stre_factor_value, gs_def_def_scan_stre_factor_value,
                            1, &g_12bitpx_stre_factor_ranger);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_hv_monitor_period_ms, toInt,
+                           g_sys_configs_block.hv_monitor_period_ms, gs_def_hv_monitor_period_ms,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+
     settings.endGroup();
 
-    if(g_sys_configs_block.expo_to_coll_delay_def_ms >
-            g_sys_configs_block.expo_to_coll_delay_max_ms)
-    {
-        ret = false;
-        ret_str += QString(g_str_param_in_cfg_file_error) + ": "
-                 + gs_ini_key_expo_to_coll_delay_def_ms + " > "
-                 + gs_ini_key_expo_to_coll_delay_max_ms;
-    }
+    CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_conn_data_src_tmo_allowed_min_sec, gs_ini_key_conn_data_src_tmo_allowed_max_sec),
+                g_sys_configs_block.conn_data_src_tmo_allowed_min_sec, g_sys_configs_block.conn_data_src_tmo_allowed_max_sec,
+                &gs_cfg_file_value_gt0_int_ranger, g_str_unit_s)
+    CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_scan_dura_allowed_min_sec, gs_ini_key_scan_dura_allowed_max_sec),
+                g_sys_configs_block.scan_dura_allowed_min_sec, g_sys_configs_block.scan_dura_allowed_max_sec,
+                &gs_cfg_file_value_gt0_int_ranger, g_str_unit_s)
+    CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_expo_to_coll_min_allowed_delay_ms, gs_ini_key_expo_to_coll_max_allowed_delay_ms),
+                g_sys_configs_block.expo_to_coll_min_allowed_delay_ms, g_sys_configs_block.expo_to_coll_max_allowed_delay_ms,
+                &gs_cfg_file_value_ge0_int_ranger, g_str_unit_ms)
     /*--------------------*/
     settings.beginGroup(gs_ini_grp_pb_set_and_monitor_cfg);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_monitor_period_ms, toInt,
@@ -581,14 +607,14 @@ bool fill_sys_configs(QString * ret_str_ptr)
     settings.endGroup();
     /*--------------------*/
 
-    if((int)(g_sys_configs_block.dura_ms_max / 1000) > g_sys_configs_block.allowed_max_scan_dura_sec)
+    if((int)(g_sys_configs_block.dura_ms_max / 1000) > g_sys_configs_block.scan_dura_allowed_max_sec)
     {
         ret = false;
         ret_str += QString(g_str_param_in_cfg_file_error) + "\n";
         ret_str += QString("%1:%2=%3\n%4%5\n%6:%7=%8\n")
                 .arg(g_str_expo_dura, gs_ini_key_dura_sec_max).arg(g_sys_configs_block.dura_ms_max/1000)
                 .arg(g_str_cannt, g_str_exceed)
-                .arg(g_str_scan_dura_time, gs_ini_key_allowed_max_scan_dura_sec).arg(g_sys_configs_block.allowed_max_scan_dura_sec);
+                .arg(g_str_scan_dura_time, gs_ini_key_scan_dura_allowed_max_sec).arg(g_sys_configs_block.scan_dura_allowed_max_sec);
         ret_str += g_str_plz_check;
     }
 

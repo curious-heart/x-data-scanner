@@ -85,6 +85,9 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     connect(this, &MainWindow::pb_monitor_check_st, this, &MainWindow::pb_monitor_check_st_hdlr,
             Qt::QueuedConnection);
 
+    connect(&m_hv_monitor_timer, &QTimer::timeout, this, &MainWindow::hv_monitor_timer_sig_hdlr,
+            Qt::QueuedConnection);
+
     connect(this, &MainWindow::self_check_item_ret_sig,
             m_self_chk_widget, &SelfCheckWidget::self_check_item_ret_sig_hdlr, Qt::QueuedConnection);
     connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_check_next_item_hdlr,
@@ -184,7 +187,7 @@ bool MainWindow::detector_st_check()
     }
     else
     {
-        m_scan_widget->stop_collect(COLLECT_CMD_SELF_CHK);
+        m_scan_widget->detector_self_check();
     }
     return true;
 }
@@ -199,11 +202,12 @@ bool MainWindow::storage_st_check()
 
 MainWindow::~MainWindow()
 {
-    close_sport();
     m_pb_monitor_timer.stop();
+    close_sport();
 
-    hv_disconnect();
+    m_hv_monitor_timer.stop();
     m_hv_reconn_wait_timer.stop();
+    hv_disconnect();
 
     rec_widgets_ui_settings();
 
@@ -219,6 +223,7 @@ void MainWindow::self_check_finished_sig_hdlr(bool result)
         goto_login_widget();
     }
     m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+    m_hv_monitor_timer.start(g_sys_configs_block.hv_monitor_period_ms);
 }
 
 void MainWindow::goto_login_widget()
@@ -267,6 +272,14 @@ void MainWindow::detector_self_chk_ret_sig_hdlr(bool ret)
 {
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, ret);
     emit check_next_item_sig();
+}
+
+void MainWindow::hv_monitor_timer_sig_hdlr()
+{
+    if(QModbusDevice::ConnectedState == m_hv_conn_state)
+    {
+        m_scan_widget->hv_send_op_cmd(HV_OP_READ_REGS);
+    }
 }
 
 void MainWindow::mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map)

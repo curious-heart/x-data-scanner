@@ -96,11 +96,13 @@ void UiConfigRecorder::record_ui_configs(QWidget * ui_widget,
         else if(check_out)\
             do_it = !filter_out.contains(LIST_VAR_NAME(ctrl_type)[idx]);\
         if(!do_it) continue;\
-                            \
-        str_val = cfg_setting.value(key_pre_str \
-                                    + LIST_VAR_NAME(ctrl_type)[idx]->objectName() \
-                                    + key_post_str, \
-                                    "").toString();\
+                                                                                    \
+        QString key_str = key_pre_str + LIST_VAR_NAME(ctrl_type)[idx]->objectName() \
+                                    + key_post_str; \
+                                                                                    \
+        if(!cfg_setting.contains(key_str)) continue; \
+                                                                                    \
+        str_val = cfg_setting.value(key_str, "").toString();\
         val;\
         if(cond)\
         {\

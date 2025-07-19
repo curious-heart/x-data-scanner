@@ -7,8 +7,6 @@
 #include "syssettings.h"
 #include "sysconfigs/sysconfigs.h"
 
-static int g_def_conn_data_src_timeout_sec = 3;
-
 sys_settings_block_s_t g_sys_settings_blk;
 
 SysSettingsWidget::SysSettingsWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
@@ -19,9 +17,7 @@ SysSettingsWidget::SysSettingsWidget(UiConfigRecorder * cfg_recorder, QWidget *p
 
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
 
-    ui->maxScanDuraSpinBox->setMaximum(g_sys_configs_block.allowed_max_scan_dura_sec);
-    ui->maxScanDuraSpinBox->setValue(g_sys_configs_block.allowed_max_scan_dura_sec);
-    ui->connDataSrcTimeoutSpinBox->setValue(g_def_conn_data_src_timeout_sec);
+    setup_scan_params_limit_on_ui();
 
     setup_hv_params_convert_factors();
     set_hv_params_limit_on_ui();
@@ -36,6 +32,18 @@ void SysSettingsWidget::on_pushButton_clicked()
 {
     get_sysettings_from_ui(false);
     rec_ui_settings();
+}
+
+void SysSettingsWidget::setup_scan_params_limit_on_ui()
+{
+    ui->maxScanDuraSpinBox->setMaximum(g_sys_configs_block.scan_dura_allowed_min_sec);
+    ui->maxScanDuraSpinBox->setMaximum(g_sys_configs_block.scan_dura_allowed_max_sec);
+
+    ui->connDataSrcTimeoutSpinBox->setMinimum(g_sys_configs_block.conn_data_src_tmo_allowed_min_sec);
+    ui->connDataSrcTimeoutSpinBox->setMaximum(g_sys_configs_block.conn_data_src_tmo_allowed_max_sec);
+
+    ui->expoCollDelaySpinBox->setMinimum(g_sys_configs_block.expo_to_coll_min_allowed_delay_ms);
+    ui->expoCollDelaySpinBox->setMaximum(g_sys_configs_block.expo_to_coll_max_allowed_delay_ms);
 }
 
 void SysSettingsWidget::setup_hv_params_convert_factors()
@@ -193,6 +201,7 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
 
     g_sys_settings_blk.max_scan_dura_sec = ui->maxScanDuraSpinBox->value();
     g_sys_settings_blk.conn_data_src_timeout_sec = ui->connDataSrcTimeoutSpinBox->value();
+    g_sys_settings_blk.expo_to_coll_delay_ms = ui->expoCollDelaySpinBox->value();
     g_sys_settings_blk.img_save_path = ".";
 
     g_sys_settings_blk.hv_params.valid = true;

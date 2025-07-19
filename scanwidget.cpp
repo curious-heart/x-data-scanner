@@ -32,6 +32,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     ui->setupUi(this);
 
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
+    m_rec_ui_cfg_fout << ui->scanLockChkBox;
+    ui->scanLockChkBox->setChecked(false);
 
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
@@ -39,7 +41,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     m_scan_dura_timer.setSingleShot(true);
     m_scan_dura_timer.setInterval(g_sys_settings_blk.max_scan_dura_sec * 1000);
     connect(&m_scan_dura_timer, &QTimer::timeout,
-            this, &ScanWidget::scn_dura_timeout_hdlr, Qt::QueuedConnection);
+            this, &ScanWidget::scan_dura_timeout_hdlr, Qt::QueuedConnection);
 
     qRegisterMetaType<collect_rpt_evt_e_t>();
 
@@ -60,6 +62,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     connect(recv_data_worker, &RecvScannedData::recv_data_finished_sig,
             this, &ScanWidget::recv_data_finished_sig_hdlr, Qt::QueuedConnection);
 
+    m_expo_to_coll_delay_timer.setSingleShot(true);
+    m_expo_to_coll_delay_timer.setInterval(g_sys_settings_blk.expo_to_coll_delay_ms);
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
@@ -85,6 +89,7 @@ void ScanWidget::setup_tools(QModbusClient * modbus_device)
 ScanWidget::~ScanWidget()
 {
     m_scan_dura_timer.stop();
+    m_expo_to_coll_delay_timer.stop();
 
     recv_data_workerThread->quit();
     recv_data_workerThread->wait();
@@ -215,6 +220,37 @@ void ScanWidget::reload_cali_datum()
         adjust_stre_factor_data_size(m_scan_stre_factor_value_for_work,
                                      m_scan_stre_factor_value_loaded, disp_pt_per_row);
     }
+}
+
+void ScanWidget::start_scan()
+{
+    if(g_sys_configs_block.scan_without_x)
+    {
+        start_collect();
+    }
+    else
+    {
+        hv_send_op_cmd(HV_OP_START_EXPO);
+        m_expo_to_coll_delay_timer.start();
+    }
+}
+
+void ScanWidget::stop_scan()
+{
+    if(g_sys_configs_block.scan_without_x)
+    {
+        stop_collect();
+    }
+    else
+    {
+        hv_send_op_cmd(HV_OP_STOP_EXPO);
+        m_expo_to_coll_delay_timer.stop();
+    }
+}
+
+void ScanWidget::detector_self_check()
+{
+    stop_collect(COLLECT_CMD_SELF_CHK);
 }
 
 void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
@@ -462,9 +498,9 @@ void ScanWidget::expo_to_coll_delay_timer_hdlr()
     start_collect();
 }
 
-void ScanWidget::scn_dura_timeout_hdlr()
+void ScanWidget::scan_dura_timeout_hdlr()
 {
-    stop_collect();
+    stop_scan();
 }
 
 void ScanWidget::clear_gray_img_lines()
@@ -787,7 +823,7 @@ void ScanWidget::save_local_imgs(gray_img_disp_type_e_t disp_type)
 
 void ScanWidget::on_dataCollStartPbt_clicked()
 {
-    start_collect();
+    start_scan();
 }
 
 void ScanWidget::recv_data_finished_sig_hdlr()
@@ -809,7 +845,7 @@ void ScanWidget::recv_data_finished_sig_hdlr()
 
 void ScanWidget::on_dataCollStopPbt_clicked()
 {
-    stop_collect();
+    stop_scan();
 }
 
 bool ScanWidget::chk_mk_pth_and_warn(QString &pth_str)
@@ -826,8 +862,11 @@ bool ScanWidget::chk_mk_pth_and_warn(QString &pth_str)
 
 void ScanWidget::btns_refresh()
 {
-    ui->dataCollStartPbt->setEnabled(!g_data_scanning_now);
+    ui->dataCollStartPbt->setEnabled(!g_data_scanning_now
+                                     && (g_sys_configs_block.scan_without_x ||
+                                         ui->scanLockChkBox->isChecked()));
     ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
+    ui->scanLockChkBox->setEnabled(!g_data_scanning_now);
 }
 
 void ScanWidget::rec_ui_settings()
@@ -849,5 +888,18 @@ void ScanWidget::load_ui_settings()
 void ScanWidget::on_ptPerRowSpinBox_valueChanged(int /*arg1*/)
 {
     m_pt_per_row_changed = true;
+}
+
+
+void ScanWidget::on_scanLockChkBox_stateChanged(int arg1)
+{
+    if(arg1 == Qt::Unchecked)
+    {
+        ui->dataCollStartPbt->setEnabled(false);
+    }
+    else
+    {
+        ui->dataCollStartPbt->setEnabled(!g_data_scanning_now);
+    }
 }
 

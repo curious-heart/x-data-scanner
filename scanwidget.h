@@ -57,8 +57,9 @@ public:
 
     void setup_tools(QModbusClient * modbus_device);
 
-    void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
-    void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    void start_scan(); //control x ray and collect.
+    void stop_scan(); //control x ray and collect.
+    void detector_self_check();
 
     bool hv_send_op_cmd(hv_op_enum_t op);
 
@@ -101,6 +102,10 @@ private:
     hv_op_enum_t m_hv_curr_op = HV_OP_NULL;
     mb_reg_val_map_t m_regs_read_result;
 
+    //just collect.
+    void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+    void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
+
     void setup_sc_data_rec_file(QString &curr_path, QString &curr_date_str);
     void close_sc_data_file_rec();
     void clear_gray_img_lines();
@@ -139,7 +144,7 @@ private slots:
     void handleNewDataReady();
     void recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
                                 collect_rpt_evt_e_t evt = COLLECT_RPT_EVT_IGNORE);
-    void scn_dura_timeout_hdlr();
+    void scan_dura_timeout_hdlr();
     void expo_to_coll_delay_timer_hdlr();
 
     void on_dataCollStartPbt_clicked();
@@ -152,6 +157,8 @@ private slots:
 
     void mb_op_finished_sig_handler();
     void mb_rw_error_sig_handler(QModbusDevice::Error error);
+
+    void on_scanLockChkBox_stateChanged(int arg1);
 
 signals:
     void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);

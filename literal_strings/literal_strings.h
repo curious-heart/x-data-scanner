@@ -27,6 +27,7 @@ STR_DELCARE_STMT(g_str_fail, "失败") \
 STR_DELCARE_STMT(g_str_create_folder, "创建文件夹") \
 STR_DELCARE_STMT(g_str_row_int, "行发送间隔时间") \
 STR_DELCARE_STMT(g_str_unit_ms, "ms") \
+STR_DELCARE_STMT(g_str_unit_s, "s") \
 STR_DELCARE_STMT(g_str_abnormal, "异常") \
 STR_DELCARE_STMT(g_str_normal, "正常") \
 STR_DELCARE_STMT(g_str_pwr_st, "电源状态") \
