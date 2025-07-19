@@ -7,11 +7,13 @@
 #include <QColor>
 #include <QFont>
 #include <QtMath>
+#include <QStorageInfo>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
 
+#include "literal_strings/literal_strings.h"
 #include "common_tool_func.h"
 #include "logger/logger.h"
 
@@ -932,3 +934,54 @@ bool ip_addr_valid(QString &ip_str)
 }
 
 const gray_pixel_data_type g_12bitpx_max_v = 4095;
+
+const qint64 g_Byte_unit = 1;
+const qint64 g_KB_unit = 1024;
+const qint64 g_MB_unit = g_KB_unit * 1024;
+const qint64 g_GB_unit = g_MB_unit * 1024;
+const qint64 g_TB_unit = g_GB_unit * 1024;
+void get_total_storage_amount(storage_space_info_s_t &storage_info)
+{
+    storage_info.total = storage_info.total_used = storage_info.total_ava = 0;
+    QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
+    for (const QStorageInfo &storage : volumes)
+    {
+        storage_info.total += storage.bytesTotal();
+        storage_info.total_ava += storage.bytesAvailable();
+    }
+    storage_info.total_used = storage_info.total - storage_info.total_ava;
+}
+
+QString trans_bytes_cnt_unit(qint64 cnt, qint64 *unit)
+{
+    QString unit_str;
+    qint64 unit_val;
+
+    if(cnt < g_KB_unit)
+    {
+        unit_str = g_str_Byte;
+        unit_val = g_Byte_unit;
+    }
+    else if(cnt <= g_MB_unit)
+    {
+        unit_str = g_str_KB;
+        unit_val = g_KB_unit;
+    }
+    else if(cnt <= g_GB_unit)
+    {
+        unit_str = g_str_MB;
+        unit_val = g_MB_unit;
+    }
+    else if(cnt <= g_TB_unit)
+    {
+        unit_str = g_str_GB;
+        unit_val = g_GB_unit;
+    }
+    else
+    {
+        unit_str = g_str_TB;
+        unit_val = g_TB_unit;
+    }
+    if(unit) *unit = unit_val;
+    return unit_str;
+}

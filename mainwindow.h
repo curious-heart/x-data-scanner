@@ -87,6 +87,8 @@ private:
     void load_widgets_ui_settings();
     void rec_widgets_ui_settings();
 
+    void refresh_storage_st();
+
 public slots:
     void self_check_finished_sig_hdlr(bool result);
     void login_chk_passed_sig_hdlr();

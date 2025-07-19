@@ -169,4 +169,18 @@ bool ip_addr_valid(QString &ip_str);
 
 extern const gray_pixel_data_type g_12bitpx_max_v;
 
+extern const qint64 g_Byte_unit;
+extern const qint64 g_KB_unit;
+extern const qint64 g_MB_unit;
+extern const qint64 g_GB_unit;
+extern const qint64 g_TB_unit;
+
+typedef struct
+{
+    qint64 total, total_used, total_ava;
+}storage_space_info_s_t;
+void get_total_storage_amount(storage_space_info_s_t &storage_info);
+QString trans_bytes_cnt_unit(qint64 cnt, qint64 *unit = nullptr);
+
+
 #endif // COMMON_TOOL_FUNC_H

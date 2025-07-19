@@ -4,8 +4,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "common_tools/common_tool_func.h"
 #include "literal_strings/literal_strings.h"
+#include "common_tools/common_tool_func.h"
 #include "sysconfigs/sysconfigs.h"
 
 extern bool g_data_scanning_now;
@@ -102,6 +102,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     m_scan_widget->setup_tools(m_hv_conn_device);
 
     self_check(g_sys_configs_block.enable_self_check);
+
+    refresh_storage_st();
 }
 
 void MainWindow::self_check(bool go_check)
@@ -194,7 +196,12 @@ bool MainWindow::detector_st_check()
 bool MainWindow::storage_st_check()
 {
     bool ret = true;
-    //if(g_sys_configs_block.skip_storage_self_chk)
+    if(g_sys_configs_block.skip_storage_self_chk)
+    {
+        storage_space_info_s_t storage_info;
+        get_total_storage_amount(storage_info);
+        ret = (storage_info.total > 0);
+    }
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, ret);
     emit check_next_item_sig();
     return ret;
@@ -212,6 +219,19 @@ MainWindow::~MainWindow()
     rec_widgets_ui_settings();
 
     delete ui;
+}
+
+void MainWindow::refresh_storage_st()
+{
+    storage_space_info_s_t storage_info;
+    get_total_storage_amount(storage_info);
+
+    qint64 unit_val;
+    QString unit_str = trans_bytes_cnt_unit(storage_info.total, &unit_val);
+    QString aval_str = QString::number(storage_info.total_ava / unit_val) + " " + unit_str;
+    QString total_str = QString::number(storage_info.total / unit_val) + " " + unit_str;
+    QString disp_str = QString("%1 %2/%3").arg(g_str_storage_space, aval_str, total_str);
+    ui->storageCapLbl->setText(disp_str);
 }
 
 void MainWindow::self_check_finished_sig_hdlr(bool result)

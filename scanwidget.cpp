@@ -33,7 +33,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
     m_rec_ui_cfg_fout << ui->scanLockChkBox;
-    ui->scanLockChkBox->setChecked(false);
+    ui->scanLockChkBox->setChecked(true);
 
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
@@ -864,7 +864,7 @@ void ScanWidget::btns_refresh()
 {
     ui->dataCollStartPbt->setEnabled(!g_data_scanning_now
                                      && (g_sys_configs_block.scan_without_x ||
-                                         ui->scanLockChkBox->isChecked()));
+                                         !ui->scanLockChkBox->isChecked()));
     ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
     ui->scanLockChkBox->setEnabled(!g_data_scanning_now);
 }
@@ -893,7 +893,7 @@ void ScanWidget::on_ptPerRowSpinBox_valueChanged(int /*arg1*/)
 
 void ScanWidget::on_scanLockChkBox_stateChanged(int arg1)
 {
-    if(arg1 == Qt::Unchecked)
+    if(Qt::Checked == arg1)
     {
         ui->dataCollStartPbt->setEnabled(false);
     }

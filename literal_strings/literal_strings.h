@@ -54,7 +54,13 @@ STR_DELCARE_STMT(g_str_param_in_cfg_file, "配置文件参数") \
 STR_DELCARE_STMT(g_str_mb_op_null_reply, "modbus操作异常，返回空reply") \
 STR_DELCARE_STMT(g_str_mb_read_regs_invalid, "modbus读取常规寄存器数据无效") \
 STR_DELCARE_STMT(g_str_hv_op_error, "光机操作失败") \
-STR_DELCARE_STMT(g_str_hv_st, "光机状态")
+STR_DELCARE_STMT(g_str_hv_st, "光机状态") \
+STR_DELCARE_STMT(g_str_Byte, "Byte") \
+STR_DELCARE_STMT(g_str_KB, "KB") \
+STR_DELCARE_STMT(g_str_MB, "MB") \
+STR_DELCARE_STMT(g_str_GB, "GB") \
+STR_DELCARE_STMT(g_str_TB, "TB") \
+STR_DELCARE_STMT(g_str_storage_space, "存储空间")
 
 LIT_STRINGS_LIST
 
