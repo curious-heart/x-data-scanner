@@ -41,7 +41,6 @@ RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex
 
     m_recv_dura_timer = new QTimer(this);
     m_recv_dura_timer->setSingleShot(true);
-    m_recv_dura_timer->setInterval(g_sys_settings_blk.max_scan_dura_sec * 1000);
     connect(m_recv_dura_timer, &QTimer::timeout,
             this, &RecvScannedData::stop_collect_sc_data_hdlr, Qt::QueuedConnection);
 
@@ -170,7 +169,7 @@ void RecvScannedData::data_ready_hdlr()
                 log_lvl = LOG_INFO;
                 evt = COLLECT_RPT_EVT_CONNECTED;
 
-                m_recv_dura_timer->start();
+                m_recv_dura_timer->start(g_sys_settings_blk.max_scan_dura_sec * 1000);
             }
             else
             {

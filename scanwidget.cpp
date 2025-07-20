@@ -39,7 +39,6 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
 
     m_scan_dura_timer.setSingleShot(true);
-    m_scan_dura_timer.setInterval(g_sys_settings_blk.max_scan_dura_sec * 1000);
     connect(&m_scan_dura_timer, &QTimer::timeout,
             this, &ScanWidget::scan_dura_timeout_hdlr, Qt::QueuedConnection);
 
@@ -63,7 +62,6 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
             this, &ScanWidget::recv_data_finished_sig_hdlr, Qt::QueuedConnection);
 
     m_expo_to_coll_delay_timer.setSingleShot(true);
-    m_expo_to_coll_delay_timer.setInterval(g_sys_settings_blk.expo_to_coll_delay_ms);
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
@@ -234,21 +232,18 @@ void ScanWidget::start_scan()
     else
     {
         hv_send_op_cmd(HV_OP_START_EXPO);
-        m_expo_to_coll_delay_timer.start();
+        m_expo_to_coll_delay_timer.start(g_sys_settings_blk.expo_to_coll_delay_ms);
     }
 }
 
 void ScanWidget::stop_scan()
 {
-    if(g_sys_configs_block.scan_without_x)
-    {
-        stop_collect();
-    }
-    else
+    if(!g_sys_configs_block.scan_without_x)
     {
         hv_send_op_cmd(HV_OP_STOP_EXPO);
         m_expo_to_coll_delay_timer.stop();
     }
+    stop_collect();
 }
 
 void ScanWidget::detector_self_check()
@@ -279,7 +274,7 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
     emit start_collect_sc_data_sig(ip, port, g_sys_settings_blk.conn_data_src_timeout_sec);
     g_data_scanning_now = true;
 
-    m_scan_dura_timer.start();
+    m_scan_dura_timer.start(g_sys_settings_blk.max_scan_dura_sec * 1000);
 
     btns_refresh();
 }
