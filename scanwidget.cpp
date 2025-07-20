@@ -67,6 +67,9 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
+
+    clear_gray_img_lines();
+
     load_cali_datum_from_file();
 
     proc_pt_per_row_cnt_related_work();
@@ -480,15 +483,12 @@ void ScanWidget::recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
         close_sc_data_file_rec();
         break;
 
-    case COLLECT_RPT_EVT_DISCONN_TIMEOUT:
+    default:
         if(m_detector_self_chk)
         {
             m_detector_self_chk = false;
             emit detector_self_chk_ret_sig(false);
         }
-        break;
-
-    default:
         break;
     }
 }

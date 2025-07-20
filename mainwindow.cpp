@@ -88,6 +88,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     connect(&m_hv_monitor_timer, &QTimer::timeout, this, &MainWindow::hv_monitor_timer_sig_hdlr,
             Qt::QueuedConnection);
 
+    connect(this, &MainWindow::self_check_hv_rechk_sig,
+            this, &MainWindow::self_check_hv_rechk_sig_hdlr,Qt::QueuedConnection);
     connect(this, &MainWindow::self_check_item_ret_sig,
             m_self_chk_widget, &SelfCheckWidget::self_check_item_ret_sig_hdlr, Qt::QueuedConnection);
     connect(this, &MainWindow::check_next_item_sig, this, &MainWindow::self_check_next_item_hdlr,
@@ -136,10 +138,7 @@ void MainWindow::self_check_next_item_hdlr(bool start)
         bool final_ret = ret;
         ret = true;
 
-        if(final_ret)
-        {
-            emit self_check_finished_sig(final_ret);
-        }
+        emit self_check_finished_sig(final_ret);
         return;
     }
 
@@ -164,17 +163,37 @@ bool MainWindow::pwr_st_check()
 
 bool MainWindow::x_ray_source_st_check()
 {
+    bool chk_ret = true;
+    bool chk_finished = false;
+
     if(g_sys_configs_block.skip_x_src_self_chk)
     {
-        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, true);
-        m_hv_op_for_self_chk = false;
-
-        emit check_next_item_sig();
+        chk_ret = true;
+        chk_finished = true;
     }
     else
     {
-        m_hv_op_for_self_chk = true;
-        m_scan_widget->hv_send_op_cmd(HV_OP_READ_REGS);
+        if(HV_SELF_CHK_CONN_DONE == m_hv_self_chk_stg)
+        {
+            if(QModbusDevice::ConnectedState == m_hv_conn_state)
+            {
+                m_scan_widget->hv_send_op_cmd(HV_OP_READ_REGS);
+                m_hv_self_chk_stg = HV_SELF_CHK_WAITING_READ;
+            }
+            else
+            {
+                chk_ret = false;
+                chk_finished = true;
+            }
+        }
+    }
+
+    if(chk_finished)
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, chk_ret);
+        m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
+
+        emit check_next_item_sig();
     }
 
     return true;
@@ -205,6 +224,11 @@ bool MainWindow::storage_st_check()
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, ret);
     emit check_next_item_sig();
     return ret;
+}
+
+void MainWindow::self_check_hv_rechk_sig_hdlr()
+{
+    x_ray_source_st_check();
 }
 
 MainWindow::~MainWindow()
@@ -324,13 +348,14 @@ void MainWindow::mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map)
 
 void MainWindow::hv_op_finish_sig_hdlr(bool ret, QString /*err_str*/)
 {
-    if(m_hv_op_for_self_chk)
+    if(HV_SELF_CHK_WAITING_READ == m_hv_self_chk_stg)
     {
         emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, ret);
-        m_hv_op_for_self_chk = false;
+        m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
         emit check_next_item_sig();
     }
+
     if(!ret)
     {
         ui->hvConnLbl->setStyleSheet("QLabel { color : red; }");
@@ -681,6 +706,12 @@ void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
     }
     ui->hvConnLbl->setStyleSheet(stylesheet);
     ui->hvConnLbl->setText(lbl_str);
+
+    if(HV_SELF_CHK_WAITING_CONN == m_hv_self_chk_stg)
+    {
+        m_hv_self_chk_stg = HV_SELF_CHK_CONN_DONE;
+        emit self_check_hv_rechk_sig();
+    }
 }
 
 void MainWindow::hv_reconn_wait_timer_sig_handler()

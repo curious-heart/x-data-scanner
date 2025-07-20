@@ -63,7 +63,7 @@ private:
     QMutex *queueMutex = nullptr;
     QHostAddress remoteAddress;
     quint16 remotePort, m_localPort;
-    int m_connTimeout;
+    int m_connTimeout = 0;
 
     QTimer *connTimer;
     QTimer *discTimer;

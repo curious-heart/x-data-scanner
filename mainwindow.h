@@ -36,6 +36,15 @@ public:
     bool read_from_sport(char* read_data, qint64 buf_size, bool log_rw);
     QString hv_work_st_str(quint16 st_reg_val);
 
+    typedef enum
+    {
+        HV_SELF_CHK_WAITING_CONN,
+        HV_SELF_CHK_CONN_DONE,
+        HV_SELF_CHK_WAITING_READ,
+        HV_SELF_CHK_FINISHED,
+    }hv_self_chk_stg_e_t;
+    Q_ENUM(hv_self_chk_stg_e_t)
+
 private:
     Ui::MainWindow *ui;
     QStackedWidget *m_stacked_widget;
@@ -79,6 +88,7 @@ private:
     QModbusClient * m_hv_conn_device = nullptr;
     QTimer m_hv_reconn_wait_timer;
     QModbusDevice::State m_hv_conn_state = QModbusDevice::UnconnectedState;
+    hv_self_chk_stg_e_t m_hv_self_chk_stg = HV_SELF_CHK_WAITING_CONN;
     bool m_hv_op_for_self_chk = false;
     void setup_hv_conn_client();
     void hv_connect();
@@ -103,12 +113,14 @@ public slots:
     void go_to_scan_widget_sig_hdlr();
     void hv_op_finish_sig_hdlr(bool ret, QString err_str = "");
 
+    void self_check_hv_rechk_sig_hdlr();
     void detector_self_chk_ret_sig_hdlr(bool ret);
 
     void hv_monitor_timer_sig_hdlr();
     void mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map);
 
 signals:
+    void self_check_hv_rechk_sig();
     void check_next_item_sig(bool start = false);
     void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t, bool ret);
     void self_check_finished_sig(bool result);
