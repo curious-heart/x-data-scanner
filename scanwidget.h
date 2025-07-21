@@ -161,7 +161,7 @@ private slots:
     void on_scanLockChkBox_stateChanged(int arg1);
 
 signals:
-    void start_collect_sc_data_sig(QString ip, quint16 port, int connTimeout);
+    void start_collect_sc_data_sig();
     void stop_collect_sc_data_sig();
     void mb_regs_read_ret_sig(mb_reg_val_map_t reg_val_map);
     void hv_op_finish_sig(bool ret, QString err_str = "");

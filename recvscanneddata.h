@@ -41,6 +41,7 @@ class RecvScannedData : public QObject
 
 public:
     explicit RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex *mutex,
+                             QString ip, quint16 port, int connTimeout,
                              QObject *parent = nullptr, quint16 localPort = 0);
     ~RecvScannedData();
 
@@ -51,7 +52,7 @@ signals:
     void recv_data_finished_sig();
 
 public slots:
-    void start_collect_sc_data_hdlr(QString ip, quint16 port, int connTimeout);
+    void start_collect_sc_data_hdlr();
     void stop_collect_sc_data_hdlr();
     void data_ready_hdlr();
     void conn_timeout_hdlr();

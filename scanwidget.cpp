@@ -33,7 +33,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
     m_rec_ui_cfg_fout << ui->scanLockChkBox;
-    ui->scanLockChkBox->setChecked(true);
+    ui->scanLockChkBox->setChecked(!g_sys_configs_block.scan_without_x);
 
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
@@ -44,7 +44,10 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
     qRegisterMetaType<collect_rpt_evt_e_t>();
 
-    recv_data_worker = new RecvScannedData(&dataQueue, &queueMutex);
+    QString rmt_ip = g_sys_configs_block.data_src_ip;
+    quint16 rmt_port = (quint16)g_sys_configs_block.data_src_port;
+    recv_data_worker = new RecvScannedData(&dataQueue, &queueMutex,
+                                       rmt_ip, rmt_port, g_sys_settings_blk.conn_data_src_timeout_sec);
     recv_data_workerThread = new QThread(this);
     recv_data_worker->moveToThread(recv_data_workerThread);
     connect(recv_data_workerThread, &QThread::finished,
@@ -268,10 +271,7 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
     QString curr_path = g_sys_settings_blk.img_save_path + "/" + curr_date_str;
     setup_sc_data_rec_file(curr_path, curr_date_str);
 
-    QString ip = g_sys_configs_block.data_src_ip;
-    quint16 port = (quint16)g_sys_configs_block.data_src_port;
-
-    emit start_collect_sc_data_sig(ip, port, g_sys_settings_blk.conn_data_src_timeout_sec);
+    emit start_collect_sc_data_sig();
     g_data_scanning_now = true;
 
     m_scan_dura_timer.start(g_sys_settings_blk.max_scan_dura_sec * 1000);
@@ -352,15 +352,6 @@ void ScanWidget::handleNewDataReady()
         if(dataQueue.isEmpty()) return;
         packet = dataQueue.dequeue();
     }
-    if(m_detector_self_chk)
-    {
-        emit detector_self_chk_ret_sig(true);
-        m_detector_self_chk = false;
-        return;
-    }
-
-    if(!g_data_scanning_now) return;
-
     QString data_str = log_disp_prepender_str();
 
     data_str += QString(gs_recv_data_note_str[packet.notes]) + ":";
@@ -369,6 +360,14 @@ void ScanWidget::handleNewDataReady()
     data_str += "\n";
     if(m_curr_sc_txt_file.isOpen()) {m_curr_sc_txt_stream << data_str;}
 
+    if(m_detector_self_chk)
+    {
+        emit detector_self_chk_ret_sig(true);
+        m_detector_self_chk = false;
+        return;
+    }
+
+    if(!g_data_scanning_now) return;
     if(NORMAL == packet.notes)
     {
         quint64 pkt_idx;
@@ -853,7 +852,7 @@ void ScanWidget::btns_refresh()
                                      && (g_sys_configs_block.scan_without_x ||
                                          !ui->scanLockChkBox->isChecked()));
     ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
-    ui->scanLockChkBox->setEnabled(!g_data_scanning_now);
+    ui->scanLockChkBox->setEnabled(!g_data_scanning_now && !g_sys_configs_block.scan_without_x);
 }
 
 void ScanWidget::rec_ui_settings()
@@ -882,7 +881,7 @@ void ScanWidget::on_scanLockChkBox_stateChanged(int arg1)
 {
     if(Qt::Checked == arg1)
     {
-        ui->dataCollStartPbt->setEnabled(false);
+        ui->dataCollStartPbt->setEnabled(g_sys_configs_block.scan_without_x);
     }
     else
     {

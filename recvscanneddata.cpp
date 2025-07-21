@@ -21,6 +21,7 @@ static const char* gs_def_remote_ip_addr = "192.168.1.123";
 static const quint16 gs_def_remote_udp_port = 8020;
 
 RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex *mutex,
+                                 QString ip, quint16 port, int connTimeout,
                                   QObject *parent, quint16 localPort)
     : QObject(parent), dataQueue(queue), queueMutex(mutex),
       remoteAddress(gs_def_remote_ip_addr), remotePort(gs_def_remote_udp_port),
@@ -32,6 +33,10 @@ RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex
     m_stop_ack = QByteArray::fromRawData(gs_stop_ack_cmd, sizeof(gs_stop_ack_cmd));
 
     udpSocket = new QUdpSocket(this);
+
+    remoteAddress = QHostAddress(ip);
+    remotePort = port;
+    m_connTimeout = connTimeout;
 
     connTimer = new QTimer(this);
     connTimer->setSingleShot(true);
@@ -63,9 +68,10 @@ RecvScannedData::~RecvScannedData()
     m_recv_dura_timer->stop();
 }
 
-void RecvScannedData::start_collect_sc_data_hdlr(QString ip, quint16 port,
-                                            int connTimeout)
+void RecvScannedData::start_collect_sc_data_hdlr()
 {
+    DIY_LOG(LOG_INFO, QString("recv start instruciton. %1:%2") .arg(remoteAddress.toString(),
+                                                                   QString::number(remotePort)));
     if (collectingState != ST_IDLE)
     {
         QString rpt_str = QString("Current state is %1 , expecting ST_IDLE."
@@ -75,16 +81,14 @@ void RecvScannedData::start_collect_sc_data_hdlr(QString ip, quint16 port,
         DIY_LOG(LOG_WARN, rpt_str);
         return;
     }
-    m_connTimeout = connTimeout;
 
-    remoteAddress = QHostAddress(ip);
-    remotePort = port;
     receivedPacketCount = 0;
 
     udpSocket->writeDatagram(m_start_req, remoteAddress, remotePort);
 
     collectingState = ST_WAIT_CONN_ACK;
-    connTimer->start(connTimeout * 1000);
+    DIY_LOG(LOG_INFO, QString("recv thread start conn timer. %1 sec").arg(m_connTimeout));
+    connTimer->start(m_connTimeout * 1000);
 }
 
 void RecvScannedData::stop_collect_sc_data_hdlr()
@@ -102,6 +106,8 @@ void RecvScannedData::stop_collect_sc_data_hdlr()
 
 void RecvScannedData::stopCollection()
 {
+    DIY_LOG(LOG_INFO, QString("recv stop instruciton. %1:%2") .arg(remoteAddress.toString(),
+                                                                   QString::number(remotePort)));
     udpSocket->writeDatagram(m_stop_req, remoteAddress, remotePort);
 
     collectingState = ST_WAIT_DISCONN_ACK;
