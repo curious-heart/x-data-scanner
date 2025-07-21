@@ -354,11 +354,8 @@ void ScanWidget::handleNewDataReady()
     }
     if(m_detector_self_chk)
     {
-        if(STOP_ACK == packet.notes)
-        {
-            emit detector_self_chk_ret_sig(true);
-            m_detector_self_chk = false;
-        }
+        emit detector_self_chk_ret_sig(true);
+        m_detector_self_chk = false;
         return;
     }
 
@@ -479,11 +476,6 @@ void ScanWidget::recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
         break;
 
     default:
-        if(m_detector_self_chk)
-        {
-            m_detector_self_chk = false;
-            emit detector_self_chk_ret_sig(false);
-        }
         break;
     }
 }
