@@ -122,7 +122,8 @@ public slots:
 signals:
     void self_check_hv_rechk_sig();
     void check_next_item_sig(bool start = false);
-    void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t, bool ret);
+    void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t,
+                                 SelfCheckWidget::self_check_stage_e_t st);
     void self_check_finished_sig(bool result);
     void pb_monitor_check_st();
 };

@@ -153,9 +153,13 @@ bool MainWindow::pwr_st_check()
 {
     bool ret;
 
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, SelfCheckWidget::SELF_CHECKING);
+
     ret = g_sys_configs_block.skip_pwr_self_chk ? true : pb_monitor_check_st_hdlr();
 
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, ret);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
+                                 ret ? SelfCheckWidget::SELF_CHECK_PASS
+                                     : SelfCheckWidget::SELF_CHECK_FAIL);
 
     emit check_next_item_sig();
 
@@ -167,6 +171,7 @@ bool MainWindow::x_ray_source_st_check()
     bool chk_ret = true;
     bool chk_finished = false;
 
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, SelfCheckWidget::SELF_CHECKING);
     if(g_sys_configs_block.skip_x_src_self_chk)
     {
         chk_ret = true;
@@ -191,7 +196,9 @@ bool MainWindow::x_ray_source_st_check()
 
     if(chk_finished)
     {
-        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, chk_ret);
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY,
+                                     chk_ret ? SelfCheckWidget::SELF_CHECK_PASS
+                                             : SelfCheckWidget::SELF_CHECK_FAIL);
         m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
         emit check_next_item_sig();
@@ -202,9 +209,11 @@ bool MainWindow::x_ray_source_st_check()
 
 bool MainWindow::detector_st_check()
 {
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, SelfCheckWidget::SELF_CHECKING);
     if(g_sys_configs_block.skip_detector_self_chk)
     {
-        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, true);
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR,
+                                    SelfCheckWidget::SELF_CHECK_PASS);
         emit check_next_item_sig();
     }
     else
@@ -216,13 +225,16 @@ bool MainWindow::detector_st_check()
 bool MainWindow::storage_st_check()
 {
     bool ret = true;
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, SelfCheckWidget::SELF_CHECKING);
     if(g_sys_configs_block.skip_storage_self_chk)
     {
         storage_space_info_s_t storage_info;
         get_total_storage_amount(storage_info);
         ret = (storage_info.total > 0);
     }
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, ret);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE,
+                                 ret ? SelfCheckWidget::SELF_CHECK_PASS
+                                     : SelfCheckWidget::SELF_CHECK_FAIL);
     emit check_next_item_sig();
     return ret;
 }
@@ -239,7 +251,7 @@ MainWindow::~MainWindow()
 
     m_hv_monitor_timer.stop();
     m_hv_reconn_wait_timer.stop();
-    hv_disconnect();
+   hv_disconnect();
 
     rec_widgets_ui_settings();
 
@@ -315,7 +327,9 @@ void MainWindow::login_chk_passed_sig_hdlr()
 
 void MainWindow::detector_self_chk_ret_sig_hdlr(bool ret)
 {
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, ret);
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR,
+                                 ret ? SelfCheckWidget::SELF_CHECK_PASS
+                                     : SelfCheckWidget::SELF_CHECK_FAIL);
     emit check_next_item_sig();
 }
 
@@ -351,7 +365,9 @@ void MainWindow::hv_op_finish_sig_hdlr(bool ret, QString /*err_str*/)
 {
     if(HV_SELF_CHK_WAITING_READ == m_hv_self_chk_stg)
     {
-        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY, ret);
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_XRAY,
+                                     ret ? SelfCheckWidget::SELF_CHECK_PASS
+                                         : SelfCheckWidget::SELF_CHECK_FAIL);
         m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
         emit check_next_item_sig();
@@ -708,7 +724,9 @@ void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
     ui->hvConnLbl->setStyleSheet(stylesheet);
     ui->hvConnLbl->setText(lbl_str);
 
-    if(HV_SELF_CHK_WAITING_CONN == m_hv_self_chk_stg)
+    if(HV_SELF_CHK_WAITING_CONN == m_hv_self_chk_stg
+            && (QModbusDevice::ConnectedState == m_hv_conn_state
+                || QModbusDevice::UnconnectedState == m_hv_conn_state))
     {
         m_hv_self_chk_stg = HV_SELF_CHK_CONN_DONE;
         emit self_check_hv_rechk_sig();

@@ -474,6 +474,14 @@ void ScanWidget::recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
         close_sc_data_file_rec();
         break;
 
+    case COLLECT_RPT_EVT_DISCONN_TIMEOUT:
+        if(m_detector_self_chk)
+        {
+            emit detector_self_chk_ret_sig(false);
+            m_detector_self_chk = false;
+        }
+        break;
+
     default:
         break;
     }

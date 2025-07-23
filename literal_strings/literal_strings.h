@@ -60,7 +60,8 @@ STR_DELCARE_STMT(g_str_KB, "KB") \
 STR_DELCARE_STMT(g_str_MB, "MB") \
 STR_DELCARE_STMT(g_str_GB, "GB") \
 STR_DELCARE_STMT(g_str_TB, "TB") \
-STR_DELCARE_STMT(g_str_storage_space, "存储空间")
+STR_DELCARE_STMT(g_str_storage_space, "存储空间") \
+STR_DELCARE_STMT(g_str_checking, "正在检测")
 
 LIT_STRINGS_LIST
 

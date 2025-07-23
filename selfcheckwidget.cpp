@@ -29,15 +29,27 @@ SelfCheckWidget::~SelfCheckWidget()
     delete ui;
 }
 
-void SelfCheckWidget::self_check_item_ret_sig_hdlr(self_check_type_e_t chk_type, bool ret)
+void SelfCheckWidget::self_check_item_ret_sig_hdlr(self_check_type_e_t chk_type, self_check_stage_e_t st)
 {
     int idx;
     QString title;
+    QLabel * self_chk_lbl = nullptr;
+    static QLabel * lbl_arr[SELF_CHECK_CNT] = {nullptr};
     for(idx = 0; idx < ARRAY_COUNT(gs_self_check_type_str_map); ++idx)
     {
         if(gs_self_check_type_str_map[idx].self_check_type == chk_type)
         {
             title = gs_self_check_type_str_map[idx].type_str;
+            if(nullptr == lbl_arr[idx])
+            {
+                self_chk_lbl = new QLabel(this);
+                lbl_arr[idx] = self_chk_lbl;
+                ui->selfChkVBoxLayout->addWidget(self_chk_lbl);
+            }
+            else
+            {
+                self_chk_lbl = lbl_arr[idx];
+            }
             break;
         }
     }
@@ -47,10 +59,11 @@ void SelfCheckWidget::self_check_item_ret_sig_hdlr(self_check_type_e_t chk_type,
         return;
     }
 
-    QString ret_str = ret ? g_str_normal : g_str_abnormal;
+    QString ret_str;
+    if(SELF_CHECK_PASS == st) ret_str = g_str_normal;
+    else if(SELF_CHECK_FAIL == st) ret_str = g_str_abnormal;
+    else ret_str = g_str_checking;
     QString disp_str = title + ":" + ret_str;
-    QLabel * self_chk_lbl = new QLabel(this);
     self_chk_lbl->setAlignment(Qt::AlignHCenter);
     self_chk_lbl->setText(disp_str);
-    ui->selfChkVBoxLayout->addWidget(self_chk_lbl);
 }
