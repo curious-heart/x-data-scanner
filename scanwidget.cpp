@@ -650,7 +650,7 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_p
                                              alt_maxv->begin() + m_display_buf_img.disp_area_height));
 
 
-        m_display_buf_img.buf_line_cnt= m_display_buf_img.disp_area_height;
+        m_display_buf_img.buf_line_cnt = m_display_buf_img.disp_area_height;
         m_display_buf_img.disp_line_start_idx = 0;
         if(0 == m_display_buf_img.curr_work_img_ind)
         {
@@ -671,7 +671,10 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_p
             % g_sys_settings_blk.merg_disp_img_line_cnt == 0))
     {
         QImage disp8bit_img = convertGrayscale16To8(disp_img, &mmpair);
-        QPixmap scaled = QPixmap::fromImage(disp8bit_img)
+        QImage full_area_img(disp8bit_img.width(), m_display_buf_img.disp_area_height, QImage::Format_Grayscale8);
+        full_area_img.fill(this->palette().color(QPalette::Window));
+        memcpy(full_area_img.bits(), disp8bit_img.bits(), disp8bit_img.bytesPerLine() * disp8bit_img.height());
+        QPixmap scaled = QPixmap::fromImage(full_area_img/*disp8bit_img*/)
                     .scaled(ui->grayImgLbl->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         ui->grayImgLbl->setPixmap(scaled);
     }
