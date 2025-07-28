@@ -40,7 +40,7 @@ typedef enum
 
 typedef struct
 {
-    int valid_line_cnt, curr_work_img_ind;
+    int buf_line_cnt, curr_work_img_ind, disp_line_start_idx, disp_area_height, total_line_cnt;
     QImage img_buffer, img_buffer2;
     QVector<gray_pixel_data_type> img_line_min_vs, img_line_max_vs, img_line_min_vs2, img_line_max_vs2;
 }display_buf_img_s_t;
@@ -159,6 +159,9 @@ private slots:
     void mb_rw_error_sig_handler(QModbusDevice::Error error);
 
     void on_scanLockChkBox_stateChanged(int arg1);
+
+public slots:
+    void scan_widget_disp_sig_hdlr();
 
 signals:
     void start_collect_sc_data_sig();

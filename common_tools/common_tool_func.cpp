@@ -833,7 +833,7 @@ bool CToolKeyFilter::eventFilter(QObject * obj, QEvent * evt)
 }
 
 
-QImage convertGrayscale16To8(const QImage &img16, const QRect area, QColor bg, pixel_mmpairt_s_t *mmpair)
+QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair, const QRect area, QColor bg)
 {
     bool opt_flag = false;
 

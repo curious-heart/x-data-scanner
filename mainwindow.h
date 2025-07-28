@@ -126,5 +126,7 @@ signals:
                                  SelfCheckWidget::self_check_stage_e_t st);
     void self_check_finished_sig(bool result);
     void pb_monitor_check_st();
+
+    void scan_widget_disp_sig();
 };
 #endif // MAINWINDOW_H

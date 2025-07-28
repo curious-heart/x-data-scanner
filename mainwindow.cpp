@@ -80,6 +80,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::hv_op_finish_sig_hdlr, Qt::QueuedConnection);
     connect(m_scan_widget, &ScanWidget::detector_self_chk_ret_sig,
             this, &MainWindow::detector_self_chk_ret_sig_hdlr, Qt::QueuedConnection);
+    connect(this, &MainWindow::scan_widget_disp_sig,
+            m_scan_widget, &ScanWidget::scan_widget_disp_sig_hdlr, Qt::QueuedConnection);
 
     connect(&m_pb_monitor_timer, &QTimer::timeout, this, &MainWindow::pb_monitor_timer_hdlr,
             Qt::QueuedConnection);
@@ -308,6 +310,7 @@ void MainWindow::go_to_scan_widget()
         m_stacked_widget->addWidget(m_scan_widget);
     }
     m_stacked_widget->setCurrentWidget(m_scan_widget);
+    emit scan_widget_disp_sig();
 }
 
 void MainWindow::go_to_syssettings_widget_sig_hdlr()

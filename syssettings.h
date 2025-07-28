@@ -23,6 +23,8 @@ typedef struct
     int max_recvd_line_number;
 
     hv_params_s_t hv_params;
+
+    int ini_disp_img_line_cnt, merg_disp_img_line_cnt;
 }sys_settings_block_s_t;
 
 extern sys_settings_block_s_t g_sys_settings_blk;
