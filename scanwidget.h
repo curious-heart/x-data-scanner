@@ -81,6 +81,7 @@ private:
     QImage m_local_img, m_local_img_8bit;
     QImage m_local_layfull_img, m_local_layfull_img_8bit;
     display_buf_img_s_t m_display_buf_img;
+    QImage m_disp8bit_img;
 
     QTimer m_scan_dura_timer;
 

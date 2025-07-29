@@ -111,25 +111,29 @@ void ScanWidget::proc_pt_per_row_cnt_related_work()
 
 void ScanWidget::reset_display_img_buffer()
 {
+    scan_widget_disp_sig_hdlr();
+
+    int disp_pt_per_row = ui->ptPerRowSpinBox->value();
     if(m_pt_per_row_changed)
     {
-        int disp_pt_per_row = ui->ptPerRowSpinBox->value();
         m_display_buf_img.img_buffer = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
                                    QImage::Format_Grayscale16);
         m_display_buf_img.img_buffer2 = QImage(disp_pt_per_row, g_sys_configs_block.scrn_h,
                                    QImage::Format_Grayscale16);
+
     }
 
-    /*
-    QColor bgColor = this->palette().color(QPalette::Window);
-    m_display_buf_img.img_buffer.fill(bgColor.rgb());
-    m_display_buf_img.img_buffer2.fill(bgColor.rgb());
-    */
+    if(m_pt_per_row_changed || m_disp8bit_img.height() != m_display_buf_img.disp_area_height)
+    {
+        m_disp8bit_img = QImage(disp_pt_per_row, m_display_buf_img.disp_area_height,
+                                   QImage::Format_Grayscale8);
+    }
+    m_disp8bit_img.fill(this->palette().color(QPalette::Window));
+
     m_display_buf_img.buf_line_cnt = 0;
     m_display_buf_img.curr_work_img_ind = 0;
     m_display_buf_img.disp_line_start_idx = 0;
     m_display_buf_img.total_line_cnt = 0;
-    scan_widget_disp_sig_hdlr();
 }
 
 void ScanWidget::adjust_bg_data_size(QVector<gray_pixel_data_type> &tgt,
@@ -671,10 +675,8 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_p
             % g_sys_settings_blk.merg_disp_img_line_cnt == 0))
     {
         QImage disp8bit_img = convertGrayscale16To8(disp_img, &mmpair);
-        QImage full_area_img(disp8bit_img.width(), m_display_buf_img.disp_area_height, QImage::Format_Grayscale8);
-        full_area_img.fill(this->palette().color(QPalette::Window));
-        memcpy(full_area_img.bits(), disp8bit_img.bits(), disp8bit_img.bytesPerLine() * disp8bit_img.height());
-        QPixmap scaled = QPixmap::fromImage(full_area_img/*disp8bit_img*/)
+        memcpy(m_disp8bit_img.bits(), disp8bit_img.bits(), disp8bit_img.bytesPerLine() * disp8bit_img.height());
+        QPixmap scaled = QPixmap::fromImage(m_disp8bit_img)
                     .scaled(ui->grayImgLbl->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         ui->grayImgLbl->setPixmap(scaled);
     }
