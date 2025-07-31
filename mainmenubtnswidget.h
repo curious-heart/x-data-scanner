@@ -20,12 +20,15 @@ private slots:
 
     void on_scanPBtn_clicked();
 
+    void on_photoPBtn_clicked();
+
 private:
     Ui::MainmenuBtnsWidget *ui;
 
 signals:
     void go_to_scan_widget_sig();
     void go_to_syssettings_widget_sig();
+    void go_to_camera_widget_sig();
 };
 
 #endif // MAINMENUBTNSWIDGET_H

@@ -1,4 +1,4 @@
-QT       += core gui network serialport serialbus
+QT       += core gui network serialport serialbus multimedia multimediawidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -9,6 +9,7 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    camerawidget.cpp \
     common_tools/common_tool_func.cpp \
     config_recorder/uiconfigrecorder.cpp \
     hv_ops.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
     version_def/version_def.cpp
 
 HEADERS += \
+    camerawidget.h \
     common_tools/common_tool_func.h \
     config_recorder/uiconfigrecorder.h \
     hv_ops_internal.h \
@@ -45,6 +47,7 @@ HEADERS += \
     version_def/version_def.h
 
 FORMS += \
+    camerawidget.ui \
     loginwidget.ui \
     mainmenubtnswidget.ui \
     mainwindow.ui \

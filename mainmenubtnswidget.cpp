@@ -27,3 +27,8 @@ void MainmenuBtnsWidget::on_scanPBtn_clicked()
     emit go_to_scan_widget_sig();
 }
 
+void MainmenuBtnsWidget::on_photoPBtn_clicked()
+{
+    emit go_to_camera_widget_sig();
+}
+

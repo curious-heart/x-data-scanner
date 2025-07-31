@@ -7,11 +7,12 @@
 #include <QtSerialPort/QSerialPort>
 #include <QModbusClient>
 
-#include <selfcheckwidget.h>
-#include <loginwidget.h>
-#include <scanwidget.h>
-#include <syssettingswidget.h>
-#include <mainmenubtnswidget.h>
+#include "selfcheckwidget.h"
+#include "loginwidget.h"
+#include "scanwidget.h"
+#include "camerawidget.h"
+#include "syssettingswidget.h"
+#include "mainmenubtnswidget.h"
 
 #include "config_recorder/uiconfigrecorder.h"
 
@@ -54,6 +55,7 @@ private:
 
     LoginWidget * m_login_widget;
     ScanWidget * m_scan_widget;
+    CameraWidget * m_camera_widget;
     SysSettingsWidget * m_syssettings_widget;
 
     MainmenuBtnsWidget * m_mainmenubtns_widget;
@@ -83,6 +85,7 @@ private:
 
     void goto_login_widget();
     void go_to_scan_widget();
+    void go_to_camera_widget();
     void goto_syssettings_widget();
 
     QModbusClient * m_hv_conn_device = nullptr;
@@ -111,6 +114,7 @@ public slots:
 
     void go_to_syssettings_widget_sig_hdlr();
     void go_to_scan_widget_sig_hdlr();
+    void go_to_camera_widget_sig_hdlr();
     void hv_op_finish_sig_hdlr(bool ret, QString err_str = "");
 
     void self_check_hv_rechk_sig_hdlr();
