@@ -145,6 +145,7 @@ bool ScanWidget::hv_send_op_cmd(hv_op_enum_t op)
 
         default:
             ret = false;
+            mb_reply = nullptr;
             log_lvl = LOG_ERROR;
             log_str = QString("%1 %2").arg(g_str_unknown_hv_op, QString::number(op));
             break;

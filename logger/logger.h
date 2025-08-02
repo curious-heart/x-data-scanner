@@ -7,6 +7,9 @@
 
 #include <QObject>
 #include <QThread>
+#include <QDateTime>
+
+#include "version_def/version_def.h"
 
 #define LOG_LEVEL_ITEM(lvl) LOG_##lvl
 #define LOG_LEVEL_LIST \
@@ -113,4 +116,37 @@ extern const char* log_dir_str, *log_file_str;
         }\
     }
 */
+
+#define LOCAL_DIY_LOG(level, log_fn, msg) \
+{\
+    if((level) >= g_sys_configs_block.log_level)\
+    {\
+        QString level_str;\
+        QFile log_file(log_fn);\
+        if(log_file.open(QFile::WriteOnly | QFile::Append)) \
+        {\
+\
+            if(!VALID_LOG_LVL(level))\
+            {\
+                level_str = QString("[%1]").arg("Unknown Level");\
+            }\
+            else\
+            {\
+                level_str = QString("[%1]").arg(g_log_level_strs[(level)]);\
+            }\
+            QString date=QDateTime::currentDateTime().toString("yyyy-MM-dd"); \
+            QString time=QDateTime::currentDateTime().toString("hh:mm:ss.zzz"); \
+            QString loc_str = QString(__FILE__) + QString("  [%1][%2]").arg(__LINE__).arg(__FUNCTION__);\
+            QString str1, str2; \
+            str1 = "\t" + loc_str + "\t@" + APP_VER_STR + "\n"; \
+            str2 = date + " " + time + " " + level_str + " " + (msg) + "\n"; \
+            QTextStream qts; \
+            qts.setDevice(&log_file);\
+            qts << str1 << str2;\
+            log_file.flush();\
+            log_file.close();\
+        }\
+    }\
+}
+
 #endif // LOGGER_H

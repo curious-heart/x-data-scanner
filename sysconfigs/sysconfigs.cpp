@@ -55,12 +55,15 @@ static const char* gs_ini_key_tube_or_oilbox_no_disp = "tube_or_oilbox_no_disp";
 static const char* gs_ini_key_test_params_settings_disp = "test_params_settings_disp";
 static const char* gs_ini_key_pause_test_disp = "pause_test_disp";
 
-static const char* gs_ini_grp_self_check_cfg = "self_check_cfg";
+static const char* gs_ini_grp_self_check_cfg = "self_check_and_monitor_cfg";
 static const char* gs_ini_key_enable_self_check = "enable_self_check";
 static const char* gs_ini_key_skip_pwr_self_chk = "skip_pwr_self_chk";
 static const char* gs_ini_key_skip_x_src_self_chk = "skip_x_src_self_chk";
 static const char* gs_ini_key_skip_detector_self_chk = "skip_detector_self_chk";
 static const char* gs_ini_key_skip_storage_self_chk = "skip_storage_self_chk";
+static const char* gs_ini_key_enable_pb_monitor = "enable_pb_monitor";
+static const char* gs_ini_key_enable_hv_monitor = "enable_hv_monitor";
+static const char* gs_ini_key_enable_hv_auto_reconn = "enable_hv_auto_reconn";
 
 static const char* gs_ini_grp_sc_data_cfg = "sc_data_cfg";
 static const char* gs_ini_key_scan_without_x = "scan_without_x";
@@ -149,6 +152,9 @@ static const int gs_def_skip_pwr_self_chk = 0;
 static const int gs_def_skip_x_src_self_chk = 0;
 static const int gs_def_skip_detector_self_chk = 0;
 static const int gs_def_skip_storage_self_chk = 0;
+static const int gs_def_enable_pb_monitor = 1;
+static const int gs_def_enable_hv_monitor = 1;
+static const int gs_def_enable_hv_auto_reconn = 1;
 
 static const bool gs_def_scan_without_x = false;
 static const char* gs_def_data_src_ip = "192.168.1.123";
@@ -482,6 +488,15 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            1, (RangeChecker<int>*)0, (bool));
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_skip_storage_self_chk, toInt,
                            g_sys_configs_block.skip_storage_self_chk, gs_def_skip_storage_self_chk,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_pb_monitor, toInt,
+                           g_sys_configs_block.enable_pb_monitor, gs_def_enable_pb_monitor,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_hv_monitor, toInt,
+                           g_sys_configs_block.enable_hv_monitor, gs_def_enable_hv_monitor,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_enable_hv_auto_reconn, toInt,
+                           g_sys_configs_block.enable_hv_auto_reconn, gs_def_enable_hv_auto_reconn,
                            1, (RangeChecker<int>*)0, (bool));
     settings.endGroup();
 

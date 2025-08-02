@@ -1,0 +1,18 @@
+2025-08-02
+pad上有残留的qt 5.12的库，并且5.15.2版本没有安装好，部署时需要手动指定5.15.2的库的路径。之前部署时，部分库的路径（如serialport、multimedia）没有指定，导致这些库使用的系统上残留的5.12版本的库，因此在某些操作（如读写串口）时会segmentation fault。
+
+使用本机上的5.15.2版本serialport替换似乎也可以运行。但更好的做法还是仍然使用pad上的5.15.2的库。因此，tgt-libs-d101文件中就是添加了部署路径后在pad上重新部署得到的内容。 其中，
+x-data-scanner-deployed是部署之后被修改的文件（内部指定路加载库路径）,可直接运行或通过run-deployed-version.sh运行；
+x-data-scanner是本机上直接编译出来的文件，可通过run.sh运行（此脚本中指定加载库路径）。
+
+后续如果不增加新库，可以直接用本机编译得到的x-data-scanner配合tgt-libs-d101中的库运行，不用再到pad上部署一遍。
+
+
+附：
+本机缺少的（pad上部署包含）的库：
+libQt5OpenGL.so.5
+libQt5XcbQpa.so.5
+plugins/platforminputcontexts
+plugins/xcbglintegrations
+plugins/platforms/libqxcb.so
+本机上需要重新编译。尚未完成（2025.8.1） 可能需要sysroot。

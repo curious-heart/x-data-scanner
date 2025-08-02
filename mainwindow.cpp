@@ -8,6 +8,8 @@
 #include "common_tools/common_tool_func.h"
 #include "sysconfigs/sysconfigs.h"
 
+const char* g_main_th_local_log_fn = "./main_th_local.log";
+
 extern bool g_data_scanning_now;
 
 const quint16 g_hv_st_code_idle = 0x11;
@@ -19,13 +21,32 @@ const quint16 g_hv_st_code_mult_abn = 0xE4;
 
 static const char gs_addr_byte = 0x01;
 
+/*
+上位机：0x01  0x??  0x??  0x03
+电源板：0x01  0x??  0x??  0x03
+0x??  0x??：0x00  0x00 表示停转；0x??  0x?? 非零值表示速度；
+电机速度单位：转/分，高位在前，低位在后。
+*/
 static const char gs_dif_byte_motor_rpm = 0x03;
 static const qint64 gs_motor_rpm_msg_len = 4;
 
+/*
+上位机：0x01  0x00  0x00  0x04
+电源板：0x01  0x??  0x??  0x??  0x??  0x??  0x04
+            ----------  ----------  ----
+               电压值     电流值     电量百分比
+高位在前，低位在后；
+电流值如果是正值，表面真正充电。
+*/
 static const char gs_dif_byte_pwr_st = 0x04;
-static const qint64 gs_pwr_st_msg_len = 8;
+static const qint64 gs_pwr_st_msg_len = 7;
 static const quint16 gs_pwr_st_chk_val = 0;
 
+/*
+上位机：0x01  0x??  0x??  0x02
+电源板：0x01  0x??  0x??  0x02
+0x??  0x??：0x00  0x00 表示唤醒；0x00  0x01 表示休眠；
+*/
 static const char gs_dif_byte_wkup_slp = 0x02;
 static const qint64 gs_wkup_slp_msg_len = 4;
 static const quint16 gs_wkup_val = 0, gs_slp_val = 1;
@@ -286,8 +307,14 @@ void MainWindow::self_check_finished_sig_hdlr(bool result)
     {
         goto_login_widget();
     }
-    m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
-    m_hv_monitor_timer.start(g_sys_configs_block.hv_monitor_period_ms);
+    if(g_sys_configs_block.enable_pb_monitor)
+    {
+        m_pb_monitor_timer.start(g_sys_configs_block.pb_monitor_period_ms);
+    }
+    if(g_sys_configs_block.enable_hv_monitor)
+    {
+        m_hv_monitor_timer.start(g_sys_configs_block.hv_monitor_period_ms);
+    }
 }
 
 void MainWindow::goto_login_widget()
@@ -472,7 +499,8 @@ bool MainWindow::pb_monitor_check_st_hdlr()
     set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
     if(set_ok)
     {
-        quint16 volt_val, bat_pct;
+        quint16 volt_val;
+        quint8 bat_pct;
         qint16 current_val;
         int val_byte_idx = 1;
         char read_data[gs_pwr_st_msg_len];
@@ -504,8 +532,8 @@ bool MainWindow::pb_monitor_check_st_hdlr()
             val_byte_idx += 2;
             charging_str = current_val > 0 ? g_str_charging : "";
 
-            bat_pct = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
-            val_byte_idx += 2;
+            bat_pct = (quint8)read_data[val_byte_idx];
+            val_byte_idx += 1;
             bat_lvl_str = QString::number(bat_pct) + "%";
             break;
         }while(true);
@@ -535,8 +563,12 @@ bool MainWindow::write_to_sport(char* data_arr, qint64 byte_cnt, bool log_rw)
     QString log_str;
     LOG_LEVEL log_lvl;
 
-    qint64 bytes_written;
+    QByteArray byte_arr(data_arr, byte_cnt);
+    QString byte_hex_str = byte_arr.toHex(' ').toUpper();
+    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn,
+                  QString("write_to_sport: before m_pb_sport.write %1").arg(byte_hex_str));
 
+    qint64 bytes_written;
     bytes_written = m_pb_sport.write(data_arr, byte_cnt);
     log_lvl = LOG_INFO;
     log_str = QString("Write data to %1: ").arg(g_sys_configs_block.pb_sport_params.com_port_s)
@@ -568,6 +600,9 @@ bool MainWindow::read_from_sport(char* read_data, qint64 buf_size, bool log_rw)
 
     CHECK_SPORT_AND_OPEN(false);
 
+    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn,
+                  QString("read_from_sport: before m_pb_sport.read%1"));
+
     int idx = 0;
     qint64 bytes_read_this_op = 0, total_bytes_read = 0;
     while(idx < gs_sport_read_try_cnt && total_bytes_read < buf_size)
@@ -577,7 +612,7 @@ bool MainWindow::read_from_sport(char* read_data, qint64 buf_size, bool log_rw)
         ++idx;
     }
     log_str += QString("bytes read : ");
-    log_str += QByteArray::fromRawData(read_data, qMin(total_bytes_read, buf_size)).toHex(' ').toUpper();
+    log_str += QByteArray::fromRawData(read_data, qMin(total_bytes_read, buf_size)).toHex(' ').toUpper() + "\n";
     if(total_bytes_read != buf_size)
     {
         log_lvl = LOG_ERROR;
@@ -667,7 +702,9 @@ void MainWindow::hv_connect()
 {
     if(m_hv_conn_device)
     {
+        LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, "before mb connectDevice");
         m_hv_conn_device->connectDevice();
+        LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, "after mb connectDevice");
     }
 }
 
@@ -726,6 +763,7 @@ void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
     QString curr_str = (state < 0 || (int)state >= ARRAY_COUNT(state_str)) ?
                 QString("%1:%2").arg(g_str_modbus_unkonwn_state, QString::number(state))
               : state_str[state];
+    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, curr_str);
     DIY_LOG(LOG_INFO, curr_str);
 
     QString lbl_str, stylesheet;
@@ -738,7 +776,8 @@ void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
     {
         lbl_str = g_str_disconnected;
         stylesheet = "QLabel { color : red; }";
-        if(QModbusDevice::UnconnectedState == state)
+        if(QModbusDevice::UnconnectedState == state
+            && g_sys_configs_block.enable_hv_auto_reconn)
         {
             m_hv_reconn_wait_timer.start(g_sys_configs_block.mb_reconnect_wait_ms);
         }

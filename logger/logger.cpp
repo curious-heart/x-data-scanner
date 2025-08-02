@@ -6,7 +6,6 @@
 #include <QString>
 
 #include "logger.h"
-#include "version_def/version_def.h"
 
 LogSigEmitter *g_LogSigEmitter = nullptr;
 static Logger * g_LogWorker = nullptr;

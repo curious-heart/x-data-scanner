@@ -112,6 +112,7 @@ typedef struct
 
     bool enable_self_check;
     bool skip_pwr_self_chk, skip_x_src_self_chk, skip_detector_self_chk, skip_storage_self_chk;
+    bool enable_pb_monitor, enable_hv_monitor, enable_hv_auto_reconn;
 
     bool disable_monitor_during_scan;
 
