@@ -6,9 +6,6 @@ MainmenuBtnsWidget::MainmenuBtnsWidget(QWidget *parent) :
     ui(new Ui::MainmenuBtnsWidget)
 {
     ui->setupUi(this);
-
-    connect(ui->exitPBtn, &QPushButton::clicked, QCoreApplication::instance(),
-            &QCoreApplication::quit, Qt::QueuedConnection);
 }
 
 MainmenuBtnsWidget::~MainmenuBtnsWidget()
@@ -30,5 +27,11 @@ void MainmenuBtnsWidget::on_scanPBtn_clicked()
 void MainmenuBtnsWidget::on_photoPBtn_clicked()
 {
     emit go_to_camera_widget_sig();
+}
+
+
+void MainmenuBtnsWidget::on_exitPBtn_clicked()
+{
+    QCoreApplication::quit();
 }
 

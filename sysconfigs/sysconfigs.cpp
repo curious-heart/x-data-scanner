@@ -88,6 +88,7 @@ static const char* gs_ini_key_hv_monitor_period_ms = "hv_monitor_period_ms";
 
 static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
+static const char* gs_ini_key_pb_self_chk_to_ms = "pb_self_chk_to_ms";
 static const char* gs_ini_key_pb_monitor_log = "pb_monitor_log";
 
 static const char* gs_ini_key_sport_name = "sport_name";
@@ -164,6 +165,7 @@ static const int gs_def_max_pt_number = 200, gs_def_all_bytes_per_pt = 3,
 static const int gs_def_expo_to_coll_min_allowed_delay_ms = 0,
                  gs_def_expo_to_coll_max_allowed_delay_ms = 2000;
 static const int gs_def_pb_monitor_period_ms = 3000;
+static const int gs_def_pb_self_chk_to_ms = 3000;
 static const int gs_def_scrn_w = 600;
 static const int gs_def_scrn_h = 1000;
 static const int gs_def_conn_data_src_tmo_allowed_min_sec = 1;
@@ -600,6 +602,9 @@ bool fill_sys_configs(QString * ret_str_ptr)
     settings.beginGroup(gs_ini_grp_pb_set_and_monitor_cfg);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_monitor_period_ms, toInt,
                            g_sys_configs_block.pb_monitor_period_ms, gs_def_pb_monitor_period_ms,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_self_chk_to_ms, toInt,
+                           g_sys_configs_block.pb_self_chk_to_ms, gs_def_pb_self_chk_to_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_monitor_log, toInt,
                            g_sys_configs_block.pb_monitor_log, gs_def_pb_monitor_log,

@@ -20,17 +20,38 @@ const quint16 g_hv_st_code_volt_fb_abn = 0xE3;
 const quint16 g_hv_st_code_mult_abn = 0xE4;
 
 static const char gs_addr_byte = 0x01;
+static const char gs_pb_sport_data_start_flag = 0x01;
 
 /*
+5.1 关机命令上传
+   电源板：0x01  0x00  0x00  0x01
+    上位机：0x01  0x00  0x00  0x01
+*/
+static const char gs_dif_byte_pwr_off = 0x01;
+static const int gs_pwr_off_msg_len = 4;
+
+/*
+5.2 休眠状态控制
+上位机：0x01  0x??  0x??  0x02
+电源板：0x01  0x??  0x??  0x02
+0x??  0x??：0x00  0x00 表示唤醒；0x00  0x01 表示休眠；
+*/
+static const char gs_dif_byte_wkup_slp = 0x02;
+static const int gs_wkup_slp_msg_len = 4;
+static const quint16 gs_wkup_val = 0, gs_slp_val = 1;
+
+/*
+5.3 电机转速控制
 上位机：0x01  0x??  0x??  0x03
 电源板：0x01  0x??  0x??  0x03
 0x??  0x??：0x00  0x00 表示停转；0x??  0x?? 非零值表示速度；
 电机速度单位：转/分，高位在前，低位在后。
 */
 static const char gs_dif_byte_motor_rpm = 0x03;
-static const qint64 gs_motor_rpm_msg_len = 4;
+static const int gs_motor_rpm_msg_len = 4;
 
 /*
+5.4 电池信息读取
 上位机：0x01  0x00  0x00  0x04
 电源板：0x01  0x??  0x??  0x??  0x??  0x??  0x04
             ----------  ----------  ----
@@ -39,19 +60,11 @@ static const qint64 gs_motor_rpm_msg_len = 4;
 电流值如果是正值，表面真正充电。
 */
 static const char gs_dif_byte_pwr_st = 0x04;
-static const qint64 gs_pwr_st_msg_len = 7;
+static const int gs_pwr_st_msg_len = 7;
 static const quint16 gs_pwr_st_chk_val = 0;
 
-/*
-上位机：0x01  0x??  0x??  0x02
-电源板：0x01  0x??  0x??  0x02
-0x??  0x??：0x00  0x00 表示唤醒；0x00  0x01 表示休眠；
-*/
-static const char gs_dif_byte_wkup_slp = 0x02;
-static const qint64 gs_wkup_slp_msg_len = 4;
-static const quint16 gs_wkup_val = 0, gs_slp_val = 1;
-
 static const int gs_sport_read_try_cnt = 3;
+static const int gs_pb_sport_read_buf_size = 256;
 
 MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     : QMainWindow(parent)
@@ -114,6 +127,10 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     connect(this, &MainWindow::pb_monitor_check_st, this, &MainWindow::pb_monitor_check_st_hdlr,
             Qt::QueuedConnection);
 
+    m_pb_self_chk_timer.setSingleShot(true);
+    connect(&m_pb_self_chk_timer, &QTimer::timeout, this, &MainWindow::pb_self_chk_to_timer_hdlr,
+            Qt::QueuedConnection);
+
     connect(&m_hv_monitor_timer, &QTimer::timeout, this, &MainWindow::hv_monitor_timer_sig_hdlr,
             Qt::QueuedConnection);
 
@@ -127,6 +144,9 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::self_check_finished_sig_hdlr,Qt::QueuedConnection);
 
     setup_sport_parameters();
+    connect(&m_pb_sport, &QSerialPort::readyRead,
+            this, &MainWindow::pbSportReadyReadHdlr, Qt::QueuedConnection);
+    connect(this, &MainWindow::parse_sport_data_sig, this, &MainWindow::parse_pb_sport_data, Qt::QueuedConnection);
 
     setup_hv_conn_client();
 
@@ -183,6 +203,18 @@ bool MainWindow::pwr_st_check()
 
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, SelfCheckWidget::SELF_CHECKING);
 
+    ret = pb_monitor_check_st_hdlr();
+    if(!ret)
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
+                                     SelfCheckWidget::SELF_CHECK_FAIL);
+        return ret;
+    }
+
+    m_pb_self_chk_timer.start(g_sys_configs_block.pb_self_chk_to_ms);
+    m_pb_is_self_checking = true;
+
+    /*
     ret = g_sys_configs_block.skip_pwr_self_chk ? true : pb_monitor_check_st_hdlr();
 
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
@@ -190,7 +222,7 @@ bool MainWindow::pwr_st_check()
                                      : SelfCheckWidget::SELF_CHECK_FAIL);
 
     emit check_next_item_sig();
-
+    */
     return ret;
 }
 
@@ -279,7 +311,7 @@ MainWindow::~MainWindow()
 
     m_hv_monitor_timer.stop();
     m_hv_reconn_wait_timer.stop();
-   hv_disconnect();
+    hv_disconnect();
 
     rec_widgets_ui_settings();
 
@@ -477,6 +509,16 @@ void MainWindow::pb_monitor_timer_hdlr()
     }
 }
 
+void MainWindow::pb_self_chk_to_timer_hdlr()
+{
+    m_pb_is_self_checking = false;
+
+    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
+                                 SelfCheckWidget::SELF_CHECK_FAIL);
+
+    emit check_next_item_sig();
+}
+
 #define CHECK_SPORT_AND_OPEN(...) \
 if(!m_pb_sport_open && !open_sport())\
 {\
@@ -492,12 +534,19 @@ bool MainWindow::pb_monitor_check_st_hdlr()
                     (char)((gs_pwr_st_chk_val >> 8) & 0xFF), (char)(gs_pwr_st_chk_val& 0xFF),
                     gs_dif_byte_pwr_st};
     int byte_cnt = ARRAY_COUNT(data_arr);
-    QString charging_str = g_str_unkonw_st, bat_lvl_str = g_str_unkonw_st;
+    //QString charging_str = g_str_unkonw_st, bat_lvl_str = g_str_unkonw_st;
 
     CHECK_SPORT_AND_OPEN(false);
 
     set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
-    if(set_ok)
+    if(!set_ok)
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "write serial port error.\n";
+        DIY_LOG(log_lvl, log_str);
+    }
+    /*
+    else
     {
         quint16 volt_val;
         quint8 bat_pct;
@@ -539,11 +588,6 @@ bool MainWindow::pb_monitor_check_st_hdlr()
         }while(true);
 
     }
-    else
-    {
-        log_lvl = LOG_ERROR;
-        log_str += "write serial port error.\n";
-    }
 
     ui->batImgLbl->setText(charging_str);
     ui->batLvlDispLbl->setText(bat_lvl_str);
@@ -552,6 +596,7 @@ bool MainWindow::pb_monitor_check_st_hdlr()
     {
         DIY_LOG(log_lvl, log_str);
     }
+    */
     return set_ok;
 }
 
@@ -562,11 +607,6 @@ bool MainWindow::write_to_sport(char* data_arr, qint64 byte_cnt, bool log_rw)
 
     QString log_str;
     LOG_LEVEL log_lvl;
-
-    QByteArray byte_arr(data_arr, byte_cnt);
-    QString byte_hex_str = byte_arr.toHex(' ').toUpper();
-    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn,
-                  QString("write_to_sport: before m_pb_sport.write %1").arg(byte_hex_str));
 
     qint64 bytes_written;
     bytes_written = m_pb_sport.write(data_arr, byte_cnt);
@@ -599,9 +639,6 @@ bool MainWindow::read_from_sport(char* read_data, qint64 buf_size, bool log_rw)
     LOG_LEVEL log_lvl = LOG_INFO;
 
     CHECK_SPORT_AND_OPEN(false);
-
-    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn,
-                  QString("read_from_sport: before m_pb_sport.read%1"));
 
     int idx = 0;
     qint64 bytes_read_this_op = 0, total_bytes_read = 0;
@@ -636,6 +673,12 @@ void MainWindow::setup_sport_parameters()
     m_pb_sport.setParity((QSerialPort::Parity)g_sys_configs_block.pb_sport_params.parity);
     m_pb_sport.setStopBits((QSerialPort::StopBits)g_sys_configs_block.pb_sport_params.stopbits);
     m_pb_sport.setFlowControl(QSerialPort::NoFlowControl);
+
+    m_pb_sport_read_buf.hd_idx = 0;
+    m_pb_sport_read_buf.len_from_hd = 0;
+    m_pb_sport_read_buf.buf = QByteArray(gs_pb_sport_read_buf_size, 0);
+
+    m_min_pb_sport_msg_len = std::min({gs_pwr_off_msg_len, gs_wkup_slp_msg_len, gs_motor_rpm_msg_len, gs_pwr_st_msg_len});
 }
 
 bool MainWindow::open_sport()
@@ -673,6 +716,250 @@ bool MainWindow::close_sport()
     return true;
 }
 
+void MainWindow::pbSportReadyReadHdlr()
+{
+    int buf_size = m_pb_sport_read_buf.buf.size();
+
+    QByteArray sport_data;
+    sport_data = m_pb_sport.readAll();
+
+    if(g_sys_configs_block.pb_monitor_log)
+    {
+        DIY_LOG(LOG_INFO, QString("sport read data: %1").arg(QString(sport_data.toHex(' ').toUpper())));
+    }
+
+    int end_pos = m_pb_sport_read_buf.hd_idx + m_pb_sport_read_buf.len_from_hd;
+    if(end_pos + sport_data.size() > buf_size)
+    {
+        //move data to start pos.
+        if(m_pb_sport_read_buf.hd_idx != 0)
+        {
+            Q_ASSERT(m_pb_sport_read_buf.hd_idx + m_pb_sport_read_buf.len_from_hd <= buf_size);
+
+            memmove(m_pb_sport_read_buf.buf.data(),
+                    &m_pb_sport_read_buf.buf.constData()[m_pb_sport_read_buf.hd_idx],
+                    m_pb_sport_read_buf.len_from_hd);
+            m_pb_sport_read_buf.hd_idx = 0;
+            end_pos = m_pb_sport_read_buf.len_from_hd;
+        }
+
+        if(end_pos + sport_data.size() > buf_size)
+        {
+            DIY_LOG(LOG_ERROR, QString("buf size is %1, data cnt in buf is %2, received data cnt is %3,"
+                                       "buffer override! Discard all buffer data and received data.")
+                                        .arg(buf_size).arg(m_pb_sport_read_buf.len_from_hd)
+                                        .arg(sport_data.size()));
+            clear_pb_sport_data_buf();
+            return;
+        }
+        m_pb_sport_read_buf.buf.insert(end_pos, sport_data);
+    }
+    else
+    {
+        m_pb_sport_read_buf.buf.insert(end_pos, sport_data);
+    }
+    m_pb_sport_read_buf.len_from_hd += sport_data.size();
+    if(g_sys_configs_block.pb_monitor_log)
+    {
+        DIY_LOG(LOG_INFO, QString("now buf data is: %1").
+                          arg(QString(m_pb_sport_read_buf.buf
+                             .mid(m_pb_sport_read_buf.hd_idx, m_pb_sport_read_buf.len_from_hd)
+                             .toHex(' ').toUpper())));
+    }
+
+    emit parse_sport_data_sig();
+}
+
+void MainWindow::parse_pb_sport_data()
+{
+    int buf_size = m_pb_sport_read_buf.buf.size();
+    int hd_idx = m_pb_sport_read_buf.hd_idx, data_len,
+        end_pos = hd_idx + m_pb_sport_read_buf.len_from_hd;
+    QByteArray &buf = m_pb_sport_read_buf.buf;
+
+    Q_ASSERT(end_pos <= buf_size);
+
+    bool finished = false, update_buf_idx = true;
+    while((hd_idx < end_pos) && !finished)
+    {
+        while(hd_idx < end_pos && (gs_pb_sport_data_start_flag != buf[hd_idx])) ++hd_idx;
+
+        if(hd_idx >= end_pos)
+        {
+            DIY_LOG(LOG_ERROR, QString("can't find flag 0x%1 in buf. discard all received data.")
+                                   .arg(QString::number(gs_pb_sport_data_start_flag, 16).toUpper().rightJustified(2, '0')));
+            clear_pb_sport_data_buf();
+            update_buf_idx = false;
+            break;
+        }
+
+        data_len = end_pos - hd_idx;
+        if(data_len < m_min_pb_sport_msg_len)
+        {
+            DIY_LOG(LOG_INFO, QString("buf data len %1 is less than min valid msg len %2. do not process")
+                              .arg(data_len).arg(m_min_pb_sport_msg_len));
+            break;
+        }
+        /* the pb sport msg format is not very reasonable: if there happens msg-split or sticky by driver,
+           diffrent kinds of msg may not be distinguished.
+           so here we can only take some assumptions: if the length of msg exceeds min valid len, take it as
+           long valid msg.
+           this part of code DEPENDS on msge definition (list in the beginning of this file). if there is any
+           change or adding to msg, check below code carefully and do the accordingly modification as necessary!
+         */
+
+        /* firstly, check if it is the longes msg.*/
+        if(data_len > m_min_pb_sport_msg_len)
+        {
+            if(data_len < gs_pwr_st_msg_len)
+            {
+                DIY_LOG(LOG_INFO, QString("data len in buf is %1, we think it as incomplete power-battery-st msg, "
+                                          "and do not process it untill it is completed").arg(data_len));
+                break;
+            }
+
+            if(gs_dif_byte_pwr_st == buf[hd_idx + gs_pwr_st_msg_len - 1])
+            {
+                //this is power-battery-st msg.
+                proc_pb_pwr_bat_st_msg(buf.mid(hd_idx, gs_pwr_st_msg_len));
+                hd_idx += gs_pwr_st_msg_len;
+
+                continue;
+            }
+
+            /*else: think it as sticked msg.*/
+            DIY_LOG(LOG_WARN, QString("data in buf is longer than power-battery-st msg, but it does not "
+                                      "end with %1. so we think it is a sticked msges.")
+                                  .arg(QString::number(gs_dif_byte_pwr_st, 16).toUpper().rightJustified(2, '0')));
+        }
+
+        /* now, check if its a short msg. currently, all short msgs are of the same length. so the code
+           can be simpler...
+        */
+        char diff_byte = buf[hd_idx + m_min_pb_sport_msg_len - 1];
+        switch(diff_byte)
+        {
+        case gs_dif_byte_pwr_off:
+            proc_pb_pwr_off_msg(buf.mid(hd_idx, gs_pwr_off_msg_len));
+            hd_idx += gs_pwr_off_msg_len;
+            break;
+
+        case gs_dif_byte_wkup_slp:
+            proc_pb_wkup_msg(buf.mid(hd_idx, gs_wkup_slp_msg_len));
+            hd_idx += gs_wkup_slp_msg_len;
+            break;
+
+        case gs_dif_byte_motor_rpm:
+            proc_pb_motor_msg(buf.mid(hd_idx, gs_motor_rpm_msg_len));
+            hd_idx += gs_motor_rpm_msg_len;
+            break;
+
+        default:
+            DIY_LOG(LOG_WARN, QString("diff byte of data is %1, not a valid short msg.")
+                                  .arg(QString::number(diff_byte, 16).toUpper().rightJustified(2, '0')));
+            if(data_len == m_min_pb_sport_msg_len)
+            {
+                //may be an incomplete long msg. wait future data.
+                DIY_LOG(LOG_INFO, QString("this maybe an implete power-battery-st msge. wait future data." ));
+                finished = true;
+            }
+            else
+            { // data_len > m_min_pb_sport_msg_len. flow from above long msg check.
+                DIY_LOG(LOG_WARN, QString("this part is neither a shor or a long msg."
+                                          " discard the long part."));
+                hd_idx += gs_pwr_st_msg_len;
+            }
+            break;
+        }
+    }
+
+    if(update_buf_idx)
+    {
+        m_pb_sport_read_buf.hd_idx = hd_idx;
+        if(m_pb_sport_read_buf.hd_idx >= buf_size)
+        {
+            DIY_LOG(LOG_WARN, "this should not happen: hd_idx exceeds buf limit!!!");
+            clear_pb_sport_data_buf();
+        }
+        else
+        {
+            m_pb_sport_read_buf.len_from_hd = end_pos - hd_idx;
+            if(m_pb_sport_read_buf.len_from_hd < 0)
+            {
+                DIY_LOG(LOG_WARN, "this should not happen: counted len is less than 0!!!");
+                m_pb_sport_read_buf.len_from_hd = 0;
+            }
+        }
+    }
+}
+
+void MainWindow::proc_pb_pwr_off_msg(QByteArray msg)
+{
+    QString log_str = QString("recerive power off msg, power off. ")
+                      + msg.toHex(' ').toUpper();
+    DIY_LOG(LOG_INFO, log_str);
+
+    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, log_str);
+
+    if(APP_EXIT_APP_POWER_OFF != m_exit_mode)
+    {
+        m_exit_mode = APP_EXIT_HD_POWER_OFF;
+    }
+    QCoreApplication::exit((int)m_exit_mode);
+}
+
+void MainWindow::proc_pb_wkup_msg(QByteArray msg)
+{
+    quint16 wk_slp_v = (quint16)msg[1] * 256 + (quint16)msg[2];
+    DIY_LOG(LOG_INFO, QString("wake/sleep st is %1").arg(wk_slp_v));
+}
+
+void MainWindow::proc_pb_motor_msg(QByteArray msg)
+{
+    quint16 rpm_v = (quint16)msg[1] * 256 + (quint16)msg[2];
+    DIY_LOG(LOG_INFO, QString("motor speed is % rpm.").arg(rpm_v));
+}
+
+void MainWindow::proc_pb_pwr_bat_st_msg(QByteArray msg)
+{
+    quint16 volt_val, current_val;
+    quint8 bat_pct;
+    int val_byte_idx = 1;
+    QByteArray &read_data = msg;
+    QString charging_str, bat_lvl_str;
+
+    volt_val = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
+    val_byte_idx += 2;
+
+    *((char*)(&current_val) + 1) = read_data[val_byte_idx];
+    *(char*)(&current_val) = read_data[val_byte_idx + 1];
+    val_byte_idx += 2;
+    charging_str = current_val > 0 ? g_str_charging : "";
+
+    bat_pct = (quint8)read_data[val_byte_idx];
+    val_byte_idx += 1;
+    bat_lvl_str = QString::number(bat_pct) + "%";
+
+    ui->batImgLbl->setText(charging_str);
+    ui->batLvlDispLbl->setText(bat_lvl_str);
+
+    if(m_pb_is_self_checking)
+    {
+        m_pb_self_chk_timer.stop();
+        m_pb_is_self_checking = false;
+
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
+                                     SelfCheckWidget::SELF_CHECK_PASS);
+
+        emit check_next_item_sig();
+    }
+}
+
+void MainWindow::clear_pb_sport_data_buf()
+{
+    m_pb_sport_read_buf.hd_idx = m_pb_sport_read_buf.len_from_hd = 0;
+}
+
 void MainWindow::setup_hv_conn_client()
 {
     m_hv_conn_device = new QModbusRtuSerialMaster(this);
@@ -702,9 +989,7 @@ void MainWindow::hv_connect()
 {
     if(m_hv_conn_device)
     {
-        LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, "before mb connectDevice");
         m_hv_conn_device->connectDevice();
-        LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, "after mb connectDevice");
     }
 }
 

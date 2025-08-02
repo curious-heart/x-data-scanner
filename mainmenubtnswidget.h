@@ -22,6 +22,8 @@ private slots:
 
     void on_photoPBtn_clicked();
 
+    void on_exitPBtn_clicked();
+
 private:
     Ui::MainmenuBtnsWidget *ui;
 

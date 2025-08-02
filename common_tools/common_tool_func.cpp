@@ -14,6 +14,7 @@
 #endif
 
 #include "literal_strings/literal_strings.h"
+#include "sysconfigs/sysconfigs.h"
 #include "common_tool_func.h"
 #include "logger/logger.h"
 
@@ -550,6 +551,17 @@ bool mkpth_if_not_exists(const QString &pth_str)
 
 QString shutdown_system(QString reason_str,int wait_time)
 {
+#ifdef Q_OS_UNIX
+    extern const char* g_main_th_local_log_fn;
+    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, reason_str);
+
+    if(wait_time > 0) QThread::sleep(wait_time);
+
+    QProcess::execute("sync", {});
+    QProcess::execute("systemctl", {"poweroff"});
+
+    return "";
+#else
     QString s_c = "shutdown";
     QStringList ps_a;
     QProcess ps;
@@ -559,6 +571,7 @@ QString shutdown_system(QString reason_str,int wait_time)
     ps.setArguments(ps_a);
     ps.startDetached();
     return s_c + " " + ps_a.join(QChar(' '));
+#endif
 }
 
 /*begin of RangeChecker------------------------------*/

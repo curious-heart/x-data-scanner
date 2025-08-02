@@ -95,7 +95,7 @@ typedef struct
     int max_pt_number, all_bytes_per_pt, pkt_idx_byte_cnt;
 
     int expo_to_coll_max_allowed_delay_ms, expo_to_coll_min_allowed_delay_ms;
-    int pb_monitor_period_ms;
+    int pb_monitor_period_ms, pb_self_chk_to_ms;
     bool pb_monitor_log;
 
     int scrn_w, scrn_h;

@@ -6,6 +6,7 @@
 #include <QString>
 #include <QMessageBox>
 
+#include "common_tools/common_tool_func.h"
 #include "logger/logger.h"
 #include "sysconfigs/sysconfigs.h"
 
@@ -46,6 +47,12 @@ int main(int argc, char *argv[])
     ret = a.exec();
 
     end_log_thread(th);
+
+    if((int)APP_EXIT_APP_POWER_OFF == ret || (int)APP_EXIT_HD_POWER_OFF == ret)
+    {
+        //power off system
+        shutdown_system();
+    }
 
     return ret;
 }

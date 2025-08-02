@@ -20,6 +20,12 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+typedef struct
+{
+    QByteArray buf;
+    int hd_idx, len_from_hd;
+}sport_read_buffer_s_t;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -65,6 +71,12 @@ private:
     QTimer m_pb_monitor_timer;
     QSerialPort m_pb_sport;
     bool m_pb_sport_open = false;
+    sport_read_buffer_s_t  m_pb_sport_read_buf;
+    int m_min_pb_sport_msg_len;
+    app_exit_mode_e_t m_exit_mode = APP_EXIT_NORMAL;
+
+    QTimer m_pb_self_chk_timer;
+    bool m_pb_is_self_checking = false;
 
     QTimer m_hv_monitor_timer;
 
@@ -102,12 +114,21 @@ private:
 
     void refresh_storage_st();
 
+    void clear_pb_sport_data_buf();
+    void parse_pb_sport_data();
+    void proc_pb_pwr_off_msg(QByteArray msg);
+    void proc_pb_wkup_msg(QByteArray msg);
+    void proc_pb_motor_msg(QByteArray msg);
+    void proc_pb_pwr_bat_st_msg(QByteArray msg);
+
 public slots:
     void self_check_finished_sig_hdlr(bool result);
     void login_chk_passed_sig_hdlr();
     void pb_monitor_timer_hdlr();
+    void pb_self_chk_to_timer_hdlr();
     bool pb_monitor_check_st_hdlr();
 
+    void pbSportReadyReadHdlr();
     void hv_conn_error_sig_handler(QModbusDevice::Error error);
     void hv_conn_state_changed_sig_handler(QModbusDevice::State state);
     void hv_reconn_wait_timer_sig_handler();
@@ -132,5 +153,7 @@ signals:
     void pb_monitor_check_st();
 
     void scan_widget_disp_sig();
+
+    void parse_sport_data_sig();
 };
 #endif // MAINWINDOW_H

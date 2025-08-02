@@ -31,6 +31,13 @@ typedef enum
     IP_INTF_ETHERNET = 0x02,
 }ip_intf_type_t;
 
+typedef enum
+{
+    APP_EXIT_NORMAL = 0,
+    APP_EXIT_APP_POWER_OFF,
+    APP_EXIT_HD_POWER_OFF,
+}app_exit_mode_e_t;
+
 QString common_tool_get_curr_dt_str();
 QString common_tool_get_curr_date_str();
 QString common_tool_get_curr_time_str();
@@ -181,6 +188,5 @@ typedef struct
 }storage_space_info_s_t;
 void get_total_storage_amount(storage_space_info_s_t &storage_info);
 QString trans_bytes_cnt_unit(qint64 cnt, qint64 *unit = nullptr);
-
 
 #endif // COMMON_TOOL_FUNC_H
