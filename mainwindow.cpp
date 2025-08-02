@@ -265,6 +265,21 @@ MainWindow::self_chk_ret_e_t MainWindow::x_ray_source_st_check(bool * result)
         {
             if(QModbusDevice::ConnectedState == m_hv_conn_state)
             {
+                if(g_sys_configs_block.sniffer_hv_sport)
+                {
+                    QSerialPort *serialPort = m_hv_conn_device->findChild<QSerialPort*>();
+                    if(serialPort)
+                    {
+                        DIY_LOG(LOG_INFO, "find modbus child, start sniffer");
+                        m_serial_sniffer = new SerialSniffer(serialPort, this);
+                        m_serial_sniffer->start();
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_ERROR, "can't find modbus child!!!");
+                    }
+                }
+
                 m_scan_widget->hv_send_op_cmd(HV_OP_READ_REGS);
                 m_hv_self_chk_stg = HV_SELF_CHK_WAITING_READ;
             }
@@ -284,7 +299,7 @@ MainWindow::self_chk_ret_e_t MainWindow::x_ray_source_st_check(bool * result)
         m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
         emit check_next_item_sig(false, chk_ret);
-        if(!result) *result = chk_ret;
+        if(result) *result = chk_ret;
         return MainWindow::SELF_CHK_END;
     }
     else
@@ -345,6 +360,13 @@ MainWindow::~MainWindow()
     hv_disconnect();
 
     rec_widgets_ui_settings();
+
+    if(m_serial_sniffer)
+    {
+        m_serial_sniffer->quit();
+        m_serial_sniffer->wait();
+        m_serial_sniffer->deleteLater();
+    }
 
     delete ui;
 }
@@ -955,6 +977,7 @@ void MainWindow::setup_hv_conn_client()
     m_hv_conn_device->setConnectionParameter(QModbusDevice::SerialStopBitsParameter,
                                 g_sys_configs_block.x_ray_mb_conn_params.serial_params.stopbits);
     m_hv_conn_device->setTimeout(g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms);
+    m_hv_conn_device->setNumberOfRetries(g_sys_configs_block.x_ray_mb_conn_params.mb_retry_times);
 
     connect(m_hv_conn_device, &QModbusClient::errorOccurred,
             this, &MainWindow::hv_conn_error_sig_handler, Qt::QueuedConnection);

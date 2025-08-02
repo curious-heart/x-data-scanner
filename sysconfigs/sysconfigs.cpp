@@ -42,6 +42,8 @@ static const char* gs_ini_key_ui_mb_dura_unit = "ui_mb_dura_unit";
 static const char* gs_ini_key_test_proc_monitor_period_ms = "test_proc_monitor_period_ms";
 static const char* gs_ini_key_mb_srv_addr = "mb_srv_addr";
 static const char* gs_ini_key_mb_resp_wait_time_ms = "mb_resp_wait_time_ms";
+static const char* gs_ini_key_mb_retry_times = "mb_retry_times";
+static const char* gs_ini_key_sniffer_hv_sport = "sniffer_hv_sport";
 
 static const char* gs_ini_key_mb_triple_w_start_reg = "mb_triple_w_start_reg";
 static const char* gs_ini_key_hv_expo_s_and_e_mode = "hv_expo_s_and_e_mode";
@@ -121,8 +123,10 @@ static const int gs_def_test_time_stat_grain_sec = 3;
 static const int gs_def_mb_one_cmd_round_time_ms = 150;
 
 static const int gs_def_test_proc_monitor_period_ms = 1000;
-static const int gs_def_key_mb_srv_addr = 1;
-static const int gs_def_key_mb_resp_wait_time_ms = 3000;
+static const int gs_def_mb_srv_addr = 1;
+static const int gs_def_mb_resp_wait_time_ms = 3000;
+static const int gs_def_mb_retry_times = 2;
+static const bool gs_def_sniffer_hv_sport = false;
 static const mb_triple_w_start_reg_e_t gs_def_mb_triple_w_start_reg = MB_TRIPLE_W_START_REG_CUR;
 static const hv_expo_s_and_e_mode_e_t gs_def_hv_expo_s_and_e_mode = HV_EXPO_S_AND_E_MODE_SET_TRIPLE;
 
@@ -376,11 +380,17 @@ bool fill_sys_configs(QString * ret_str_ptr)
                    g_sys_configs_block.x_ray_mb_conn_params.serial_params.stopbits, gs_def_sport_stopbits,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_srv_addr, toInt,
-                   g_sys_configs_block.x_ray_mb_conn_params.srvr_address, gs_def_key_mb_srv_addr,
+                   g_sys_configs_block.x_ray_mb_conn_params.srvr_address, gs_def_mb_srv_addr,
                            1, &gs_cfg_file_value_ge0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_resp_wait_time_ms, toInt,
-                   g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms, gs_def_key_mb_resp_wait_time_ms,
+                   g_sys_configs_block.x_ray_mb_conn_params.resp_wait_time_ms, gs_def_mb_resp_wait_time_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_retry_times, toInt,
+                   g_sys_configs_block.x_ray_mb_conn_params.mb_retry_times, gs_def_mb_retry_times,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sniffer_hv_sport, toInt,
+                   g_sys_configs_block.sniffer_hv_sport, gs_def_sniffer_hv_sport,
+                           1, (RangeChecker<int>*)0, (bool));
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_mb_triple_w_start_reg, toInt,
                    g_sys_configs_block.mb_triple_w_start_reg, gs_def_mb_triple_w_start_reg,

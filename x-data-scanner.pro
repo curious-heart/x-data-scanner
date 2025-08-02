@@ -23,6 +23,7 @@ SOURCES += \
     recvscanneddata.cpp \
     scanwidget.cpp \
     selfcheckwidget.cpp \
+    serialsniffer/serialsniffer.cpp \
     sysconfigs/sysconfigs.cpp \
     syssettingswidget.cpp \
     version_def/version_def.cpp
@@ -43,6 +44,7 @@ HEADERS += \
     sc_data_proc.h \
     scanwidget.h \
     selfcheckwidget.h \
+    serialsniffer/serialsniffer.h \
     sysconfigs/sysconfigs.h \
     syssettings.h \
     syssettingswidget.h \

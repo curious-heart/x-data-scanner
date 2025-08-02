@@ -127,6 +127,17 @@ bool ScanWidget::hv_send_op_cmd(hv_op_enum_t op)
 
     if(!hv_construct_mb_du(op, mb_du)) return false;
 
+    QString mb_du_content = QString("start address: %1, value cnt: %2, ")
+                                .arg(mb_du.startAddress()).arg(mb_du.valueCount());
+    mb_du_content += "values: ";
+    const QVector<quint16> &mb_du_values = mb_du.values();
+    for(int i = 0; i < mb_du.valueCount(); ++i)
+    {
+        mb_du_content
+        += QString::number(mb_du_values[i], 16).toUpper().rightJustified(2, '0') + " ";
+    }
+    DIY_LOG(LOG_INFO, mb_du_content);
+
     switch(op)
     {
         case HV_OP_SET_EXPO_TRIPLE:

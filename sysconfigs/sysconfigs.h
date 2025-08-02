@@ -60,6 +60,7 @@ typedef struct
     serial_port_params_struct_t serial_params;
     int resp_wait_time_ms;
     int srvr_address;
+    int mb_retry_times;
 }modbus_conn_parameters_struct_t;
 
 typedef struct
@@ -109,6 +110,7 @@ typedef struct
 
     serial_port_params_struct_t pb_sport_params;
     modbus_conn_parameters_struct_t x_ray_mb_conn_params;
+    bool sniffer_hv_sport;
 
     bool enable_self_check;
     bool skip_pwr_self_chk, skip_x_src_self_chk, skip_detector_self_chk, skip_storage_self_chk;

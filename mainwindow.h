@@ -16,6 +16,8 @@
 
 #include "config_recorder/uiconfigrecorder.h"
 
+#include "serialsniffer/serialsniffer.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -127,6 +129,8 @@ private:
     void proc_pb_wkup_msg(QByteArray msg);
     void proc_pb_motor_msg(QByteArray msg);
     void proc_pb_pwr_bat_st_msg(QByteArray msg);
+
+    SerialSniffer * m_serial_sniffer = nullptr;
 
 public slots:
     void self_check_finished_sig_hdlr(bool result);
