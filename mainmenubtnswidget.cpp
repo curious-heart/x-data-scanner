@@ -1,5 +1,6 @@
 ﻿#include "mainmenubtnswidget.h"
 #include "ui_mainmenubtnswidget.h"
+#include "exitdialog.h"
 
 MainmenuBtnsWidget::MainmenuBtnsWidget(QWidget *parent) :
     QWidget(parent),
@@ -32,6 +33,8 @@ void MainmenuBtnsWidget::on_photoPBtn_clicked()
 
 void MainmenuBtnsWidget::on_exitPBtn_clicked()
 {
-    QCoreApplication::quit();
+    ExitDialog exit_dialog;
+
+    exit_dialog.exec();
 }
 

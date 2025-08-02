@@ -12,6 +12,7 @@ SOURCES += \
     camerawidget.cpp \
     common_tools/common_tool_func.cpp \
     config_recorder/uiconfigrecorder.cpp \
+    exitdialog.cpp \
     hv_ops.cpp \
     literal_strings/literal_strings.cpp \
     logger/logger.cpp \
@@ -30,6 +31,7 @@ HEADERS += \
     camerawidget.h \
     common_tools/common_tool_func.h \
     config_recorder/uiconfigrecorder.h \
+    exitdialog.h \
     hv_ops_internal.h \
     literal_strings/literal_strings.h \
     logger/logger.h \
@@ -48,6 +50,7 @@ HEADERS += \
 
 FORMS += \
     camerawidget.ui \
+    exitdialog.ui \
     loginwidget.ui \
     mainmenubtnswidget.ui \
     mainwindow.ui \

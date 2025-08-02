@@ -48,14 +48,14 @@
      <item>
       <widget class="QPushButton" name="btnCapture">
        <property name="text">
-        <string>Capture</string>
+        <string>拍摄</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="btnSave">
        <property name="text">
-        <string>Save</string>
+        <string>保存</string>
        </property>
       </widget>
      </item>
