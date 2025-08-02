@@ -15,6 +15,13 @@ public:
     explicit ExitDialog(QWidget *parent = nullptr);
     ~ExitDialog();
 
+    enum ResultCode
+    {
+        ResultExitApp,
+        ResultShutdownOS,
+        ResultCancel,
+    };
+
 private slots:
     void on_exitAppPBtn_clicked();
 

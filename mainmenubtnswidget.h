@@ -31,6 +31,8 @@ signals:
     void go_to_scan_widget_sig();
     void go_to_syssettings_widget_sig();
     void go_to_camera_widget_sig();
+
+    void send_pb_power_off_sig();
 };
 
 #endif // MAINMENUBTNSWIDGET_H

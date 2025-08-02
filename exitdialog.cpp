@@ -16,18 +16,16 @@ ExitDialog::~ExitDialog()
 
 void ExitDialog::on_exitAppPBtn_clicked()
 {
-    QCoreApplication::exit(APP_EXIT_NORMAL);
+    done(ResultExitApp);
 }
-
 
 void ExitDialog::on_shutDownOSPBtn_clicked()
 {
-    QCoreApplication::exit(APP_EXIT_APP_POWER_OFF);
+    done(ResultShutdownOS);
 }
-
 
 void ExitDialog::on_cancelPbtn_clicked()
 {
-    reject();
+    done(ResultCancel);
 }
 

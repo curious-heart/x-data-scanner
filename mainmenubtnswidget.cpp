@@ -1,4 +1,6 @@
-﻿#include "mainmenubtnswidget.h"
+﻿#include "common_tools/common_tool_func.h"
+
+#include "mainmenubtnswidget.h"
 #include "ui_mainmenubtnswidget.h"
 #include "exitdialog.h"
 
@@ -35,6 +37,22 @@ void MainmenuBtnsWidget::on_exitPBtn_clicked()
 {
     ExitDialog exit_dialog;
 
-    exit_dialog.exec();
+    int ret = exit_dialog.exec();
+    switch (ret)
+    {
+        case ExitDialog::ResultExitApp:
+            QCoreApplication::exit(APP_EXIT_NORMAL);
+            break;
+
+        case ExitDialog::ResultShutdownOS:
+            emit send_pb_power_off_sig();
+            QCoreApplication::exit(APP_EXIT_APP_POWER_OFF);
+            break;
+
+        case ExitDialog::ResultCancel:
+        default:
+            // 什么也不做
+            break;
+    }
 }
 

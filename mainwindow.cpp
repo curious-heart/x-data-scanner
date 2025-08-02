@@ -148,6 +148,9 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::pbSportReadyReadHdlr, Qt::QueuedConnection);
     connect(this, &MainWindow::parse_sport_data_sig, this, &MainWindow::parse_pb_sport_data, Qt::QueuedConnection);
 
+    connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::send_pb_power_off_sig,
+            this, &MainWindow::send_pb_power_off_sig_hdlr);
+
     setup_hv_conn_client();
 
     m_scan_widget->setup_tools(m_hv_conn_device);
@@ -172,14 +175,16 @@ void MainWindow::self_check(bool go_check)
     }
 }
 
-void MainWindow::self_check_next_item_hdlr(bool start)
+void MainWindow::self_check_next_item_hdlr(bool start, bool last_ret)
 {
+    static MainWindow::self_chk_ret_e_t chk_st = MainWindow::SELF_CHK_END;
     static int hdlr_idx = 0;
     static bool ret = true;
     if(start)
     {
         hdlr_idx = 0;
         ret = true;
+        chk_st = MainWindow::SELF_CHK_END;
     }
     else if(hdlr_idx >= m_check_hdlrs.count())
     {
@@ -191,42 +196,59 @@ void MainWindow::self_check_next_item_hdlr(bool start)
         return;
     }
 
-    bool sub_ret = (this->*m_check_hdlrs[hdlr_idx])();
-    ret = ret && sub_ret;
+    bool sub_ret;
+    if(MainWindow::SELF_CHK_END == chk_st)
+    {
+        chk_st = (this->*m_check_hdlrs[hdlr_idx])(&sub_ret);
 
-    ++hdlr_idx;
+        if(MainWindow::SELF_CHK_END == chk_st)
+        {
+            ret = ret && sub_ret;
+            ++hdlr_idx;
+        }
+        //else: pending. do nothing now, wait next call.
+    }
+    else //last time pending, now end.
+    {
+        ret = ret && last_ret;
+        ++hdlr_idx;
+        chk_st = MainWindow::SELF_CHK_END;
+        emit check_next_item_sig();
+    }
 }
 
-bool MainWindow::pwr_st_check()
+MainWindow::self_chk_ret_e_t MainWindow::pwr_st_check(bool * result)
 {
-    bool ret;
+    MainWindow::self_chk_ret_e_t ret = MainWindow::SELF_CHK_END;
 
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR, SelfCheckWidget::SELF_CHECKING);
 
-    ret = pb_monitor_check_st_hdlr();
-    if(!ret)
+    if(g_sys_configs_block.skip_pwr_self_chk)
     {
         emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
-                                     SelfCheckWidget::SELF_CHECK_FAIL);
+                                    SelfCheckWidget::SELF_CHECK_PASS);
+        emit check_next_item_sig();
+        if(result) *result = true;
         return ret;
     }
 
+    if(!pb_monitor_check_st_hdlr())
+    {
+        emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
+                                     SelfCheckWidget::SELF_CHECK_FAIL);
+        emit check_next_item_sig();
+        if(result) *result = false;
+        return ret;
+    }
+
+    ret = MainWindow::SELF_CHK_PENDING;
     m_pb_self_chk_timer.start(g_sys_configs_block.pb_self_chk_to_ms);
     m_pb_is_self_checking = true;
 
-    /*
-    ret = g_sys_configs_block.skip_pwr_self_chk ? true : pb_monitor_check_st_hdlr();
-
-    emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
-                                 ret ? SelfCheckWidget::SELF_CHECK_PASS
-                                     : SelfCheckWidget::SELF_CHECK_FAIL);
-
-    emit check_next_item_sig();
-    */
     return ret;
 }
 
-bool MainWindow::x_ray_source_st_check()
+MainWindow::self_chk_ret_e_t MainWindow::x_ray_source_st_check(bool * result)
 {
     bool chk_ret = true;
     bool chk_finished = false;
@@ -261,32 +283,40 @@ bool MainWindow::x_ray_source_st_check()
                                              : SelfCheckWidget::SELF_CHECK_FAIL);
         m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
-        emit check_next_item_sig();
+        emit check_next_item_sig(false, chk_ret);
+        if(!result) *result = chk_ret;
+        return MainWindow::SELF_CHK_END;
     }
-
-    return true;
+    else
+    {
+        return MainWindow::SELF_CHK_PENDING;
+    }
 }
 
-bool MainWindow::detector_st_check()
+MainWindow::self_chk_ret_e_t MainWindow::detector_st_check(bool * result)
 {
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR, SelfCheckWidget::SELF_CHECKING);
+
     if(g_sys_configs_block.skip_detector_self_chk)
     {
         emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR,
                                     SelfCheckWidget::SELF_CHECK_PASS);
         emit check_next_item_sig();
+
+        if(result) *result = true;
+        return MainWindow::SELF_CHK_END;
     }
     else
     {
         m_scan_widget->detector_self_check();
+        return MainWindow::SELF_CHK_PENDING;
     }
-    return true;
 }
-bool MainWindow::storage_st_check()
+MainWindow::self_chk_ret_e_t MainWindow::storage_st_check(bool * result)
 {
     bool ret = true;
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE, SelfCheckWidget::SELF_CHECKING);
-    if(g_sys_configs_block.skip_storage_self_chk)
+    if(!g_sys_configs_block.skip_storage_self_chk)
     {
         storage_space_info_s_t storage_info;
         get_total_storage_amount(storage_info);
@@ -295,8 +325,9 @@ bool MainWindow::storage_st_check()
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_STORAGE,
                                  ret ? SelfCheckWidget::SELF_CHECK_PASS
                                      : SelfCheckWidget::SELF_CHECK_FAIL);
-    emit check_next_item_sig();
-    return ret;
+    emit check_next_item_sig(false, ret);
+    if(result) *result = ret;
+    return MainWindow::SELF_CHK_END;
 }
 
 void MainWindow::self_check_hv_rechk_sig_hdlr()
@@ -411,7 +442,7 @@ void MainWindow::detector_self_chk_ret_sig_hdlr(bool ret)
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_DETECTOR,
                                  ret ? SelfCheckWidget::SELF_CHECK_PASS
                                      : SelfCheckWidget::SELF_CHECK_FAIL);
-    emit check_next_item_sig();
+    emit check_next_item_sig(false, ret);
 }
 
 void MainWindow::hv_monitor_timer_sig_hdlr()
@@ -451,7 +482,7 @@ void MainWindow::hv_op_finish_sig_hdlr(bool ret, QString /*err_str*/)
                                          : SelfCheckWidget::SELF_CHECK_FAIL);
         m_hv_self_chk_stg = HV_SELF_CHK_FINISHED;
 
-        emit check_next_item_sig();
+        emit check_next_item_sig(false, ret);
     }
 
     if(!ret)
@@ -516,12 +547,13 @@ void MainWindow::pb_self_chk_to_timer_hdlr()
     emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
                                  SelfCheckWidget::SELF_CHECK_FAIL);
 
-    emit check_next_item_sig();
+    emit check_next_item_sig(false, false);
 }
 
 #define CHECK_SPORT_AND_OPEN(...) \
 if(!m_pb_sport_open && !open_sport())\
 {\
+    DIY_LOG(LOG_ERROR, "sport not open, and open failed."); \
     return __VA_ARGS__;\
 }
 
@@ -545,58 +577,6 @@ bool MainWindow::pb_monitor_check_st_hdlr()
         log_str += "write serial port error.\n";
         DIY_LOG(log_lvl, log_str);
     }
-    /*
-    else
-    {
-        quint16 volt_val;
-        quint8 bat_pct;
-        qint16 current_val;
-        int val_byte_idx = 1;
-        char read_data[gs_pwr_st_msg_len];
-        set_ok = read_from_sport(read_data, gs_pwr_st_msg_len,
-                                   g_sys_configs_block.pb_monitor_log);
-        do
-        {
-            if(!set_ok)
-            {
-                log_lvl = LOG_ERROR;
-                log_str += "read serial port error.\n";
-                break;
-            }
-
-            if(read_data[0] != gs_addr_byte
-                    || read_data[gs_pwr_st_msg_len - 1] != gs_dif_byte_pwr_st)
-            {
-                log_lvl = LOG_ERROR;
-                log_str += "bytes array format error:\n";
-                log_str += QByteArray(read_data, sizeof(read_data)).toHex(' ').toUpper() + "\n";
-                set_ok = false;
-                break;
-            }
-            volt_val = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
-            val_byte_idx += 2;
-
-            *((char*)(&current_val) + 1) = read_data[val_byte_idx];
-            *(char*)(&current_val) = read_data[val_byte_idx + 1];
-            val_byte_idx += 2;
-            charging_str = current_val > 0 ? g_str_charging : "";
-
-            bat_pct = (quint8)read_data[val_byte_idx];
-            val_byte_idx += 1;
-            bat_lvl_str = QString::number(bat_pct) + "%";
-            break;
-        }while(true);
-
-    }
-
-    ui->batImgLbl->setText(charging_str);
-    ui->batLvlDispLbl->setText(bat_lvl_str);
-
-    if(g_sys_configs_block.pb_monitor_log && !log_str.isEmpty())
-    {
-        DIY_LOG(log_lvl, log_str);
-    }
-    */
     return set_ok;
 }
 
@@ -951,7 +931,7 @@ void MainWindow::proc_pb_pwr_bat_st_msg(QByteArray msg)
         emit self_check_item_ret_sig(SelfCheckWidget::SELF_CHECK_PWR,
                                      SelfCheckWidget::SELF_CHECK_PASS);
 
-        emit check_next_item_sig();
+        emit check_next_item_sig(false, true);
     }
 }
 
@@ -1094,4 +1074,25 @@ void MainWindow::rec_widgets_ui_settings()
 {
     m_scan_widget->rec_ui_settings();
     m_syssettings_widget->rec_ui_settings();
+}
+
+void MainWindow::send_pb_power_off_sig_hdlr()
+{
+    bool set_ok;
+    static char data_arr[] = {gs_addr_byte, 0, 0, gs_dif_byte_pwr_off};
+    int byte_cnt = ARRAY_COUNT(data_arr);
+    LOG_LEVEL log_lvl = LOG_INFO;
+    QString log_str;
+
+    set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
+    if(!set_ok)
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "write serial port error.\n";
+    }
+    else
+    {
+        log_str += "send pb_power_off cmd ok";
+    }
+    LOCAL_DIY_LOG(log_lvl, g_main_th_local_log_fn, log_str);
 }

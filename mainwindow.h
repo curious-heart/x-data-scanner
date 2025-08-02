@@ -45,6 +45,13 @@ public:
 
     typedef enum
     {
+        SELF_CHK_END,
+        SELF_CHK_PENDING,
+    }self_chk_ret_e_t;
+    Q_ENUM(self_chk_ret_e_t)
+
+    typedef enum
+    {
         HV_SELF_CHK_WAITING_CONN,
         HV_SELF_CHK_CONN_DONE,
         HV_SELF_CHK_WAITING_READ,
@@ -80,7 +87,7 @@ private:
 
     QTimer m_hv_monitor_timer;
 
-    using CheckHandler = bool (MainWindow::*)();
+    using CheckHandler = self_chk_ret_e_t (MainWindow::*)(bool * result);
     QVector<CheckHandler> m_check_hdlrs =
     {
         &MainWindow::pwr_st_check,
@@ -89,11 +96,11 @@ private:
         &MainWindow::storage_st_check,
     };
     void self_check(bool go_check = true);
-    bool pwr_st_check();
-    bool x_ray_source_st_check();
-    bool detector_st_check();
-    bool storage_st_check();
-    void self_check_next_item_hdlr(bool start = false);
+    self_chk_ret_e_t pwr_st_check(bool * result = nullptr);
+    self_chk_ret_e_t x_ray_source_st_check(bool * result = nullptr);
+    self_chk_ret_e_t detector_st_check(bool * result = nullptr);
+    self_chk_ret_e_t storage_st_check(bool * result = nullptr);
+    void self_check_next_item_hdlr(bool start = false, bool last_ret = true);
 
     void goto_login_widget();
     void go_to_scan_widget();
@@ -144,9 +151,11 @@ public slots:
     void hv_monitor_timer_sig_hdlr();
     void mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map);
 
+    void send_pb_power_off_sig_hdlr();
+
 signals:
     void self_check_hv_rechk_sig();
-    void check_next_item_sig(bool start = false);
+    void check_next_item_sig(bool start = false, bool last_ret = true);
     void self_check_item_ret_sig(SelfCheckWidget::self_check_type_e_t,
                                  SelfCheckWidget::self_check_stage_e_t st);
     void self_check_finished_sig(bool result);
