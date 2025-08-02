@@ -82,8 +82,10 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     m_scan_widget = new ScanWidget(&m_cfg_recorder, this);
     m_scan_widget->hide();
 
+    /*
     m_camera_widget = new CameraWidget(this);
     m_camera_widget->hide();
+    */
 
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);
     ui->buttonsHBoxLayout->addWidget(m_mainmenubtns_widget);
