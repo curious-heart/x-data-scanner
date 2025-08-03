@@ -39,6 +39,10 @@ static const char* gs_ini_key_ui_current_unit = "ui_current_unit";
 static const char* gs_ini_key_mb_dura_intf_unit = "mb_dura_intf_unit";
 static const char* gs_ini_key_ui_mb_dura_unit = "ui_mb_dura_unit";
 
+static const char* gs_ini_key_sw_to_dev_extra_factor_volt = "sw_to_dev_extra_factor_volt";
+static const char* gs_ini_key_sw_to_dev_extra_factor_current = "sw_to_dev_extra_factor_current";
+static const char* gs_ini_key_sw_to_dev_extra_factor_dura = "sw_to_dev_extra_factor_dura";
+
 static const char* gs_ini_key_test_proc_monitor_period_ms = "test_proc_monitor_period_ms";
 static const char* gs_ini_key_mb_srv_addr = "mb_srv_addr";
 static const char* gs_ini_key_mb_resp_wait_time_ms = "mb_resp_wait_time_ms";
@@ -151,6 +155,10 @@ static const mb_tube_current_unit_e_t gs_def_ui_current_unit = MB_TUBE_CURRENT_U
 
 static const mb_dura_unit_e_t gs_def_mb_dura_intf_unit = MB_DURA_UNIT_SEC;
 static const mb_dura_unit_e_t gs_def_ui_mb_dura_unit = MB_DURA_UNIT_SEC;
+
+static const double gs_def_sw_to_dev_extra_factor_volt = 25;
+static const double gs_def_sw_to_dev_extra_factor_current = 20;
+static const double gs_def_sw_to_dev_extra_factor_dura = 1;
 
 static const int gs_def_enable_self_check = 1;
 static const int gs_def_skip_pwr_self_chk = 0;
@@ -360,6 +368,17 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            gs_def_ui_mb_dura_unit,
                            1, (RangeChecker<int>*)0, (mb_dura_unit_e_t));
 
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sw_to_dev_extra_factor_volt, toDouble,
+                           g_sys_configs_block.sw_to_dev_extra_factor_volt, gs_def_sw_to_dev_extra_factor_volt,
+                           1, &gs_cfg_file_value_gt0_double_ranger);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sw_to_dev_extra_factor_current, toDouble,
+                           g_sys_configs_block.sw_to_dev_extra_factor_current, gs_def_sw_to_dev_extra_factor_current,
+                           1, &gs_cfg_file_value_gt0_double_ranger);
+
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sw_to_dev_extra_factor_dura, toDouble,
+                           g_sys_configs_block.sw_to_dev_extra_factor_dura, gs_def_sw_to_dev_extra_factor_dura,
+                           1, &gs_cfg_file_value_gt0_double_ranger);
 
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_test_proc_monitor_period_ms, toInt,
                    g_sys_configs_block.test_proc_monitor_period_ms, gs_def_test_proc_monitor_period_ms,

@@ -20,7 +20,8 @@ static const int gs_mb_reg_read_cnt = 8;
 bool ScanWidget::hv_construct_mb_du(hv_op_enum_t op, QModbusDataUnit &mb_du)
 {
     QVector<quint16> mb_reg_vals;
-    quint16 tube_volt = (quint16)(g_sys_settings_blk.hv_params.tube_volt_kV),
+    quint16 tube_volt = (quint16)(g_sys_settings_blk.hv_params.tube_volt_kV
+                                         * g_sys_settings_blk.hv_params.sw_to_dev_volt_factor),
             tube_current = (quint16)(g_sys_settings_blk.hv_params.sw_to_dev_current_factor
                                          * g_sys_settings_blk.hv_params.tube_current_mA),
             expo_dura = (quint16)(g_sys_settings_blk.hv_params.sw_to_dev_dura_factor

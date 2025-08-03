@@ -9,8 +9,8 @@ typedef struct
     int tube_volt_kV;
     double tube_current_mA, expo_dura_ms;
 
-    double ui_to_sw_current_factor, ui_to_sw_dura_factor;
-    double sw_to_dev_current_factor, sw_to_dev_dura_factor;
+    double ui_to_sw_volt_factor, ui_to_sw_current_factor, ui_to_sw_dura_factor;
+    double sw_to_dev_volt_factor, sw_to_dev_current_factor, sw_to_dev_dura_factor;
 }hv_params_s_t;
 
 typedef struct

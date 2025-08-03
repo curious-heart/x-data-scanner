@@ -86,6 +86,7 @@ typedef struct
 
     mb_tube_current_unit_e_t mb_tube_current_intf_unit, ui_current_unit;
     mb_dura_unit_e_t mb_dura_intf_unit, ui_mb_dura_unit;
+    double sw_to_dev_extra_factor_volt, sw_to_dev_extra_factor_current, sw_to_dev_extra_factor_dura;
 
     int test_proc_monitor_period_ms;
 

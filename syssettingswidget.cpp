@@ -119,6 +119,17 @@ void SysSettingsWidget::setup_hv_params_convert_factors()
             g_sys_settings_blk.hv_params.sw_to_dev_dura_factor = 1/(60*1000);
             break;
     }
+
+    g_sys_settings_blk.hv_params.ui_to_sw_volt_factor = 1;
+    g_sys_settings_blk.hv_params.sw_to_dev_volt_factor = 1;
+
+    //extra sw to dev factor
+    g_sys_settings_blk.hv_params.sw_to_dev_volt_factor
+        *= g_sys_configs_block.sw_to_dev_extra_factor_volt;
+    g_sys_settings_blk.hv_params.sw_to_dev_current_factor
+        *= g_sys_configs_block.sw_to_dev_extra_factor_current;
+    g_sys_settings_blk.hv_params.sw_to_dev_dura_factor
+        *= g_sys_configs_block.sw_to_dev_extra_factor_dura;
 }
 
 void SysSettingsWidget::set_hv_params_limit_on_ui()
@@ -205,9 +216,10 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
     g_sys_settings_blk.img_save_path = ".";
 
     g_sys_settings_blk.hv_params.valid = true;
-    g_sys_settings_blk.hv_params.tube_volt_kV = ui->tubeVoltKvSpinBox->value();
+    g_sys_settings_blk.hv_params.tube_volt_kV
+        = ui->tubeVoltKvSpinBox->value() * g_sys_settings_blk.hv_params.ui_to_sw_volt_factor;
     g_sys_settings_blk.hv_params.tube_current_mA
-        = ui->tubeVoltKvSpinBox->value() * g_sys_settings_blk.hv_params.ui_to_sw_current_factor;
+        = ui->tubeCurrentSpinBox->value() * g_sys_settings_blk.hv_params.ui_to_sw_current_factor;
     g_sys_settings_blk.hv_params.expo_dura_ms
         = ui->expoDuraSpinBox->value() * g_sys_settings_blk.hv_params.ui_to_sw_dura_factor;
 
