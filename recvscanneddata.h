@@ -16,6 +16,7 @@
 #define COLLECT_ST_E(e) e
 #define COLLECT_ST_LIST \
     COLLECT_ST_E(ST_IDLE), \
+    COLLECT_ST_E(ST_WAIT_HANDSHAKE_ACK), \
     COLLECT_ST_E(ST_WAIT_CONN_ACK), \
     COLLECT_ST_E(ST_COLLECTING), \
     COLLECT_ST_E(ST_WAIT_DISCONN_ACK)
@@ -30,8 +31,10 @@ typedef enum
     COLLECT_RPT_EVT_IGNORE,
     COLLECT_RPT_EVT_CONNECTED,
     COLLECT_RPT_EVT_DISCONNECTED,
+    COLLECT_RPT_EVT_HANDSHAKE_ACKED,
     COLLECT_RPT_EVT_CONN_TIMEOUT,
     COLLECT_RPT_EVT_DISCONN_TIMEOUT,
+    COLLECT_RPT_EVT_HANDSHAKE_TIMEOUT,
 }collect_rpt_evt_e_t;
 Q_DECLARE_METATYPE(collect_rpt_evt_e_t)
 
@@ -57,6 +60,8 @@ public slots:
     void data_ready_hdlr();
     void conn_timeout_hdlr();
     void disconn_timeout_hdlr();
+    void handshake_timeout_hdlr();
+    void handshake_comm();
 
 private:
     QUdpSocket *udpSocket;
@@ -69,11 +74,13 @@ private:
     QTimer *connTimer;
     QTimer *discTimer;
     QTimer *m_recv_dura_timer;
+    QTimer *m_handshake_timer;
 
     int receivedPacketCount = 0;
     CollectState_e_t collectingState = ST_IDLE;
 
     QByteArray m_start_req, m_start_ack, m_stop_req, m_stop_ack;
+    QByteArray m_handshake_req, m_handshake_ack;
 
     void stopCollection();
 

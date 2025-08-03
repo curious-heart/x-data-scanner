@@ -21,7 +21,6 @@ typedef enum
 {
     COLLECT_CMD_SW_BTN,
     COLLECT_CMD_PHY_KEY,
-    COLLECT_CMD_SELF_CHK,
 }src_of_collect_cmd_e_t;
 
 typedef struct
@@ -167,6 +166,7 @@ public slots:
 signals:
     void start_collect_sc_data_sig();
     void stop_collect_sc_data_sig();
+    void detector_handshake_sig();
     void mb_regs_read_ret_sig(mb_reg_val_map_t reg_val_map);
     void hv_op_finish_sig(bool ret, QString err_str = "");
     void detector_self_chk_ret_sig(bool ret);

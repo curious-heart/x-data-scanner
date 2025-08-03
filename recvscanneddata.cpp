@@ -16,6 +16,8 @@ static const char gs_start_req_cmd[] = {'\x00', '\x00', '\x00', '\x02'};
 static const char gs_start_ack_cmd[] = {'\x00', '\x00', '\x00', '\x02'};
 static const char gs_stop_req_cmd[] = {'\x00', '\x00', '\x00', '\x03'};
 static const char gs_stop_ack_cmd[] = {'\x00', '\x00', '\x00', '\x03'};
+static const char gs_handshake_req_cmd[] = {'\x00', '\x00', '\x00', '\x04'};
+static const char gs_handshake_ack_cmd[] = {'\x00', '\x00', '\x00', '\x04'};
 
 static const char* gs_def_remote_ip_addr = "192.168.1.123";
 static const quint16 gs_def_remote_udp_port = 8020;
@@ -31,6 +33,9 @@ RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex
     m_start_ack = QByteArray::fromRawData(gs_start_ack_cmd, sizeof(gs_start_ack_cmd));
     m_stop_req = QByteArray::fromRawData(gs_stop_req_cmd, sizeof(gs_stop_req_cmd));
     m_stop_ack = QByteArray::fromRawData(gs_stop_ack_cmd, sizeof(gs_stop_ack_cmd));
+
+    m_handshake_req = QByteArray::fromRawData(gs_handshake_req_cmd, sizeof(gs_handshake_req_cmd));
+    m_handshake_ack = QByteArray::fromRawData(gs_handshake_ack_cmd, sizeof(gs_handshake_ack_cmd));
 
     udpSocket = new QUdpSocket(this);
 
@@ -48,6 +53,11 @@ RecvScannedData::RecvScannedData(QQueue<recv_data_with_notes_s_t> *queue, QMutex
     m_recv_dura_timer->setSingleShot(true);
     connect(m_recv_dura_timer, &QTimer::timeout,
             this, &RecvScannedData::stop_collect_sc_data_hdlr, Qt::QueuedConnection);
+
+    m_handshake_timer = new QTimer(this);
+    m_handshake_timer->setSingleShot(true);
+    connect(m_handshake_timer, &QTimer::timeout,
+            this, &RecvScannedData::handshake_timeout_hdlr, Qt::QueuedConnection);
 
     if (!udpSocket->bind(QHostAddress::AnyIPv4, m_localPort))
     {
@@ -70,7 +80,7 @@ RecvScannedData::~RecvScannedData()
 
 void RecvScannedData::start_collect_sc_data_hdlr()
 {
-    DIY_LOG(LOG_INFO, QString("recv start instruciton. %1:%2") .arg(remoteAddress.toString(),
+    DIY_LOG(LOG_INFO, QString("recv start instruciton. target %1:%2") .arg(remoteAddress.toString(),
                                                                    QString::number(remotePort)));
     if (collectingState != ST_IDLE)
     {
@@ -106,7 +116,7 @@ void RecvScannedData::stop_collect_sc_data_hdlr()
 
 void RecvScannedData::stopCollection()
 {
-    DIY_LOG(LOG_INFO, QString("recv stop instruciton. %1:%2") .arg(remoteAddress.toString(),
+    DIY_LOG(LOG_INFO, QString("recv stop instruciton. target %1:%2") .arg(remoteAddress.toString(),
                                                                    QString::number(remotePort)));
     udpSocket->writeDatagram(m_stop_req, remoteAddress, remotePort);
 
@@ -117,6 +127,15 @@ void RecvScannedData::stopCollection()
     m_recv_dura_timer->stop();
 
     emit recv_data_finished_sig();
+}
+
+void RecvScannedData::handshake_comm()
+{
+    DIY_LOG(LOG_INFO, QString("recv handshake instruciton. target %1:%2") .arg(remoteAddress.toString(),
+                                                                   QString::number(remotePort)));
+    udpSocket->writeDatagram(m_handshake_req, remoteAddress, remotePort);
+    collectingState = ST_WAIT_HANDSHAKE_ACK;
+    m_handshake_timer->start(m_connTimeout * 1000);
 }
 
 #define ENQUE_DATA(note) \
@@ -162,6 +181,24 @@ void RecvScannedData::data_ready_hdlr()
             ENQUE_DATA(RECV_IN_IDLE);
 
             log_lvl = LOG_WARN;
+            break;
+
+        case ST_WAIT_HANDSHAKE_ACK:
+            if(data == m_handshake_ack)
+            {
+                ENQUE_DATA(HANDSHAKE_ACK);
+                collectingState = ST_IDLE;
+                m_handshake_timer->stop();
+
+                rpt_str = "handshake is acknowledged.";
+                log_lvl = LOG_INFO;
+                evt = COLLECT_RPT_EVT_HANDSHAKE_ACKED;
+            }
+            else
+            {
+                ENQUE_DATA(UNEXPECTED_IN_HANDSHAKE_WAIT);
+                log_lvl = LOG_WARN;
+            }
             break;
 
         case ST_WAIT_CONN_ACK:
@@ -270,4 +307,22 @@ bool RecvScannedData::is_from_proper_peer(QHostAddress &rmt_addr, quint16 rmt_po
 {
     return (rmt_addr == remoteAddress && rmt_port == remotePort);
 
+}
+
+void RecvScannedData::handshake_timeout_hdlr()
+{
+    QString rpt_str;
+    LOG_LEVEL log_lvl = LOG_WARN;
+
+    if (collectingState == ST_WAIT_HANDSHAKE_ACK)
+    {
+        rpt_str = "handshake timeout.";
+        emit recv_worker_report_sig(log_lvl, rpt_str, COLLECT_RPT_EVT_HANDSHAKE_TIMEOUT);
+    }
+    else
+    {
+        rpt_str = "unexpected handshake-timeout signal.";
+    }
+    collectingState = ST_IDLE;
+    DIY_LOG(log_lvl, rpt_str);
 }
