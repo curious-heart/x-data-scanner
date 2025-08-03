@@ -131,7 +131,7 @@ bool ScanWidget::hv_send_op_cmd(hv_op_enum_t op)
                                 .arg(mb_du.startAddress()).arg(mb_du.valueCount());
     mb_du_content += "values: ";
     const QVector<quint16> &mb_du_values = mb_du.values();
-    for(int i = 0; i < mb_du.valueCount(); ++i)
+    for(int i = 0; i < mb_du_values.size(); ++i)
     {
         mb_du_content
         += QString::number(mb_du_values[i], 16).toUpper().rightJustified(2, '0') + " ";
