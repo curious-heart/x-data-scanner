@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=x-data-scanner
+Exec=/home/kylin/16.back-scattering/x-data-scanner/run.sh %F
+Icon=/home/kylin/16.back-scattering/x-data-scanner/x-data-scanner.ico
+Terminal=false

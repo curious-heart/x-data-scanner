@@ -6,7 +6,11 @@
 *.la
 *.lai
 *.so
+!z_deply_tgt/lib/**/*.so
+!z_deply_tgt/plugins/**/*.so
 *.so.*
+!z_deply_tgt/lib/**/*.so.*
+!z_deply_tgt/plugins/**/*.so.*
 *.dll
 *.dylib
 
@@ -54,3 +58,4 @@ compile_commands.json
 *_qmlcache.qrc
 
 build/
+
