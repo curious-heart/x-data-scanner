@@ -17,6 +17,7 @@
 #include "config_recorder/uiconfigrecorder.h"
 
 #include "serialsniffer/serialsniffer.h"
+#include "gpiomonitorthread.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -131,6 +132,7 @@ private:
     void proc_pb_pwr_bat_st_msg(QByteArray msg);
 
     SerialSniffer * m_serial_sniffer = nullptr;
+    GpioMonitorThread * m_gpio_monitor = nullptr;
 
 public slots:
     void self_check_finished_sig_hdlr(bool result);

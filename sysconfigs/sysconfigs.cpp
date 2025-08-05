@@ -103,6 +103,18 @@ static const char* gs_ini_key_sport_databits = "sport_databits";
 static const char* gs_ini_key_sport_parity = "sport_parity";
 static const char* gs_ini_key_sport_stopbits = "sport_stopbits";
 
+static const char* gs_ini_grp_btn_gpio_cfg = "btn_gpio_cfg";
+static const char* gs_ini_key_start_gpio_monitor_th = "start_gpio_monitor_th";
+static const char* gs_ini_key_left_btn_gpio = "left_btn_gpio";
+static const char* gs_ini_key_right_btn_gpio = "right_btn_gpio";
+static const char* gs_ini_key_light_ctrl_gpio = "light_ctrl_gpio";
+static const char* gs_ini_key_btn_press_val = "btn_press_val";
+static const char* gs_ini_key_btn_release_val = "btn_release_val";
+static const char* gs_ini_key_dbl_click_btn_int_ms = "dbl_click_btn_int_ms";
+static const char* gs_ini_key_light_on_val = "light_on_val";
+static const char* gs_ini_key_light_off_val = "light_off_val";
+static const char* gs_ini_key_btn_smooth_dur_ms = "btn_smooth_dur_ms";
+
 sys_configs_struct_t g_sys_configs_block;
 
 static const int gs_def_log_level = LOG_ERROR;
@@ -198,6 +210,17 @@ static const int gs_def_sport_baudrate = 115200;
 static const int gs_def_sport_databits = 8;
 static const int gs_def_sport_parity = (int)(QSerialPort::NoParity);
 static const int gs_def_sport_stopbits = 1;
+
+static const bool gs_def_start_gpio_monitor_th = true;
+static const int gs_def_left_btn_gpio = 146;
+static const int gs_def_right_btn_gpio = 147;
+static const int gs_def_light_ctrl_gpio = 115;
+static const int gs_def_btn_press_val = 0;
+static const int gs_def_btn_release_val = 1;
+static const int gs_def_dbl_click_btn_int_ms = 1000;
+static const int gs_def_light_on_val = 0;
+static const int gs_def_light_off_val = 1;
+static const int gs_def_btn_smooth_dur_ms = 10;
 
 static RangeChecker<int> gs_cfg_file_log_level_ranger((int)LOG_DEBUG, (int)LOG_ERROR, "",
                      EDGE_INCLUDED, EDGE_INCLUDED);
@@ -652,6 +675,40 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            1, &gs_cfg_file_value_gt0_int_ranger);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_sport_stopbits, toInt,
                    g_sys_configs_block.pb_sport_params.stopbits, gs_def_sport_stopbits,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    settings.endGroup();
+    /*--------------------*/
+
+    settings.beginGroup(gs_ini_grp_btn_gpio_cfg);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_start_gpio_monitor_th, toInt,
+       g_sys_configs_block.btn_gpio_cfg.start_gpio_monitor_th, gs_def_start_gpio_monitor_th,
+                           1, (RangeChecker<int>*)0, (bool));
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_left_btn_gpio, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.left_btn_gpio, gs_def_left_btn_gpio,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_right_btn_gpio, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.right_btn_gpio, gs_def_right_btn_gpio,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_light_ctrl_gpio, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.light_ctrl_gpio, gs_def_light_ctrl_gpio,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_btn_press_val, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.btn_press_val, gs_def_btn_press_val,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_btn_release_val, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.btn_release_val, gs_def_btn_release_val,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_dbl_click_btn_int_ms, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.dbl_click_btn_int_ms, gs_def_dbl_click_btn_int_ms,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_light_on_val, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.light_on_val, gs_def_light_on_val,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_light_off_val, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.light_off_val, gs_def_light_off_val,
+                           1, &gs_cfg_file_value_ge0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_btn_smooth_dur_ms, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms, gs_def_btn_smooth_dur_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
     settings.endGroup();
     /*--------------------*/

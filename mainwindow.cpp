@@ -158,6 +158,12 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     self_check(g_sys_configs_block.enable_self_check);
 
     refresh_storage_st();
+
+    if(g_sys_configs_block.btn_gpio_cfg.start_gpio_monitor_th)
+    {
+        m_gpio_monitor = new GpioMonitorThread(this);
+        m_gpio_monitor->start();
+    }
 }
 
 void MainWindow::self_check(bool go_check)
@@ -366,6 +372,13 @@ MainWindow::~MainWindow()
         m_serial_sniffer->quit();
         m_serial_sniffer->wait();
         m_serial_sniffer->deleteLater();
+    }
+
+    if(m_gpio_monitor)
+    {
+        m_gpio_monitor->quit();
+        m_gpio_monitor->wait();
+        m_gpio_monitor->deleteLater();
     }
 
     delete ui;

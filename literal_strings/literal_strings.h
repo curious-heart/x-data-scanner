@@ -61,7 +61,14 @@ STR_DELCARE_STMT(g_str_MB, "MB") \
 STR_DELCARE_STMT(g_str_GB, "GB") \
 STR_DELCARE_STMT(g_str_TB, "TB") \
 STR_DELCARE_STMT(g_str_storage_space, "存储空间") \
-STR_DELCARE_STMT(g_str_checking, "正在检测")
+STR_DELCARE_STMT(g_str_checking, "正在检测") \
+STR_DELCARE_STMT(g_str_left_en, "left") \
+STR_DELCARE_STMT(g_str_right_en, "right") \
+STR_DELCARE_STMT(g_str_pressed_en, "pressed") \
+STR_DELCARE_STMT(g_str_released_en, "released") \
+STR_DELCARE_STMT(g_str_on_en, "on") \
+STR_DELCARE_STMT(g_str_off_en, "off") \
+STR_DELCARE_STMT(g_str_unknown_en, "unknown")
 
 LIT_STRINGS_LIST
 

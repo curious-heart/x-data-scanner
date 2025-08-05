@@ -65,6 +65,17 @@ typedef struct
 
 typedef struct
 {
+    bool start_gpio_monitor_th;
+    int left_btn_gpio, right_btn_gpio;
+    int light_ctrl_gpio;
+    int btn_press_val, btn_release_val;
+    int dbl_click_btn_int_ms;
+    int light_on_val, light_off_val;
+    int btn_smooth_dur_ms;
+}btn_gpio_cfg_blk_struct_t;
+
+typedef struct
+{
     int log_level;
 
     double cool_dura_factor;
@@ -127,6 +138,8 @@ typedef struct
 
     bool scan_without_x;
     int hv_monitor_period_ms;
+
+    btn_gpio_cfg_blk_struct_t btn_gpio_cfg;
 }sys_configs_struct_t;
 
 extern sys_configs_struct_t g_sys_configs_block;
