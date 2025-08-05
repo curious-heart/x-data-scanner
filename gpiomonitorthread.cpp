@@ -16,6 +16,8 @@ GpioMonitorThread::GpioMonitorThread(QObject *parent)
 
 GpioMonitorThread::~GpioMonitorThread()
 {
+    leftSmoothTimer.stop();
+    rightSmoothTimer.stop();;
     cleanupAndExit();
 }
 
@@ -156,6 +158,8 @@ void GpioMonitorThread::run()
     connect(notifierRight, &QSocketNotifier::activated,
             this, &GpioMonitorThread::rightBtnActivatedHdlr);
 
+    leftSmoothTimer.setSingleShot(true);
+    rightSmoothTimer.setSingleShot(true);
     connect(&leftSmoothTimer, &QTimer::timeout,
             this, &GpioMonitorThread::leftSmoothTimeoutHdlr);
     connect(&rightSmoothTimer, &QTimer::timeout,

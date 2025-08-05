@@ -162,6 +162,10 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     if(g_sys_configs_block.btn_gpio_cfg.start_gpio_monitor_th)
     {
         m_gpio_monitor = new GpioMonitorThread(this);
+
+        connect(m_gpio_monitor, &GpioMonitorThread::btn_trigger_scan_sig,
+                this, &MainWindow::btn_trigger_scan_sig_hdlr, Qt::QueuedConnection);
+
         m_gpio_monitor->start();
     }
 }
@@ -1131,4 +1135,11 @@ void MainWindow::send_pb_power_off_sig_hdlr()
         log_str += "send pb_power_off cmd ok";
     }
     LOCAL_DIY_LOG(log_lvl, g_main_th_local_log_fn, log_str);
+}
+
+void MainWindow::btn_trigger_scan_sig_hdlr(bool start)
+{
+    go_to_scan_widget();
+    if(start) m_scan_widget->start_scan(COLLECT_CMD_PHY_KEY);
+    else m_scan_widget->stop_scan(COLLECT_CMD_PHY_KEY);
 }

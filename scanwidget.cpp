@@ -237,11 +237,13 @@ void ScanWidget::reload_cali_datum()
     }
 }
 
-void ScanWidget::start_scan()
+void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
 {
+    DIY_LOG(LOG_INFO, QString("start scan, cmd: %1").arg(cmd_src));
+
     if(g_sys_configs_block.scan_without_x)
     {
-        start_collect();
+        start_collect(cmd_src);
     }
     else
     {
@@ -250,14 +252,15 @@ void ScanWidget::start_scan()
     }
 }
 
-void ScanWidget::stop_scan()
+void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
 {
+    DIY_LOG(LOG_INFO, QString("stop scan, cmd: %1").arg(cmd_src));
     if(!g_sys_configs_block.scan_without_x)
     {
         hv_send_op_cmd(HV_OP_STOP_EXPO);
         m_expo_to_coll_delay_timer.stop();
     }
-    stop_collect();
+    stop_collect(cmd_src);
 }
 
 void ScanWidget::detector_self_check()

@@ -159,6 +159,8 @@ public slots:
 
     void send_pb_power_off_sig_hdlr();
 
+    void btn_trigger_scan_sig_hdlr(bool start);
+
 signals:
     void self_check_hv_rechk_sig();
     void check_next_item_sig(bool start = false, bool last_ret = true);

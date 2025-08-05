@@ -56,8 +56,8 @@ public:
 
     void setup_tools(QModbusClient * modbus_device);
 
-    void start_scan(); //control x ray and collect.
-    void stop_scan(); //control x ray and collect.
+    void start_scan(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN); //control x ray and collect.
+    void stop_scan(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN); //control x ray and collect.
     void detector_self_check();
 
     bool hv_send_op_cmd(hv_op_enum_t op);
