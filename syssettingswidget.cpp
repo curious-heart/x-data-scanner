@@ -44,6 +44,12 @@ void SysSettingsWidget::setup_scan_params_limit_on_ui()
 
     ui->expoCollDelaySpinBox->setMinimum(g_sys_configs_block.expo_to_coll_min_allowed_delay_ms);
     ui->expoCollDelaySpinBox->setMaximum(g_sys_configs_block.expo_to_coll_max_allowed_delay_ms);
+
+    ui->iniDisplayLineCntSpinBox->setMinimum(g_sys_configs_block.ini_disp_img_line_cnt_allowed_min);
+    ui->iniDisplayLineCntSpinBox->setMaximum(g_sys_configs_block.ini_disp_img_line_cnt_allowed_max);
+
+    ui->mergeDispLineCntSpinBox->setMinimum(g_sys_configs_block.merg_disp_img_line_cnt_allowed_min);
+    ui->mergeDispLineCntSpinBox->setMaximum(g_sys_configs_block.merg_disp_img_line_cnt_allowed_max);
 }
 
 void SysSettingsWidget::setup_hv_params_convert_factors()

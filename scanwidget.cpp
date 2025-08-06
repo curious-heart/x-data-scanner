@@ -241,12 +241,27 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
 {
     DIY_LOG(LOG_INFO, QString("start scan, cmd: %1").arg(cmd_src));
 
+    if(m_scan_cmd_proc)
+    {
+        DIY_LOG(LOG_WARN, "last start scan is still in proc. discard this cmd.");
+        return;
+    }
+    m_scan_cmd_proc = true;
+
     if(g_sys_configs_block.scan_without_x)
     {
         start_collect(cmd_src);
     }
     else
     {
+        if(ui->scanLockChkBox->isChecked())
+        {
+            DIY_LOG(LOG_WARN, "scan is locked, ignore the start scan cmd");
+            ui->grayImgLbl->setText(g_str_plz_unlock_first);
+            m_scan_cmd_proc = false;
+            return;
+        }
+
         hv_send_op_cmd(HV_OP_START_EXPO);
         m_expo_to_coll_delay_timer.start(g_sys_settings_blk.expo_to_coll_delay_ms);
     }
@@ -255,12 +270,20 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
 void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
 {
     DIY_LOG(LOG_INFO, QString("stop scan, cmd: %1").arg(cmd_src));
+    if(!m_scan_cmd_proc)
+    {
+        DIY_LOG(LOG_WARN, "not in scan proc. discard this cmd.");
+        return;
+    }
+
     if(!g_sys_configs_block.scan_without_x)
     {
         hv_send_op_cmd(HV_OP_STOP_EXPO);
         m_expo_to_coll_delay_timer.stop();
     }
     stop_collect(cmd_src);
+
+    m_scan_cmd_proc = false;
 }
 
 void ScanWidget::detector_self_check()
@@ -289,7 +312,14 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
     emit start_collect_sc_data_sig();
     g_data_scanning_now = true;
 
-    m_scan_dura_timer.start(g_sys_settings_blk.max_scan_dura_sec * 1000);
+    if(g_sys_configs_block.scan_without_x)
+    {
+        m_scan_dura_timer.start(g_sys_settings_blk.max_scan_dura_sec * 1000);
+    }
+    else
+    {
+        m_scan_dura_timer.start((int)g_sys_settings_blk.hv_params.expo_dura_ms);
+    }
 
     btns_refresh();
 }

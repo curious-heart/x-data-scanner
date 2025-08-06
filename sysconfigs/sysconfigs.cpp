@@ -91,6 +91,10 @@ static const char* gs_ini_key_disable_monitor_during_scan = "disable_monitor_dur
 static const char* gs_ini_key_def_scan_bg_value = "def_scan_bg_value";
 static const char* gs_ini_key_def_scan_stre_factor_value = "def_scan_stre_factor_value";
 static const char* gs_ini_key_hv_monitor_period_ms = "hv_monitor_period_ms";
+static const char* gs_ini_key_ini_disp_img_line_cnt_allowed_min = "ini_disp_img_line_cnt_allowed_min";
+static const char* gs_ini_key_ini_disp_img_line_cnt_allowed_max = "ini_disp_img_line_cnt_allowed_max";
+static const char* gs_ini_key_merg_disp_img_line_cnt_allowed_min = "merg_disp_img_line_cnt_allowed_min";
+static const char* gs_ini_key_merg_disp_img_line_cnt_allowed_max = "merg_disp_img_line_cnt_allowed_max";
 
 static const char* gs_ini_grp_pb_set_and_monitor_cfg = "pb_set_and_monitor_cfg";
 static const char* gs_ini_key_pb_monitor_period_ms = "pb_monitor_period_ms";
@@ -201,6 +205,10 @@ static const int gs_def_disable_monitor_during_scan = 1;
 static const gray_pixel_data_type gs_def_def_scan_bg_value = 10;
 static const double gs_def_def_scan_stre_factor_value = 2;
 static const int gs_def_hv_monitor_period_ms = 3000;
+static const int gs_def_ini_disp_img_line_cnt_allowed_min = 1,
+                 gs_def_ini_disp_img_line_cnt_allowed_max = 1000;
+static const int gs_def_merg_disp_img_line_cnt_allowed_min = 1,
+                 gs_def_merg_disp_img_line_cnt_allowed_max = 60;
 
 static const int gs_def_pb_monitor_log = false;
 
@@ -639,6 +647,18 @@ bool fill_sys_configs(QString * ret_str_ptr)
                            g_sys_configs_block.hv_monitor_period_ms, gs_def_hv_monitor_period_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
 
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_ini_disp_img_line_cnt_allowed_min, toInt,
+                           g_sys_configs_block.ini_disp_img_line_cnt_allowed_min, gs_def_ini_disp_img_line_cnt_allowed_min,
+                           1, (RangeChecker<int>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_ini_disp_img_line_cnt_allowed_max, toInt,
+                           g_sys_configs_block.ini_disp_img_line_cnt_allowed_max, gs_def_ini_disp_img_line_cnt_allowed_max,
+                           1, (RangeChecker<int>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_merg_disp_img_line_cnt_allowed_min, toInt,
+                           g_sys_configs_block.merg_disp_img_line_cnt_allowed_min, gs_def_merg_disp_img_line_cnt_allowed_min,
+                           1, (RangeChecker<int>*)0);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_merg_disp_img_line_cnt_allowed_max, toInt,
+                           g_sys_configs_block.merg_disp_img_line_cnt_allowed_max, gs_def_merg_disp_img_line_cnt_allowed_max,
+                           1, (RangeChecker<int>*)0);
     settings.endGroup();
 
     CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_conn_data_src_tmo_allowed_min_sec, gs_ini_key_conn_data_src_tmo_allowed_max_sec),
@@ -650,6 +670,12 @@ bool fill_sys_configs(QString * ret_str_ptr)
     CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_expo_to_coll_min_allowed_delay_ms, gs_ini_key_expo_to_coll_max_allowed_delay_ms),
                 g_sys_configs_block.expo_to_coll_min_allowed_delay_ms, g_sys_configs_block.expo_to_coll_max_allowed_delay_ms,
                 &gs_cfg_file_value_ge0_int_ranger, g_str_unit_ms)
+    CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_ini_disp_img_line_cnt_allowed_min, gs_ini_key_ini_disp_img_line_cnt_allowed_max),
+                g_sys_configs_block.ini_disp_img_line_cnt_allowed_min, g_sys_configs_block.ini_disp_img_line_cnt_allowed_max,
+                &gs_cfg_file_value_gt0_int_ranger, "")
+    CHECK_LIMIT_RANGE(QString("%1, %2\n").arg(gs_ini_key_merg_disp_img_line_cnt_allowed_min, gs_ini_key_merg_disp_img_line_cnt_allowed_max),
+                g_sys_configs_block.merg_disp_img_line_cnt_allowed_min, g_sys_configs_block.merg_disp_img_line_cnt_allowed_max,
+                &gs_cfg_file_value_gt0_int_ranger, "")
     /*--------------------*/
     settings.beginGroup(gs_ini_grp_pb_set_and_monitor_cfg);
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_pb_monitor_period_ms, toInt,

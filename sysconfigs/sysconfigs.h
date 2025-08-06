@@ -115,6 +115,10 @@ typedef struct
 
     int scan_dura_allowed_min_sec, scan_dura_allowed_max_sec;
     int conn_data_src_tmo_allowed_min_sec, conn_data_src_tmo_allowed_max_sec;
+
+    int ini_disp_img_line_cnt_allowed_min, ini_disp_img_line_cnt_allowed_max;
+    int merg_disp_img_line_cnt_allowed_min, merg_disp_img_line_cnt_allowed_max;
+
     bool limit_recvd_line_number;
 
     QString data_src_ip;

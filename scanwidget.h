@@ -102,6 +102,8 @@ private:
     hv_op_enum_t m_hv_curr_op = HV_OP_NULL;
     mb_reg_val_map_t m_regs_read_result;
 
+    bool m_scan_cmd_proc = false;
+
     //just collect.
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
