@@ -170,11 +170,20 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     }
 
     {
-        connect(m_syssettings_widget, &SysSettingsWidget::rmt_dbg_enabled_sig,
-                this, &MainWindow::rmt_dbg_enabled_sig_hdlr, Qt::QueuedConnection);
-        bool enabled = m_syssettings_widget->rmt_dbg_enabled();
-        quint16 local_port = m_syssettings_widget->rmt_dbg_local_port();
-        updateRemoteDbgThread(enabled, local_port);
+    m_dbg_th_hdlr = new QThread(this);
+    connect(m_dbg_th_hdlr, &QThread::started, this,
+            [this]()
+        {
+            QString addr_str = QString("localhost:%1").arg(m_syssettings_widget->rmt_dbg_local_port());
+            DIY_LOG(LOG_INFO, QString("remote dbg thread started on %1").arg(addr_str));
+        },
+            Qt::QueuedConnection);
+
+    connect(m_syssettings_widget, &SysSettingsWidget::rmt_dbg_enabled_sig,
+            this, &MainWindow::rmt_dbg_enabled_sig_hdlr, Qt::QueuedConnection);
+    bool enabled = m_syssettings_widget->rmt_dbg_enabled();
+    quint16 local_port = m_syssettings_widget->rmt_dbg_local_port();
+    updateRemoteDbgThread(enabled, local_port);
     }
 }
 
@@ -395,7 +404,7 @@ MainWindow::~MainWindow()
         m_gpio_monitor = nullptr;
     }
 
-    exit_rmg_dbg_thread();
+    exit_rmg_dbg_thread(true);
 
     delete ui;
 }
@@ -1156,14 +1165,25 @@ void MainWindow::btn_trigger_scan_sig_hdlr(bool start)
     else m_scan_widget->stop_scan(COLLECT_CMD_PHY_KEY);
 }
 
-void MainWindow::exit_rmg_dbg_thread()
+void MainWindow::exit_rmg_dbg_thread(bool over)
 {
-    if(m_dbgThread)
+    if(m_dbg_th_hdlr)
     {
-        m_dbgThread->quit();
-        m_dbgThread->wait();
-        m_dbgThread->deleteLater();
-        m_dbgThread = nullptr;
+        DIY_LOG(LOG_INFO, "before m_dbg_th_hdlr quit");
+        m_dbg_th_hdlr->quit();
+        DIY_LOG(LOG_INFO, "after m_dbg_th_hdlr quit");
+
+        DIY_LOG(LOG_INFO, "before m_dbg_th_hdlr wait");
+        m_dbg_th_hdlr->wait();
+        DIY_LOG(LOG_INFO, "after m_dbg_th_hdlr wait");
+
+        m_dbg_th_worker = nullptr;
+
+        if(over)
+        {
+            m_dbg_th_hdlr->deleteLater();
+            m_dbg_th_hdlr = nullptr;
+        }
     }
 }
 
@@ -1171,35 +1191,39 @@ void MainWindow::updateRemoteDbgThread(bool enabled, quint16 local_port)
 {
     if(enabled)
     {
-        if(!m_dbgThread)
+        if(!m_dbg_th_worker)
         {
-            m_dbgThread = new RemoteDbgOpThread(local_port, this);
+            m_dbg_th_worker = new RemoteDbgOpThreadWorker(local_port, this);
+            if(!m_dbg_th_worker->init_ok())
+            {
+                DIY_LOG(LOG_ERROR, "init m_dbg_th_worker error");
+                delete m_dbg_th_worker;
+                m_dbg_th_worker = nullptr;
+                return;
+            }
 
-            QObject::connect(m_dbgThread, &RemoteDbgOpThread::rmt_scan_sig,
-                    this,  &MainWindow::rmt_scan_sig_hdlr,
-                    (Qt::ConnectionType)(Qt::UniqueConnection | Qt::QueuedConnection));
+            m_dbg_th_worker->moveToThread(m_dbg_th_hdlr);
+            connect(m_dbg_th_hdlr, &QThread::finished, m_dbg_th_worker,
+                    &RemoteDbgOpThreadWorker::thread_exit_clean);
 
-            connect(m_dbgThread, &RemoteDbgOpThread::rmt_dbg_op_th_started_sig,
-                    this, [this](QString addr_port)
-                    {
-                        DIY_LOG(LOG_INFO, QString("Remote debug operation thread started on %1").arg(addr_port));
-                    }, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::QueuedConnection));
 
-            connect(m_dbgThread, &RemoteDbgOpThread::rmg_dbg_op_th_error_sig,
+            connect(m_dbg_th_worker, &RemoteDbgOpThreadWorker::rmt_scan_sig,
+                    this,  &MainWindow::rmt_scan_sig_hdlr, Qt::QueuedConnection);
+
+            connect(m_dbg_th_worker, &RemoteDbgOpThreadWorker::rmg_dbg_op_th_error_sig,
                     this, [this](QString msg)
                     {
                         DIY_LOG(LOG_ERROR, QString("Remote debug thread error: %1").arg(msg));
-                    }, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::QueuedConnection));
+                    }, Qt::QueuedConnection);
 
-            connect(m_dbgThread, &RemoteDbgOpThread::rmt_dbg_op_th_stopped_sig,
+            connect(m_dbg_th_worker, &RemoteDbgOpThreadWorker::rmt_dbg_op_th_stopped_sig,
                     this, [this]()
                     {
                         DIY_LOG(LOG_INFO, "Remote debug operation thread stopped.");
-                        // 这里可以更新 UI 状态
                         exit_rmg_dbg_thread();
-                    }, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::QueuedConnection));
+                    }, Qt::QueuedConnection);
 
-            m_dbgThread->start();
+            m_dbg_th_hdlr->start();
         }
     }
     else
@@ -1216,5 +1240,5 @@ void MainWindow::rmt_dbg_enabled_sig_hdlr(bool enable)
 void MainWindow::rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 peer_port, const QString &cmd_str)
 {
     DIY_LOG(LOG_INFO, QString("receive remote scan cmd %1:%2 from %3:%4")
-        .arg((int)start).arg(cmd_str).arg(peer_ip).arg(peer_port));
+        .arg((int)start).arg(cmd_str, peer_ip).arg(peer_port));
 }

@@ -22,7 +22,7 @@ SOURCES += \
     mainmenubtnswidget.cpp \
     mainwindow.cpp \
     recvscanneddata.cpp \
-    remotedbgopthread.cpp \
+    remotedbgopthreadworker.cpp \
     scanwidget.cpp \
     selfcheckwidget.cpp \
     serialsniffer/serialsniffer.cpp \
@@ -44,7 +44,7 @@ HEADERS += \
     mainwindow.h \
     modbus_regs.h \
     recvscanneddata.h \
-    remotedbgopthread.h \
+    remotedbgopthreadworker.h \
     sc_data_proc.h \
     scanwidget.h \
     selfcheckwidget.h \
