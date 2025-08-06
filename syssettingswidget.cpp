@@ -15,6 +15,10 @@ SysSettingsWidget::SysSettingsWidget(UiConfigRecorder * cfg_recorder, QWidget *p
 {
     ui->setupUi(this);
 
+    m_rmt_dbg_rbtn_grp = new QButtonGroup(this);
+    m_rmt_dbg_rbtn_grp->addButton(ui->rmtDbgEnableRBtn);
+    m_rmt_dbg_rbtn_grp->addButton(ui->rmtDbgDisableRBtn);
+
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
 
     setup_scan_params_limit_on_ui();
@@ -263,4 +267,19 @@ bool SysSettingsWidget::check_expo_and_scan_time(bool succ_silent)
         ret = true;
     }
     return ret;
+}
+
+bool SysSettingsWidget::rmt_dbg_enabled()
+{
+    return ui->rmtDbgEnableRBtn->isChecked();
+}
+
+void SysSettingsWidget::on_rmtDbgEnableRBtn_toggled(bool checked)
+{
+    emit rmt_dbg_enabled_sig(checked);
+}
+
+quint16 SysSettingsWidget::rmt_dbg_local_port()
+{
+    return (quint16)ui->rmtDbgLocalPortSpinBox->value();
 }

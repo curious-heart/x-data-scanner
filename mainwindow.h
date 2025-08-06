@@ -19,6 +19,8 @@
 #include "serialsniffer/serialsniffer.h"
 #include "gpiomonitorthread.h"
 
+#include "remotedbgopthread.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -134,6 +136,10 @@ private:
     SerialSniffer * m_serial_sniffer = nullptr;
     GpioMonitorThread * m_gpio_monitor = nullptr;
 
+    RemoteDbgOpThread * m_dbgThread = nullptr;
+    void updateRemoteDbgThread(bool enabled, quint16 local_port);
+    void exit_rmg_dbg_thread();
+
 public slots:
     void self_check_finished_sig_hdlr(bool result);
     void login_chk_passed_sig_hdlr();
@@ -160,6 +166,9 @@ public slots:
     void send_pb_power_off_sig_hdlr();
 
     void btn_trigger_scan_sig_hdlr(bool start);
+
+    void rmt_dbg_enabled_sig_hdlr(bool enable);
+    void rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 peer_port, const QString &cmd_str);
 
 signals:
     void self_check_hv_rechk_sig();
