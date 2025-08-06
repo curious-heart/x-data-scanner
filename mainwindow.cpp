@@ -1241,4 +1241,8 @@ void MainWindow::rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 p
 {
     DIY_LOG(LOG_INFO, QString("receive remote scan cmd %1:%2 from %3:%4")
         .arg((int)start).arg(cmd_str, peer_ip).arg(peer_port));
+
+    go_to_scan_widget();
+    if(start) m_scan_widget->start_scan(COLLECT_CMD_REMOTE);
+    else m_scan_widget->stop_scan(COLLECT_CMD_REMOTE);
 }

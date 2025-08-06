@@ -21,6 +21,7 @@ typedef enum
 {
     COLLECT_CMD_SW_BTN,
     COLLECT_CMD_PHY_KEY,
+    COLLECT_CMD_REMOTE,
 }src_of_collect_cmd_e_t;
 
 typedef struct
