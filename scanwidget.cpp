@@ -78,6 +78,10 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
     clear_gray_img_lines();
 
+    if(!mkpth_if_not_exists(gs_scan_cali_file_path))
+    {
+        DIY_LOG(LOG_WARN, QString("make cali data dir %1 fails").arg(gs_scan_cali_file_path));
+    }
     load_cali_datum_from_file();
 
     proc_pt_per_row_cnt_related_work();
@@ -379,6 +383,9 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
             DIY_LOG(LOG_WARN, "scan is locked, ignore the start scan cmd");
             ui->grayImgLbl->setText(g_str_plz_unlock_first);
             m_scan_cmd_proc = false;
+            m_curr_collect_cmd = COLLECT_CMD_NONE;
+            reset_cali_ctrl_vars();
+            btns_refresh();
             return;
         }
 
@@ -396,11 +403,6 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
         return;
     }
 
-    if(m_cali_bg_data_now || m_cali_stre_factor_data_now)
-    {
-        reset_cali_ctrl_vars();
-    }
-
     if(!g_sys_configs_block.scan_without_x)
     {
         hv_send_op_cmd(HV_OP_STOP_EXPO);
@@ -408,8 +410,17 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
     }
     stop_collect(cmd_src);
 
-    m_scan_cmd_proc = false;
+    if((m_cali_bg_data_now && (COLLECT_CMD_CALI_BG != cmd_src))
+        || (m_cali_stre_factor_data_now && (COLLECT_CMD_CALI_STRE_FACTOR != cmd_src)))
+    {
+        gen_cali_datum_to_file(m_curr_collect_cmd);
+    }
+
+    reset_cali_ctrl_vars();
     m_curr_collect_cmd = COLLECT_CMD_NONE;
+
+    m_scan_cmd_proc = false;
+    btns_refresh();
 }
 
 void ScanWidget::detector_self_check()
@@ -695,7 +706,10 @@ void ScanWidget::record_gray_img_line()
         px_sum = (quint32)(m_ch1_data_vec[idx]) + (quint32)(m_ch2_data_vec[idx]);
         line[idx] = px_sum/2;
     }
-    calibrate_px_line(line);
+    if(!m_cali_bg_data_now && !m_cali_stre_factor_data_now)
+    {
+        calibrate_px_line(line);
+    }
 
     m_gray_img_lines.lines.append(line);
     m_gray_img_lines.line_len = m_curr_line_pt_cnt;
