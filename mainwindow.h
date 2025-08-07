@@ -134,7 +134,9 @@ private:
     void proc_pb_pwr_bat_st_msg(QByteArray msg);
 
     SerialSniffer * m_serial_sniffer = nullptr;
+
     GpioMonitorThread * m_gpio_monitor = nullptr;
+    QThread * m_gpio_monitor_hdlr = nullptr;
 
     RemoteDbgOpThreadWorker * m_dbg_th_worker = nullptr;
     QThread* m_dbg_th_hdlr = nullptr;
@@ -168,6 +170,7 @@ public slots:
     void send_pb_power_off_sig_hdlr();
 
     void btn_trigger_scan_sig_hdlr(bool start);
+    void turn_light_on_off_sig_hdlr(int /*on_off_val*/);
 
     void rmt_dbg_enabled_sig_hdlr(bool enable);
     void rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 peer_port, const QString &cmd_str);

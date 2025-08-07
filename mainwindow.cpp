@@ -160,12 +160,23 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
 
     if(g_sys_configs_block.btn_gpio_cfg.start_gpio_monitor_th)
     {
-        m_gpio_monitor = new GpioMonitorThread(this);
+        m_gpio_monitor = new GpioMonitorThread();
+        if(m_gpio_monitor->isInitSuccess())
+        {
+            m_gpio_monitor_hdlr = new QThread(this);
+            m_gpio_monitor->moveToThread(m_gpio_monitor_hdlr);
+            connect(m_gpio_monitor_hdlr, &QThread::finished, m_gpio_monitor,
+                    &QObject::deleteLater);
+            connect(m_gpio_monitor_hdlr, &QThread::started, m_gpio_monitor,
+                    &GpioMonitorThread::thread_started_rpt);
 
-        connect(m_gpio_monitor, &GpioMonitorThread::btn_trigger_scan_sig,
-                this, &MainWindow::btn_trigger_scan_sig_hdlr, Qt::QueuedConnection);
+            connect(m_gpio_monitor, &GpioMonitorThread::btn_trigger_scan_sig,
+                    this, &MainWindow::btn_trigger_scan_sig_hdlr, Qt::QueuedConnection);
+            connect(m_gpio_monitor, &GpioMonitorThread::turn_light_on_off_sig,
+                    this, &MainWindow::turn_light_on_off_sig_hdlr, Qt::QueuedConnection);
 
-        m_gpio_monitor->start();
+            m_gpio_monitor_hdlr->start();
+        }
     }
 
     {
@@ -395,12 +406,12 @@ MainWindow::~MainWindow()
         m_serial_sniffer = nullptr;
     }
 
-    if(m_gpio_monitor)
+    if(m_gpio_monitor_hdlr)
     {
-        m_gpio_monitor->quit();
-        m_gpio_monitor->wait();
-        m_gpio_monitor->deleteLater();
-        m_gpio_monitor = nullptr;
+        m_gpio_monitor_hdlr->quit();
+        m_gpio_monitor_hdlr->wait();
+        m_gpio_monitor_hdlr->deleteLater();
+        m_gpio_monitor_hdlr = nullptr;
     }
 
     exit_rmg_dbg_thread(true);
@@ -1161,6 +1172,9 @@ void MainWindow::btn_trigger_scan_sig_hdlr(bool start)
     if(start) m_scan_widget->start_scan(COLLECT_CMD_PHY_KEY);
     else m_scan_widget->stop_scan(COLLECT_CMD_PHY_KEY);
 }
+
+void MainWindow::turn_light_on_off_sig_hdlr(int /*on_off_val*/)
+{}
 
 void MainWindow::exit_rmg_dbg_thread(bool over)
 {
