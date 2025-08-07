@@ -118,6 +118,8 @@ typedef struct
 
     int ini_disp_img_line_cnt_allowed_min, ini_disp_img_line_cnt_allowed_max;
     int merg_disp_img_line_cnt_allowed_min, merg_disp_img_line_cnt_allowed_max;
+    int cali_bg_line_cnt_allowed_min, cali_bg_line_cnt_allowed_max;
+    int cali_stre_factor_line_cnt_allowed_min, cali_stre_factor_line_cnt_allowed_max;
 
     bool limit_recvd_line_number;
 

@@ -30,6 +30,12 @@ private slots:
 
     void on_rmtDbgEnableRBtn_toggled(bool checked);
 
+    void on_caliModecheckBox_toggled(bool checked);
+
+    void on_caliBgSpinBox_valueChanged(int arg1);
+
+    void on_caliStreFactorSpinBox_valueChanged(int arg1);
+
 private:
     Ui::SysSettingsWidget *ui;
     QButtonGroup * m_rmt_dbg_rbtn_grp = nullptr;

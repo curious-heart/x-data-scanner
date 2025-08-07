@@ -19,10 +19,14 @@ class ScanWidget;
 
 typedef enum
 {
+    COLLECT_CMD_NONE = 0,
     COLLECT_CMD_SW_BTN,
     COLLECT_CMD_PHY_KEY,
     COLLECT_CMD_REMOTE,
+    COLLECT_CMD_CALI_BG,
+    COLLECT_CMD_CALI_STRE_FACTOR,
 }src_of_collect_cmd_e_t;
+Q_DECLARE_METATYPE(src_of_collect_cmd_e_t)
 
 typedef struct
 {
@@ -105,6 +109,11 @@ private:
 
     bool m_scan_cmd_proc = false;
 
+    bool m_cali_bg_data_now = false, m_cali_stre_factor_data_now = false;
+    int m_cali_bg_line_idx = 0, m_cali_stre_factor_line_idx = 0;
+
+    src_of_collect_cmd_e_t m_curr_collect_cmd = COLLECT_CMD_NONE;
+
     //just collect.
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
     void stop_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
@@ -131,8 +140,10 @@ private:
                              const QVector<gray_pixel_data_type>& data, int tgt_size);
     void adjust_stre_factor_data_size(QVector<double> &tgt, const QVector<double>& data, int tgt_size);
     void load_cali_datum_from_file();
+    void gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type);
     void reload_cali_datum();
     void calibrate_px_line(QVector<gray_pixel_data_type> &line);
+    void reset_cali_ctrl_vars();
 
     void proc_pt_per_row_cnt_related_work();
 
@@ -163,6 +174,10 @@ private slots:
 
     void on_scanLockChkBox_stateChanged(int arg1);
 
+    void on_caliBgBtn_clicked();
+
+    void on_caliStreFactorBtn_clicked();
+
 public slots:
     void scan_widget_disp_sig_hdlr();
 
@@ -173,6 +188,7 @@ signals:
     void mb_regs_read_ret_sig(mb_reg_val_map_t reg_val_map);
     void hv_op_finish_sig(bool ret, QString err_str = "");
     void detector_self_chk_ret_sig(bool ret);
+    void gen_cali_datum_to_file_sig(src_of_collect_cmd_e_t cali_type);
 };
 
 #endif // SCANWIDGET_H

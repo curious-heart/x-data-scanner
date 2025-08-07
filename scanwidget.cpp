@@ -29,6 +29,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ScanWidget), m_cfg_recorder(cfg_recorder)
 {
+    qRegisterMetaType<src_of_collect_cmd_e_t>("src_of_collect_cmd_e_t");
+
     ui->setupUi(this);
 
     m_rec_ui_cfg_fin.clear(); m_rec_ui_cfg_fout.clear();
@@ -71,6 +73,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
+    connect(this, &ScanWidget::gen_cali_datum_to_file_sig,
+            this, &ScanWidget::gen_cali_datum_to_file, Qt::QueuedConnection);
 
     clear_gray_img_lines();
 
@@ -83,6 +87,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     m_display_buf_img.img_line_max_vs2.resize(g_sys_configs_block.scrn_h);
 
     recv_data_workerThread->start();
+
+    reset_cali_ctrl_vars();
 
     btns_refresh();
 }
@@ -167,6 +173,107 @@ void ScanWidget::adjust_stre_factor_data_size(QVector<double> &tgt, const QVecto
         std::fill(tgt.begin() + data.size(), tgt.end(), g_sys_configs_block.def_scan_stre_factor_value);
     }
 }
+
+void ScanWidget::reset_cali_ctrl_vars()
+{
+    m_cali_bg_data_now = m_cali_stre_factor_data_now = false;
+    m_cali_bg_line_idx = m_cali_stre_factor_line_idx = 0;
+}
+
+void ScanWidget::gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type)
+{
+    if(COLLECT_CMD_CALI_BG != cali_type && COLLECT_CMD_CALI_STRE_FACTOR != cali_type)
+    {
+        DIY_LOG(LOG_WARN, QString("wrong calibration type %1. should be %2 or %3")
+                  .arg(cali_type).arg(COLLECT_CMD_CALI_BG).arg(COLLECT_CMD_CALI_STRE_FACTOR));
+        return;
+    }
+
+    DIY_LOG(LOG_INFO, QString("now generate cali file of type: %1").arg((int)cali_type));
+
+    int line_num = m_gray_img_lines.lines.size();
+    for(int row = 0; row < line_num; ++row)
+    {
+        if(m_gray_img_lines.lines[row].size() != m_gray_img_lines.line_len)
+        {
+            DIY_LOG(LOG_ERROR, QString("Data Format error: the %1 line length is %2, "
+                                       "but it should be %3.").arg(row)
+                                    .arg(m_gray_img_lines.lines[row].size())
+                                    .arg(m_gray_img_lines.line_len));
+            return;
+        }
+    }
+
+    DIY_LOG(LOG_INFO, "the collected cali value:");
+    QVector<QString> val_strings(line_num, "");
+    QString avg_str;
+    double pt_v_dbl;
+    QVector<double> temp_v(m_gray_img_lines.line_len, 0);
+    for(int col = 0; col < m_gray_img_lines.line_len; ++col)
+    {
+        for(int row = 0; row < line_num; ++row)
+        {
+            pt_v_dbl = m_gray_img_lines.lines[row][col];
+            temp_v[col] += pt_v_dbl;
+            val_strings[row] += QString::number(pt_v_dbl) + "\t";
+        }
+        temp_v[col] = temp_v[col] / line_num;
+        avg_str += QString::number(temp_v[col]) + "\t";
+    }
+
+    for(int row = 0; row < line_num; ++row)
+    {
+        DIY_LOG(LOG_INFO, val_strings[row]);
+    }
+    DIY_LOG(LOG_INFO, QString("the averaged cal value:\n%1").arg(avg_str));
+
+    QString cali_file_fn ;
+    if(COLLECT_CMD_CALI_BG == cali_type)
+    {
+        m_scan_bg_value_loaded.resize(m_gray_img_lines.line_len);
+        for(int col = 0; col < m_gray_img_lines.line_len; ++col)
+        {
+            m_scan_bg_value_loaded[col] = (gray_pixel_data_type)(temp_v[col]);
+        }
+
+        cali_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_bg_value_fn;
+    }
+    else// (COLLECT_CMD_CALI_STRE_FACTOR == caliy_type)
+    {
+        m_scan_stre_factor_value_loaded.resize(m_gray_img_lines.line_len);
+        for(int col = 0; col < m_gray_img_lines.line_len; ++col)
+        {
+            m_scan_stre_factor_value_loaded[col] = temp_v[col];
+        }
+        cali_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_stre_factor_value_fn;
+    }
+
+    QFile bg_file(cali_file_fn);
+    if(bg_file.open(QIODevice::WriteOnly))
+    {
+        QDataStream bg_out(&bg_file);
+        bg_out.setVersion(QDataStream::Qt_5_15);
+        if(COLLECT_CMD_CALI_BG == cali_type)
+        {
+            bg_out << m_scan_bg_value_loaded;
+        }
+        else
+        {
+            bg_out << m_scan_stre_factor_value_loaded;
+        }
+        bg_file.close();
+
+        DIY_LOG(LOG_INFO, QString("calibration data file %1 is generated.").arg(cali_file_fn));
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, QString("generate calibration file error: open file %1 error. ")
+                               .arg(cali_file_fn));
+    }
+    m_scan_bg_value_for_work = m_scan_bg_value_loaded;
+    m_scan_stre_factor_value_for_work = m_scan_stre_factor_value_loaded;
+}
+
 void ScanWidget::load_cali_datum_from_file()
 {
     static bool ls_init_load = true;
@@ -248,6 +355,19 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
     }
     m_scan_cmd_proc = true;
 
+    m_curr_collect_cmd = cmd_src;
+
+    if(COLLECT_CMD_CALI_BG == cmd_src)
+    {
+        m_cali_bg_data_now = true;
+        m_cali_bg_line_idx = 0;
+    }
+    else if(COLLECT_CMD_CALI_STRE_FACTOR == cmd_src)
+    {
+        m_cali_stre_factor_data_now = true;
+        m_cali_stre_factor_line_idx = 0;
+    }
+
     if(g_sys_configs_block.scan_without_x)
     {
         start_collect(cmd_src);
@@ -276,6 +396,11 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
         return;
     }
 
+    if(m_cali_bg_data_now || m_cali_stre_factor_data_now)
+    {
+        reset_cali_ctrl_vars();
+    }
+
     if(!g_sys_configs_block.scan_without_x)
     {
         hv_send_op_cmd(HV_OP_STOP_EXPO);
@@ -284,6 +409,7 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
     stop_collect(cmd_src);
 
     m_scan_cmd_proc = false;
+    m_curr_collect_cmd = COLLECT_CMD_NONE;
 }
 
 void ScanWidget::detector_self_check()
@@ -292,8 +418,10 @@ void ScanWidget::detector_self_check()
     m_detector_self_chk = true;
 }
 
-void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
+void ScanWidget::start_collect(src_of_collect_cmd_e_t cmd_src)
 {
+    DIY_LOG(LOG_INFO, QString("start_collect cmd: %1").arg(cmd_src));
+
     ui->grayImgLbl->clear();
     ui->grayImgLbl->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
 
@@ -326,6 +454,7 @@ void ScanWidget::start_collect(src_of_collect_cmd_e_t /*cmd_src*/)
 
 void ScanWidget::stop_collect(src_of_collect_cmd_e_t cmd_src)
 {
+    DIY_LOG(LOG_INFO, QString("stop_collect cmd: %1").arg(cmd_src));
     m_scan_dura_timer.stop();
 
     if(!g_data_scanning_now) return;
@@ -412,6 +541,18 @@ void ScanWidget::handleNewDataReady()
                 = split_data_into_channels(packet.data, m_ch1_data_vec, m_ch2_data_vec, pkt_idx);
 
         record_gray_img_line();
+
+        if(m_cali_bg_data_now) ++m_cali_bg_line_idx;
+        if(m_cali_stre_factor_data_now) ++m_cali_stre_factor_line_idx;
+        if((m_cali_bg_data_now && (m_cali_bg_line_idx >= g_sys_settings_blk.cali_bg_line_cnt))
+        || (m_cali_stre_factor_data_now &&
+                (m_cali_stre_factor_line_idx >= g_sys_settings_blk.cali_stre_factor_line_cnt)))
+        {
+            src_of_collect_cmd_e_t cmd = m_curr_collect_cmd;
+            stop_scan(m_curr_collect_cmd);
+            emit gen_cali_datum_to_file_sig(cmd);
+            return;
+        }
     }
 }
 
@@ -526,12 +667,12 @@ void ScanWidget::recv_worker_report_sig_hdlr(LOG_LEVEL lvl, QString report_str,
 
 void ScanWidget::expo_to_coll_delay_timer_hdlr()
 {
-    start_collect();
+    start_collect(m_curr_collect_cmd);
 }
 
 void ScanWidget::scan_dura_timeout_hdlr()
 {
-    stop_scan();
+    stop_scan(m_curr_collect_cmd);
 }
 
 void ScanWidget::clear_gray_img_lines()
@@ -921,11 +1062,16 @@ bool ScanWidget::chk_mk_pth_and_warn(QString &pth_str)
 
 void ScanWidget::btns_refresh()
 {
-    ui->dataCollStartPbt->setEnabled(!g_data_scanning_now
-                                     && (g_sys_configs_block.scan_without_x ||
-                                         !ui->scanLockChkBox->isChecked()));
+    bool can_scan = (!g_data_scanning_now &&
+                     (g_sys_configs_block.scan_without_x || !ui->scanLockChkBox->isChecked()));
+    ui->dataCollStartPbt->setEnabled(can_scan);
     ui->dataCollStopPbt->setEnabled(g_data_scanning_now);
     ui->scanLockChkBox->setEnabled(!g_data_scanning_now && !g_sys_configs_block.scan_without_x);
+
+    ui->caliBgBtn->setEnabled(can_scan);
+    ui->caliStreFactorBtn->setEnabled(can_scan);
+    ui->caliBgBtn->setVisible(g_sys_settings_blk.cali_mode_now);
+    ui->caliStreFactorBtn->setVisible(g_sys_settings_blk.cali_mode_now);
 }
 
 void ScanWidget::rec_ui_settings()
@@ -950,16 +1096,9 @@ void ScanWidget::on_ptPerRowSpinBox_valueChanged(int /*arg1*/)
 }
 
 
-void ScanWidget::on_scanLockChkBox_stateChanged(int arg1)
+void ScanWidget::on_scanLockChkBox_stateChanged(int /*arg1*/)
 {
-    if(Qt::Checked == arg1)
-    {
-        ui->dataCollStartPbt->setEnabled(g_sys_configs_block.scan_without_x);
-    }
-    else
-    {
-        ui->dataCollStartPbt->setEnabled(!g_data_scanning_now);
-    }
+    btns_refresh();
 }
 
 void ScanWidget::scan_widget_disp_sig_hdlr()
@@ -969,4 +1108,16 @@ void ScanWidget::scan_widget_disp_sig_hdlr()
     {
         m_display_buf_img.disp_area_height = g_sys_configs_block.scrn_h;
     }
+    btns_refresh();
+}
+
+void ScanWidget::on_caliBgBtn_clicked()
+{
+    start_scan(COLLECT_CMD_CALI_BG);
+}
+
+
+void ScanWidget::on_caliStreFactorBtn_clicked()
+{
+    start_scan(COLLECT_CMD_CALI_STRE_FACTOR);
 }

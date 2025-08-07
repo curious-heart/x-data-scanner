@@ -54,6 +54,12 @@ void SysSettingsWidget::setup_scan_params_limit_on_ui()
 
     ui->mergeDispLineCntSpinBox->setMinimum(g_sys_configs_block.merg_disp_img_line_cnt_allowed_min);
     ui->mergeDispLineCntSpinBox->setMaximum(g_sys_configs_block.merg_disp_img_line_cnt_allowed_max);
+
+    ui->caliBgSpinBox->setMinimum(g_sys_configs_block.cali_bg_line_cnt_allowed_min);
+    ui->caliBgSpinBox->setMaximum(g_sys_configs_block.cali_bg_line_cnt_allowed_max);
+
+    ui->caliStreFactorSpinBox->setMinimum(g_sys_configs_block.cali_stre_factor_line_cnt_allowed_min);
+    ui->caliStreFactorSpinBox->setMaximum(g_sys_configs_block.cali_stre_factor_line_cnt_allowed_max);
 }
 
 void SysSettingsWidget::setup_hv_params_convert_factors()
@@ -236,6 +242,10 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
     g_sys_settings_blk.ini_disp_img_line_cnt = ui->iniDisplayLineCntSpinBox->value();
     g_sys_settings_blk.merg_disp_img_line_cnt = ui->mergeDispLineCntSpinBox->value();
 
+    g_sys_settings_blk.cali_mode_now = ui->caliModecheckBox->isChecked();
+    g_sys_settings_blk.cali_bg_line_cnt = ui->caliBgSpinBox->value();
+    g_sys_settings_blk.cali_stre_factor_line_cnt = ui->caliStreFactorSpinBox->value();
+
     ret = check_expo_and_scan_time(succ_silent);
 
     return ret;
@@ -283,3 +293,23 @@ quint16 SysSettingsWidget::rmt_dbg_local_port()
 {
     return (quint16)ui->rmtDbgLocalPortSpinBox->value();
 }
+
+void SysSettingsWidget::on_caliModecheckBox_toggled(bool checked)
+{
+    g_sys_settings_blk.cali_mode_now = checked;
+    g_sys_settings_blk.cali_bg_line_cnt = ui->caliBgSpinBox->value();
+    g_sys_settings_blk.cali_stre_factor_line_cnt = ui->caliStreFactorSpinBox->value();
+}
+
+
+void SysSettingsWidget::on_caliBgSpinBox_valueChanged(int arg1)
+{
+    g_sys_settings_blk.cali_bg_line_cnt = arg1;
+}
+
+
+void SysSettingsWidget::on_caliStreFactorSpinBox_valueChanged(int arg1)
+{
+    g_sys_settings_blk.cali_stre_factor_line_cnt = arg1;
+}
+
