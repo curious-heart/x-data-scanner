@@ -30,7 +30,7 @@ private:
 
 private:
     int fdLeft{-1}, fdRight{-1};
-    QFile lightFile;
+    QFile * lightFile;
 
     qint64 lastPressTimeRight{0};
     int clickCountRight{0};
@@ -40,20 +40,13 @@ private:
 
     bool initSuccess{false};
 
-    QSocketNotifier *notifierLeft = nullptr, *notifierRight = nullptr;
-    QTimer *leftSmoothTimer, *rightSmoothTimer;
     QTimer *gpio_scan_timer;
-
-    void check_thread_id(QString pos);
 
 public slots:
     void thread_started_rpt();
+    void thread_finished_clean();
 
 private slots:
-    void leftSmoothTimeoutHdlr();
-    void rightSmoothTimeoutHdlr();
-    void leftBtnActivatedHdlr(QSocketDescriptor socket, QSocketNotifier::Type type);
-    void rightBtnActivatedHdlr(QSocketDescriptor socket, QSocketNotifier::Type type);
     void scan_gpio_keys();
 };
 

@@ -72,6 +72,7 @@ typedef struct
     int dbl_click_btn_int_ms;
     int light_on_val, light_off_val;
     int btn_smooth_dur_ms;
+    int gpio_btn_scan_period_ms;
 }btn_gpio_cfg_blk_struct_t;
 
 typedef struct

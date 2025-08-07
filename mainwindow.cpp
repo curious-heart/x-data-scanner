@@ -165,10 +165,10 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
         {
             m_gpio_monitor_hdlr = new QThread(this);
             m_gpio_monitor->moveToThread(m_gpio_monitor_hdlr);
-            connect(m_gpio_monitor_hdlr, &QThread::finished, m_gpio_monitor,
-                    &QObject::deleteLater);
-            connect(m_gpio_monitor_hdlr, &QThread::started, m_gpio_monitor,
-                    &GpioMonitorThread::thread_started_rpt);
+            connect(m_gpio_monitor_hdlr, &QThread::finished,
+                    m_gpio_monitor, &GpioMonitorThread::thread_finished_clean);
+            connect(m_gpio_monitor_hdlr, &QThread::started,
+                    m_gpio_monitor, &GpioMonitorThread::thread_started_rpt);
 
             connect(m_gpio_monitor, &GpioMonitorThread::btn_trigger_scan_sig,
                     this, &MainWindow::btn_trigger_scan_sig_hdlr, Qt::QueuedConnection);
@@ -949,8 +949,6 @@ void MainWindow::proc_pb_pwr_off_msg(QByteArray msg)
                       + msg.toHex(' ').toUpper();
     DIY_LOG(LOG_INFO, log_str);
 
-    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, log_str);
-
     if(APP_EXIT_APP_POWER_OFF != m_exit_mode)
     {
         m_exit_mode = APP_EXIT_HD_POWER_OFF;
@@ -1099,7 +1097,6 @@ void MainWindow::hv_conn_state_changed_sig_handler(QModbusDevice::State state)
     QString curr_str = (state < 0 || (int)state >= ARRAY_COUNT(state_str)) ?
                 QString("%1:%2").arg(g_str_modbus_unkonwn_state, QString::number(state))
               : state_str[state];
-    LOCAL_DIY_LOG(LOG_INFO, g_main_th_local_log_fn, curr_str);
     DIY_LOG(LOG_INFO, curr_str);
 
     QString lbl_str, stylesheet;
@@ -1163,7 +1160,6 @@ void MainWindow::send_pb_power_off_sig_hdlr()
     {
         log_str += "send pb_power_off cmd ok";
     }
-    LOCAL_DIY_LOG(log_lvl, g_main_th_local_log_fn, log_str);
 }
 
 void MainWindow::btn_trigger_scan_sig_hdlr(bool start)

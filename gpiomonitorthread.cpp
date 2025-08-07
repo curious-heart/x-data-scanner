@@ -45,10 +45,11 @@ GpioMonitorThread::GpioMonitorThread(QObject *parent)
     DIY_LOG(LOG_INFO, QString("write dirFile %1 succeeds.").arg(dirFile.fileName()));
     */
 
+    lightFile = new QFile(this);
     QString lightPath = QString("/sys/class/gpio/gpio%1/value")
                             .arg(g_sys_configs_block.btn_gpio_cfg.light_ctrl_gpio);
-    lightFile.setFileName(lightPath);
-    if(!lightFile.open(QIODevice::WriteOnly))
+    lightFile->setFileName(lightPath);
+    if(!lightFile->open(QIODevice::WriteOnly))
     {
         DIY_LOG(LOG_ERROR, QString("open light file %1 fails.").arg(lightPath));
 
@@ -61,26 +62,6 @@ GpioMonitorThread::GpioMonitorThread(QObject *parent)
         DIY_LOG(LOG_INFO, QString("open light file %1 succeeds.").arg(lightPath));
     }
 
-
-    /*
-    notifierLeft = new QSocketNotifier(fdLeft, QSocketNotifier::Exception, this);
-    notifierRight = new QSocketNotifier(fdRight, QSocketNotifier::Exception, this);
-
-    connect(notifierLeft, &QSocketNotifier::activated,
-            this, &GpioMonitorThread::leftBtnActivatedHdlr);
-    connect(notifierRight, &QSocketNotifier::activated,
-            this, &GpioMonitorThread::rightBtnActivatedHdlr);
-
-    leftSmoothTimer = new QTimer(this);
-    rightSmoothTimer = new QTimer(this);
-    leftSmoothTimer->setSingleShot(true);
-    rightSmoothTimer->setSingleShot(true);
-    connect(leftSmoothTimer, &QTimer::timeout,
-            this, &GpioMonitorThread::leftSmoothTimeoutHdlr, Qt::QueuedConnection);
-    connect(rightSmoothTimer, &QTimer::timeout,
-            this, &GpioMonitorThread::rightSmoothTimeoutHdlr, Qt::QueuedConnection);
-    */
-
     gpio_scan_timer = new QTimer(this);
     connect(gpio_scan_timer, &QTimer::timeout,
             this, &GpioMonitorThread::scan_gpio_keys, Qt::QueuedConnection);
@@ -88,17 +69,11 @@ GpioMonitorThread::GpioMonitorThread(QObject *parent)
     initSuccess = true;
     DIY_LOG(LOG_INFO, "gpio monitor thread inited succeeds.");
 
-    check_thread_id("constructor");
 #endif
 }
 
 GpioMonitorThread::~GpioMonitorThread()
 {
-    leftSmoothTimer->stop();
-    rightSmoothTimer->stop();;
-
-    gpio_scan_timer->stop();
-
     cleanupAndExit();
 }
 
@@ -106,16 +81,22 @@ void GpioMonitorThread::thread_started_rpt()
 {
     DIY_LOG(LOG_INFO, "gpio monitor thread started");
 
-    gpio_scan_timer->start(g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms);
+    gpio_scan_timer->start(g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms);
+}
+
+void GpioMonitorThread::thread_finished_clean()
+{
+    gpio_scan_timer->stop();
+    deleteLater();
 }
 
 void GpioMonitorThread::cleanupAndExit()
 {
 #ifdef Q_OS_UNIX
     // 关闭文件
-    if (lightFile.isOpen())
+    if (lightFile->isOpen())
     {
-        lightFile.close();
+        lightFile->close();
     }
     // 关闭 GPIO fd
     if (fdLeft >= 0)
@@ -267,133 +248,6 @@ int GpioMonitorThread::readGpioValue(int fd)
     return -1;
 }
 
-void GpioMonitorThread::check_thread_id(QString pos)
-{
-    /*
-    QString notifer_th_str = QString::number((quint64)(notifierLeft->thread()), 16).toUpper().rightJustified(16, '0');
-    notifer_th_str += QString(" ") + QString::number((quint64)(notifierRight->thread()), 16).toUpper().rightJustified(16, '0');
-    QString curr_th_str = QString::number((quint64)(QThread::currentThread()), 16).toUpper().rightJustified(16, '0');
-    QString this_th_str = QString::number((quint64)(this->thread()), 16).toUpper().rightJustified(16, '0');
-
-    DIY_LOG(LOG_INFO, QString("notifer th: %1; curr_th: %2; this th: %3\t%4\n")
-                          .arg(notifer_th_str, curr_th_str, this_th_str, pos));
-    */
-}
-
-void GpioMonitorThread::handleButtonEvent(bool isLeft)
-{
-    static bool left_is_pressed = false, right_is_pressed = false;
-    static int lastLeftVal = -1;
-    static int lastRightVal = -1;
-    int &lastVal = isLeft ? lastLeftVal : lastRightVal;
-
-    QString left_right_str = isLeft ? g_str_left_en : g_str_right_en;
-
-    int val = readGpioValue(isLeft ? fdLeft : fdRight);
-
-    if(lastVal == val)
-    {
-        return;
-    }
-    lastVal = val;
-
-    DIY_LOG(val < 0 ? LOG_ERROR : LOG_INFO,
-            QString("%1 btn gpio val: %2").arg(left_right_str).arg(val));
-
-    if (val < 0) return;
-
-    static const int pressVal   = g_sys_configs_block.btn_gpio_cfg.btn_press_val;
-    static const int releaseVal = g_sys_configs_block.btn_gpio_cfg.btn_release_val;
-
-    QString pre_rel_str;
-    if(pressVal == val)
-    {
-        pre_rel_str = g_str_pressed_en;
-        if(isLeft) left_is_pressed = true; else right_is_pressed = true;
-    }
-    else if(releaseVal == val)
-    {
-        pre_rel_str = g_str_released_en;
-        if(isLeft) left_is_pressed = false; else right_is_pressed = false;
-    }
-    else
-    {
-        pre_rel_str = g_str_unknown_en;
-    }
-    DIY_LOG(LOG_INFO, QString("that is, %1 btn %2.").arg(left_right_str, pre_rel_str));
-
-    // 右键双击
-    if(!isLeft)
-    {
-        if (pressVal == val)
-        {
-            qint64 now = QDateTime::currentMSecsSinceEpoch();
-            if (clickCountRight == 0)
-            {
-                lastPressTimeRight = now;
-                clickCountRight    = 1;
-            }
-            else if (clickCountRight == 1 &&
-                       now - lastPressTimeRight <=
-                           g_sys_configs_block.btn_gpio_cfg.dbl_click_btn_int_ms)
-            {
-                clickCountRight = 2;
-            }
-            else
-            {
-                clickCountRight    = 1;
-                lastPressTimeRight = now;
-            }
-        }
-        else if (releaseVal == val)
-        {
-            qint64 now = QDateTime::currentMSecsSinceEpoch();
-            if (clickCountRight == 2 &&
-                now - lastPressTimeRight <=
-                    g_sys_configs_block.btn_gpio_cfg.dbl_click_btn_int_ms)
-            {
-                DIY_LOG(LOG_INFO, "right button double clicked!");
-
-                toggleLight();
-                clickCountRight = 0;
-            }
-            else if (clickCountRight >= 1 &&
-                       now - lastPressTimeRight >
-                           g_sys_configs_block.btn_gpio_cfg.dbl_click_btn_int_ms)
-            {
-                clickCountRight = 0;
-            }
-        }
-    }
-
-    /*
-    QString another_key = !isLeft ? g_str_left_en : g_str_right_en;
-    int another_val = readGpioValue(!isLeft ? fdLeft : fdRight);
-    QString another_pre_rel_str;
-    if(pressVal == another_val) another_pre_rel_str = g_str_pressed_en;
-    else if(releaseVal == another_val) another_pre_rel_str = g_str_released_en;
-    else another_pre_rel_str = g_str_unknown_en;
-    DIY_LOG(LOG_INFO, QString("now another btn(%1) is %2, that is %3.")
-                          .arg(another_key).arg(another_val).arg(another_pre_rel_str));
-    */
-
-    //if(!scanActive && pressVal == val && pressVal == another_val)
-    if(!scanActive && left_is_pressed && right_is_pressed)
-    {
-        scanActive = true;
-        emit btn_trigger_scan_sig(true);
-
-        DIY_LOG(LOG_INFO, "btn_trigger_scan_sig: start");
-    }
-    else if (scanActive && (!left_is_pressed || !right_is_pressed))
-    {
-        scanActive = false;
-        emit btn_trigger_scan_sig(false);
-
-        DIY_LOG(LOG_INFO, "btn_trigger_scan_sig: stop");
-    }
-}
-
 void GpioMonitorThread::toggleLight()
 {
     lightOn = !lightOn;
@@ -403,10 +257,10 @@ void GpioMonitorThread::toggleLight()
 
     DIY_LOG(LOG_INFO, QString("try turning light %1:%2").arg(on_off_str).arg(val));
 
-    if(lightFile.isOpen())
+    if(lightFile->isOpen())
     {
-        lightFile.write(QString::number(val).toUtf8());
-        lightFile.flush();
+        lightFile->write(QString::number(val).toUtf8());
+        lightFile->flush();
         emit turn_light_on_off_sig(val);
 
         DIY_LOG(LOG_INFO, QString("turn light %1 succeedss").arg(on_off_str));
@@ -415,36 +269,6 @@ void GpioMonitorThread::toggleLight()
     {
         DIY_LOG(LOG_ERROR, "lightFile is not opend!");
     }
-}
-
-void GpioMonitorThread::leftBtnActivatedHdlr(QSocketDescriptor /*socket*/, QSocketNotifier::Type /*type*/)
-{
-    //notifierLeft->setEnabled(false);
-    handleButtonEvent(true);
-    DIY_LOG(LOG_INFO, "+++++++++++++++");
-    //leftSmoothTimer->start(g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms);
-    //DIY_LOG(LOG_INFO, QString("leftSmoothTimer started: %1").arg(g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms));
-}
-
-void GpioMonitorThread::rightBtnActivatedHdlr(QSocketDescriptor /*socket*/, QSocketNotifier::Type /*type*/)
-{
-    //notifierRight->setEnabled(false);
-    handleButtonEvent(false);
-    DIY_LOG(LOG_INFO, "---------------");
-    //rightSmoothTimer->start(g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms);
-    //DIY_LOG(LOG_INFO, QString("rightSmoothTimer started: %1").arg(g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms));
-}
-
-void GpioMonitorThread::leftSmoothTimeoutHdlr()
-{
-    DIY_LOG(LOG_INFO, QString("leftSmoothTimer timeout"));
-    //notifierLeft->setEnabled(true);
-}
-
-void GpioMonitorThread::rightSmoothTimeoutHdlr()
-{
-    DIY_LOG(LOG_INFO, QString("rightSmoothTimer timeout"));
-    //notifierRight->setEnabled(true);
 }
 
 void GpioMonitorThread::scan_gpio_keys()
@@ -456,6 +280,8 @@ void GpioMonitorThread::scan_gpio_keys()
     static int lastRightVal = -1;
 
     bool left_is_pressed = false, right_is_pressed = false;
+    if(fdLeft < 0 || fdRight < 0) return;
+
     int left_val = readGpioValue(fdLeft);
     int right_val = readGpioValue(fdRight);
 

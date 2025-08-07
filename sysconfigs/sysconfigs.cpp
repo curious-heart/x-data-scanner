@@ -124,6 +124,7 @@ static const char* gs_ini_key_dbl_click_btn_int_ms = "dbl_click_btn_int_ms";
 static const char* gs_ini_key_light_on_val = "light_on_val";
 static const char* gs_ini_key_light_off_val = "light_off_val";
 static const char* gs_ini_key_btn_smooth_dur_ms = "btn_smooth_dur_ms";
+static const char* gs_ini_key_gpio_btn_scan_period_ms = "gpio_btn_scan_period_ms";
 
 sys_configs_struct_t g_sys_configs_block;
 
@@ -241,6 +242,7 @@ static const int gs_def_dbl_click_btn_int_ms = 1000;
 static const int gs_def_light_on_val = 0;
 static const int gs_def_light_off_val = 1;
 static const int gs_def_btn_smooth_dur_ms = 10;
+static const int gs_def_gpio_btn_scan_period_ms = 50; //cfg file use 100
 
 static RangeChecker<int> gs_cfg_file_log_level_ranger((int)LOG_DEBUG, (int)LOG_ERROR, "",
                      EDGE_INCLUDED, EDGE_INCLUDED);
@@ -779,6 +781,15 @@ bool fill_sys_configs(QString * ret_str_ptr)
     GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_btn_smooth_dur_ms, toInt,
                    g_sys_configs_block.btn_gpio_cfg.btn_smooth_dur_ms, gs_def_btn_smooth_dur_ms,
                            1, &gs_cfg_file_value_gt0_int_ranger);
+    GET_INF_CFG_NUMBER_VAL(settings, gs_ini_key_gpio_btn_scan_period_ms, toInt,
+                   g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms, gs_def_gpio_btn_scan_period_ms,
+                           1, &gs_cfg_file_value_gt0_int_ranger);
+    if(g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms
+            < gs_def_gpio_btn_scan_period_ms)
+    {
+        g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms
+            = gs_def_gpio_btn_scan_period_ms;
+    }
     settings.endGroup();
     /*--------------------*/
 
