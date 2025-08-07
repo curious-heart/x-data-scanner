@@ -19,7 +19,9 @@ static const char* gs_str_8bit_img_apx = "-8bit";
 
 static const char* gs_scan_cali_file_path = "./scan_cali_datum";
 static const char* gs_scan_bg_value_fn = "scan_bg_data";
+static const char* gs_scan_bg_value_txt_fn = "scan_bg_data.txt";
 static const char* gs_scan_stre_factor_value_fn = "scan_stre_factor_data";
+static const char* gs_scan_stre_factor_value_txt_fn = "scan_stre_factor_data.txt";
 
 #undef RECV_DATA_NOTE_E
 #define RECV_DATA_NOTE_E(e) #e
@@ -30,6 +32,7 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     ui(new Ui::ScanWidget), m_cfg_recorder(cfg_recorder)
 {
     qRegisterMetaType<src_of_collect_cmd_e_t>("src_of_collect_cmd_e_t");
+    qRegisterMetaType<collect_rpt_evt_e_t>();
 
     ui->setupUi(this);
 
@@ -37,14 +40,16 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     m_rec_ui_cfg_fout << ui->scanLockChkBox;
     ui->scanLockChkBox->setChecked(!g_sys_configs_block.scan_without_x);
 
+    ui->ptPerRowSpinBox->setMinimum(1);
     ui->ptPerRowSpinBox->setMaximum(g_sys_configs_block.max_pt_number);
     ui->ptPerRowSpinBox->setValue(g_sys_configs_block.max_pt_number);
+
+    load_ui_settings();
 
     m_scan_dura_timer.setSingleShot(true);
     connect(&m_scan_dura_timer, &QTimer::timeout,
             this, &ScanWidget::scan_dura_timeout_hdlr, Qt::QueuedConnection);
 
-    qRegisterMetaType<collect_rpt_evt_e_t>();
 
     QString rmt_ip = g_sys_configs_block.data_src_ip;
     quint16 rmt_port = (quint16)g_sys_configs_block.data_src_port;
@@ -196,6 +201,12 @@ void ScanWidget::gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type)
     DIY_LOG(LOG_INFO, QString("now generate cali file of type: %1").arg((int)cali_type));
 
     int line_num = m_gray_img_lines.lines.size();
+    if(0 == line_num)
+    {
+        DIY_LOG(LOG_ERROR, "error in cali-data-generation: line num is 0!");
+        return;
+    }
+
     for(int row = 0; row < line_num; ++row)
     {
         if(m_gray_img_lines.lines[row].size() != m_gray_img_lines.line_len)
@@ -231,7 +242,7 @@ void ScanWidget::gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type)
     }
     DIY_LOG(LOG_INFO, QString("the averaged cal value:\n%1").arg(avg_str));
 
-    QString cali_file_fn ;
+    QString cali_file_fn, cali_txt_file_fn ;
     if(COLLECT_CMD_CALI_BG == cali_type)
     {
         m_scan_bg_value_loaded.resize(m_gray_img_lines.line_len);
@@ -241,15 +252,17 @@ void ScanWidget::gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type)
         }
 
         cali_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_bg_value_fn;
+        cali_txt_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_bg_value_txt_fn;
     }
     else// (COLLECT_CMD_CALI_STRE_FACTOR == caliy_type)
     {
         m_scan_stre_factor_value_loaded.resize(m_gray_img_lines.line_len);
         for(int col = 0; col < m_gray_img_lines.line_len; ++col)
         {
-            m_scan_stre_factor_value_loaded[col] = temp_v[col];
+            m_scan_stre_factor_value_loaded[col] = (temp_v[col] ? (g_12bitpx_max_v / temp_v[col]) : g_12bitpx_max_v);
         }
         cali_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_stre_factor_value_fn;
+        cali_txt_file_fn = QString(gs_scan_cali_file_path) + "/" + gs_scan_stre_factor_value_txt_fn;
     }
 
     QFile bg_file(cali_file_fn);
@@ -274,8 +287,29 @@ void ScanWidget::gen_cali_datum_to_file(src_of_collect_cmd_e_t cali_type)
         DIY_LOG(LOG_ERROR, QString("generate calibration file error: open file %1 error. ")
                                .arg(cali_file_fn));
     }
-    m_scan_bg_value_for_work = m_scan_bg_value_loaded;
-    m_scan_stre_factor_value_for_work = m_scan_stre_factor_value_loaded;
+
+    if(COLLECT_CMD_CALI_BG == cali_type)
+    {
+        m_scan_bg_value_for_work = m_scan_bg_value_loaded;
+    }
+    else
+    {
+        m_scan_stre_factor_value_for_work = m_scan_stre_factor_value_loaded;
+    }
+    QString cal_data_txt_str = get_cali_data_str(cali_type);
+    QFile txt_file(cali_txt_file_fn);
+    if(txt_file.open(QIODevice::WriteOnly))
+    {
+        QTextStream txt_out(&txt_file);
+        txt_out << cal_data_txt_str;
+
+        txt_file.close();
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, QString("write calibration txt file error: open file %1 error. ")
+                               .arg(cali_txt_file_fn));
+    }
 }
 
 void ScanWidget::load_cali_datum_from_file()
@@ -346,6 +380,43 @@ void ScanWidget::reload_cali_datum()
         adjust_stre_factor_data_size(m_scan_stre_factor_value_for_work,
                                      m_scan_stre_factor_value_loaded, disp_pt_per_row);
     }
+    print_cali_data_to_log();
+}
+
+void ScanWidget::print_cali_data_to_log()
+{
+    QString cal_str;
+
+    cal_str = get_cali_data_str(COLLECT_CMD_CALI_BG);
+    DIY_LOG(LOG_INFO, QString("the background calibration data: %1").arg(cal_str));
+
+    cal_str = get_cali_data_str(COLLECT_CMD_CALI_STRE_FACTOR);
+    DIY_LOG(LOG_INFO, QString("the stretch-factor calibration data: %1").arg(cal_str));
+}
+
+QString ScanWidget::get_cali_data_str(src_of_collect_cmd_e_t cali_type)
+{
+    QString cal_str;
+
+    if(COLLECT_CMD_CALI_BG == cali_type)
+    {
+        for(int col = 0; col < m_scan_bg_value_for_work.size(); ++col)
+        {
+            gray_pixel_data_type pv;
+            pv = m_scan_bg_value_for_work[col];
+            cal_str += QString::number(pv) + " ";
+        }
+    }
+    else
+    {
+        for(int col = 0; col < m_scan_stre_factor_value_for_work.size(); ++col)
+        {
+            double pv;
+            pv = m_scan_stre_factor_value_for_work[col];
+            cal_str += QString::number(pv) + " ";
+        }
+    }
+    return cal_str;
 }
 
 void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)

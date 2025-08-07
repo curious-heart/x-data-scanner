@@ -25,6 +25,8 @@ SysSettingsWidget::SysSettingsWidget(UiConfigRecorder * cfg_recorder, QWidget *p
 
     setup_hv_params_convert_factors();
     set_hv_params_limit_on_ui();
+
+    load_ui_settings();
 }
 
 SysSettingsWidget::~SysSettingsWidget()

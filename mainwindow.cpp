@@ -80,7 +80,6 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
 
     /*this widget should be newed first since it loads sys settings.*/
     m_syssettings_widget = new SysSettingsWidget(&m_cfg_recorder, this);
-    m_syssettings_widget->load_ui_settings();
     m_syssettings_widget->hide();
 
     m_stacked_widget = new QStackedWidget(this);
@@ -1127,8 +1126,6 @@ void MainWindow::hv_reconn_wait_timer_sig_handler()
 
 void MainWindow::load_widgets_ui_settings()
 {
-    m_scan_widget->load_ui_settings();
-    m_syssettings_widget->load_ui_settings();
 }
 
 void MainWindow::rec_widgets_ui_settings()

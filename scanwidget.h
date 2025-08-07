@@ -144,6 +144,8 @@ private:
     void reload_cali_datum();
     void calibrate_px_line(QVector<gray_pixel_data_type> &line);
     void reset_cali_ctrl_vars();
+    void print_cali_data_to_log();
+    QString get_cali_data_str(src_of_collect_cmd_e_t cali_type);
 
     void proc_pt_per_row_cnt_related_work();
 
