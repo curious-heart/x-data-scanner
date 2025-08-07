@@ -143,10 +143,15 @@ void GpioMonitorThread::run()
     if(!lightFile.open(QIODevice::WriteOnly))
     {
         DIY_LOG(LOG_ERROR, QString("open light file %1 fails.").arg(lightPath));
-        cleanupAndExit();
-        return;
+
+        /*event light can't control, we still can operate scan.*/
+        //cleanupAndExit();
+        //return;
     }
-    DIY_LOG(LOG_INFO, QString("open light file %1 succeeds.").arg(lightPath));
+    else
+    {
+        DIY_LOG(LOG_INFO, QString("open light file %1 succeeds.").arg(lightPath));
+    }
 
     initSuccess = true;
 
