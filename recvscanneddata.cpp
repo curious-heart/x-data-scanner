@@ -226,9 +226,9 @@ void RecvScannedData::data_ready_hdlr()
             ENQUE_DATA(NORMAL);
             receivedPacketCount++;
             if(g_sys_configs_block.limit_recvd_line_number &&
-                    g_sys_settings_blk.max_recvd_line_number > 0)
+                    g_sys_settings_blk.recvd_line_number_limit > 0)
             {
-                if (receivedPacketCount >= g_sys_settings_blk.max_recvd_line_number)
+                if (receivedPacketCount >= g_sys_settings_blk.recvd_line_number_limit)
                 {
                     stopCollection();
                 }

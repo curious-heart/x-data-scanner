@@ -27,6 +27,9 @@ SysSettingsWidget::SysSettingsWidget(UiConfigRecorder * cfg_recorder, QWidget *p
     set_hv_params_limit_on_ui();
 
     load_ui_settings();
+
+    ui->recvdLineLimtLbl->setVisible(g_sys_configs_block.limit_recvd_line_number);
+    ui->recvdLineLimitSpinBox->setVisible(g_sys_configs_block.limit_recvd_line_number);
 }
 
 SysSettingsWidget::~SysSettingsWidget()
@@ -62,6 +65,9 @@ void SysSettingsWidget::setup_scan_params_limit_on_ui()
 
     ui->caliStreFactorSpinBox->setMinimum(g_sys_configs_block.cali_stre_factor_line_cnt_allowed_min);
     ui->caliStreFactorSpinBox->setMaximum(g_sys_configs_block.cali_stre_factor_line_cnt_allowed_max);
+
+    ui->recvdLineLimitSpinBox->setMinimum(g_sys_configs_block.recvd_line_number_limit_allowed_min);
+    ui->recvdLineLimitSpinBox->setMaximum(g_sys_configs_block.recvd_line_number_limit_allowed_max);
 }
 
 void SysSettingsWidget::setup_hv_params_convert_factors()
@@ -247,6 +253,8 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
     g_sys_settings_blk.cali_mode_now = ui->caliModecheckBox->isChecked();
     g_sys_settings_blk.cali_bg_line_cnt = ui->caliBgSpinBox->value();
     g_sys_settings_blk.cali_stre_factor_line_cnt = ui->caliStreFactorSpinBox->value();
+
+    g_sys_settings_blk.recvd_line_number_limit = ui->recvdLineLimitSpinBox->value();
 
     ret = check_expo_and_scan_time(succ_silent);
 

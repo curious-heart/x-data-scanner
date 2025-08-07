@@ -122,6 +122,7 @@ typedef struct
     int cali_stre_factor_line_cnt_allowed_min, cali_stre_factor_line_cnt_allowed_max;
 
     bool limit_recvd_line_number;
+    int recvd_line_number_limit_allowed_min, recvd_line_number_limit_allowed_max;
 
     QString data_src_ip;
     int data_src_port;

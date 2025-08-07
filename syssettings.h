@@ -20,7 +20,7 @@ typedef struct
     int max_scan_dura_sec;
     int expo_to_coll_delay_ms;
 
-    int max_recvd_line_number;
+    int recvd_line_number_limit;
 
     hv_params_s_t hv_params;
 
