@@ -36,6 +36,12 @@ private slots:
 
     void on_caliStreFactorSpinBox_valueChanged(int arg1);
 
+    void on_motorSpeedPBtn_clicked();
+
+    void on_pbSleepPBtn_clicked();
+
+    void on_pbWakeupPBtn_clicked();
+
 private:
     Ui::SysSettingsWidget *ui;
     QButtonGroup * m_rmt_dbg_rbtn_grp = nullptr;
@@ -50,6 +56,8 @@ private:
 
 signals:
     void rmt_dbg_enabled_sig(bool enable);
+    void motor_speed_set_sig(int speed);
+    void pb_slp_wkp_sig(bool wkp);
 };
 
 #endif // SYSSETTINGSWIDGET_H

@@ -195,6 +195,11 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     quint16 local_port = m_syssettings_widget->rmt_dbg_local_port();
     updateRemoteDbgThread(enabled, local_port);
     }
+
+    connect(m_syssettings_widget, &SysSettingsWidget::motor_speed_set_sig,
+            this, &MainWindow::motor_speed_set_sig_hdlr, Qt::QueuedConnection);
+    connect(m_syssettings_widget, &SysSettingsWidget::pb_slp_wkp_sig,
+            this, &MainWindow::pb_slp_wkp_sig_sig_hdlr, Qt::QueuedConnection);
 }
 
 void MainWindow::self_check(bool go_check)
@@ -965,7 +970,7 @@ void MainWindow::proc_pb_wkup_msg(QByteArray msg)
 void MainWindow::proc_pb_motor_msg(QByteArray msg)
 {
     quint16 rpm_v = (quint16)msg[1] * 256 + (quint16)msg[2];
-    DIY_LOG(LOG_INFO, QString("motor speed is % rpm.").arg(rpm_v));
+    DIY_LOG(LOG_INFO, QString("motor speed is %1 rpm.").arg(rpm_v));
 }
 
 void MainWindow::proc_pb_pwr_bat_st_msg(QByteArray msg)
@@ -1160,6 +1165,7 @@ void MainWindow::send_pb_power_off_sig_hdlr()
     {
         log_str += "send pb_power_off cmd ok";
     }
+    DIY_LOG(log_lvl, log_str);
 }
 
 void MainWindow::btn_trigger_scan_sig_hdlr(bool start)
@@ -1252,4 +1258,58 @@ void MainWindow::rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 p
     go_to_scan_widget();
     if(start) m_scan_widget->start_scan(COLLECT_CMD_REMOTE);
     else m_scan_widget->stop_scan(COLLECT_CMD_REMOTE);
+}
+
+void MainWindow::motor_speed_set_sig_hdlr(int speed)
+{
+    bool set_ok;
+    static char data_arr[] = {gs_addr_byte, 0, 0, gs_dif_byte_motor_rpm};
+
+    quint16 speed_data = (quint16)speed;
+    data_arr[1] = (speed_data & 0xFF00) >> 8;
+    data_arr[2] = (speed_data & 0xFF);
+
+    int byte_cnt = ARRAY_COUNT(data_arr);
+    LOG_LEVEL log_lvl = LOG_INFO;
+    QString log_str;
+
+    log_str = QString("set motor speed %1 ").arg(speed);
+    set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
+    if(!set_ok)
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "error!";
+    }
+    else
+    {
+        log_str += "succeeds.";
+    }
+    DIY_LOG(log_lvl, log_str);
+}
+
+void MainWindow::pb_slp_wkp_sig_sig_hdlr(bool wkp)
+{
+    bool set_ok;
+    static char data_arr[] = {gs_addr_byte, 0, 0, gs_dif_byte_wkup_slp};
+
+    quint16 wkp_data = wkp ? gs_wkup_val : gs_slp_val;
+    data_arr[1] = (wkp_data & 0xFF00) >> 8;
+    data_arr[2] = (wkp_data & 0xFF);
+
+    int byte_cnt = ARRAY_COUNT(data_arr);
+    LOG_LEVEL log_lvl = LOG_INFO;
+    QString log_str;
+
+    log_str = QString("send %1 command: %2 ").arg(wkp ? "wakeup" : "sleep").arg(wkp_data);
+    set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
+    if(!set_ok)
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "error!";
+    }
+    else
+    {
+        log_str += "succeeds.";
+    }
+    DIY_LOG(log_lvl, log_str);
 }

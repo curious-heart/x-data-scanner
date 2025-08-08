@@ -81,12 +81,15 @@ void GpioMonitorThread::thread_started_rpt()
 {
     DIY_LOG(LOG_INFO, "gpio monitor thread started");
 
-    gpio_scan_timer->start(g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms);
+    if(gpio_scan_timer)
+    {
+        gpio_scan_timer->start(g_sys_configs_block.btn_gpio_cfg.gpio_btn_scan_period_ms);
+    }
 }
 
 void GpioMonitorThread::thread_finished_clean()
 {
-    gpio_scan_timer->stop();
+    if(gpio_scan_timer) gpio_scan_timer->stop();
     deleteLater();
 }
 
@@ -94,7 +97,7 @@ void GpioMonitorThread::cleanupAndExit()
 {
 #ifdef Q_OS_UNIX
     // 关闭文件
-    if (lightFile->isOpen())
+    if (lightFile && lightFile->isOpen())
     {
         lightFile->close();
     }

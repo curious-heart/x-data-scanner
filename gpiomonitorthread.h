@@ -30,7 +30,7 @@ private:
 
 private:
     int fdLeft{-1}, fdRight{-1};
-    QFile * lightFile;
+    QFile * lightFile = nullptr;
 
     qint64 lastPressTimeRight{0};
     int clickCountRight{0};
@@ -40,7 +40,7 @@ private:
 
     bool initSuccess{false};
 
-    QTimer *gpio_scan_timer;
+    QTimer *gpio_scan_timer = nullptr;
 
 public slots:
     void thread_started_rpt();

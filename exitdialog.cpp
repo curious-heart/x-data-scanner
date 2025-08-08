@@ -7,6 +7,7 @@ ExitDialog::ExitDialog(QWidget *parent)
     , ui(new Ui::ExitDialog)
 {
     ui->setupUi(this);
+    setWindowFlags(windowFlags() & ~Qt::WindowCloseButtonHint);
 }
 
 ExitDialog::~ExitDialog()
@@ -28,4 +29,7 @@ void ExitDialog::on_cancelPbtn_clicked()
 {
     done(ResultCancel);
 }
-
+void ExitDialog::closeEvent(QCloseEvent *event)
+{
+    done(ResultCancel);
+}

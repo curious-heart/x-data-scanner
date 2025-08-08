@@ -174,6 +174,8 @@ public slots:
 
     void rmt_dbg_enabled_sig_hdlr(bool enable);
     void rmt_scan_sig_hdlr(bool start, const QString &peer_ip, quint16 peer_port, const QString &cmd_str);
+    void motor_speed_set_sig_hdlr(int speed);
+    void pb_slp_wkp_sig_sig_hdlr(bool wkp); //true-wkp, false-slp
 
 signals:
     void self_check_hv_rechk_sig();

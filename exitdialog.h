@@ -28,6 +28,7 @@ private slots:
     void on_shutDownOSPBtn_clicked();
 
     void on_cancelPbtn_clicked();
+    void closeEvent(QCloseEvent *event);
 
 private:
     Ui::ExitDialog *ui;

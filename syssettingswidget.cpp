@@ -323,3 +323,20 @@ void SysSettingsWidget::on_caliStreFactorSpinBox_valueChanged(int arg1)
     g_sys_settings_blk.cali_stre_factor_line_cnt = arg1;
 }
 
+void SysSettingsWidget::on_motorSpeedPBtn_clicked()
+{
+    emit motor_speed_set_sig(ui->motorSpeedSpinBox->value());
+}
+
+
+void SysSettingsWidget::on_pbSleepPBtn_clicked()
+{
+    emit pb_slp_wkp_sig(false);
+}
+
+
+void SysSettingsWidget::on_pbWakeupPBtn_clicked()
+{
+    emit pb_slp_wkp_sig(true);
+}
+
