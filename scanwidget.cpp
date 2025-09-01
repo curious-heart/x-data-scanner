@@ -32,7 +32,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     ui(new Ui::ScanWidget), m_cfg_recorder(cfg_recorder)
 {
     qRegisterMetaType<src_of_collect_cmd_e_t>("src_of_collect_cmd_e_t");
-    qRegisterMetaType<collect_rpt_evt_e_t>();
+    qRegisterMetaType<collect_rpt_evt_e_t>("collect_rpt_evt_e_t");
+    qRegisterMetaType<hv_op_enum_t>("hv_op_enum_t");
 
     ui->setupUi(this);
 
@@ -78,6 +79,10 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     connect(&m_expo_to_coll_delay_timer, &QTimer::timeout,
             this, &ScanWidget::expo_to_coll_delay_timer_hdlr, Qt::QueuedConnection);
 
+    m_expo_dura_timer.setSingleShot(true);
+    connect(&m_expo_dura_timer, &QTimer::timeout, this, &ScanWidget::expo_dura_timer_sig_hdlr,
+            Qt::QueuedConnection);
+
     connect(this, &ScanWidget::gen_cali_datum_to_file_sig,
             this, &ScanWidget::gen_cali_datum_to_file, Qt::QueuedConnection);
 
@@ -111,6 +116,7 @@ ScanWidget::~ScanWidget()
 {
     m_scan_dura_timer.stop();
     m_expo_to_coll_delay_timer.stop();
+    m_expo_dura_timer.stop();
 
     recv_data_workerThread->quit();
     recv_data_workerThread->wait();
@@ -463,6 +469,9 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
         hv_send_op_cmd(HV_OP_START_EXPO);
         m_expo_to_coll_delay_timer.start(g_sys_settings_blk.expo_to_coll_delay_ms);
     }
+
+    m_curr_expo_dura_s = (int)(g_sys_settings_blk.hv_params.expo_dura_ms / 1000);
+    m_expo_dura_timer.start((int)(g_sys_settings_blk.hv_params.expo_dura_ms));
 }
 
 void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
@@ -492,6 +501,14 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
 
     m_scan_cmd_proc = false;
     btns_refresh();
+
+    if(m_expo_dura_timer.isActive())
+    {
+        int actual_run_time = m_expo_dura_timer.interval() - m_expo_dura_timer.remainingTime();
+        m_expo_dura_timer.stop();
+
+        emit fpga_pwr_on_off_sig(false, (quint16)(actual_run_time / 1000));
+    }
 }
 
 void ScanWidget::detector_self_check()
@@ -1181,8 +1198,21 @@ void ScanWidget::on_ptPerRowSpinBox_valueChanged(int /*arg1*/)
 }
 
 
-void ScanWidget::on_scanLockChkBox_stateChanged(int /*arg1*/)
+void ScanWidget::on_scanLockChkBox_stateChanged(int checked)
 {
+    emit fpga_pwr_on_off_sig((Qt::Checked == checked) ? false : true);
+
+    if(Qt::Checked != checked)
+    {
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "", g_str_conf_if_power_on_fpga,
+                    QMessageBox::Yes | QMessageBox::No);
+        if(QMessageBox::No == reply)
+        {
+            emit fpga_pwr_on_off_sig(false);
+        }
+    }
+
     btns_refresh();
 }
 
@@ -1205,4 +1235,9 @@ void ScanWidget::on_caliBgBtn_clicked()
 void ScanWidget::on_caliStreFactorBtn_clicked()
 {
     start_scan(COLLECT_CMD_CALI_STRE_FACTOR);
+}
+
+void ScanWidget::expo_dura_timer_sig_hdlr()
+{
+    emit fpga_pwr_on_off_sig(false, (quint16)m_curr_expo_dura_s);
 }

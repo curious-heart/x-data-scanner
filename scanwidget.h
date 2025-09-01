@@ -49,6 +49,10 @@ typedef struct
     QVector<gray_pixel_data_type> img_line_min_vs, img_line_max_vs, img_line_min_vs2, img_line_max_vs2;
 }display_buf_img_s_t;
 
+Q_DECLARE_METATYPE(hv_op_enum_t)
+
+extern const quint8 g_def_expo_dura_to_fpga;
+
 class ScanWidget : public QWidget
 {
     Q_OBJECT
@@ -92,6 +96,9 @@ private:
     bool m_detector_self_chk = false;
 
     QTimer m_expo_to_coll_delay_timer;
+
+    QTimer m_expo_dura_timer;
+    int m_curr_expo_dura_s;
 
     QString m_curr_sc_txt_file_name;
     QFile m_curr_sc_txt_file;
@@ -183,14 +190,18 @@ private slots:
 public slots:
     void scan_widget_disp_sig_hdlr();
 
+    void expo_dura_timer_sig_hdlr();
+
 signals:
     void start_collect_sc_data_sig();
     void stop_collect_sc_data_sig();
     void detector_handshake_sig();
     void mb_regs_read_ret_sig(mb_reg_val_map_t reg_val_map);
-    void hv_op_finish_sig(bool ret, QString err_str = "");
+    void hv_op_finish_sig(bool ret, hv_op_enum_t hv_op, QString err_str = "");
     void detector_self_chk_ret_sig(bool ret);
     void gen_cali_datum_to_file_sig(src_of_collect_cmd_e_t cali_type);
+
+    void fpga_pwr_on_off_sig(bool on, quint16 expo_dura_s = g_def_expo_dura_to_fpga);
 };
 
 #endif // SCANWIDGET_H

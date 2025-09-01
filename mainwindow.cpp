@@ -6,6 +6,7 @@
 
 #include "literal_strings/literal_strings.h"
 #include "common_tools/common_tool_func.h"
+#include "syssettings.h"
 #include "sysconfigs/sysconfigs.h"
 
 const char* g_main_th_local_log_fn = "./main_th_local.log";
@@ -63,6 +64,27 @@ static const char gs_dif_byte_pwr_st = 0x04;
 static const int gs_pwr_st_msg_len = 7;
 static const quint16 gs_pwr_st_chk_val = 0;
 
+/*
+ * FPGA power off
+ * 上位机： 0x01 0x00 0x?? 0x12
+ * 电源板： 0x01 0x00 0x?? 0x12
+ *
+ * 0x??: 曝光时间，单位为秒。
+ * 每次曝光之后，发此命令时，曝光时间设置为实际曝光时间；其它情况下设置为0xFF。
+ */
+static const char gs_dif_byte_fpga_pwr_off = 0x12;
+static const int gs_fpga_pwr_off_msg_len = 4;
+const quint8 g_def_expo_dura_to_fpga = 0xFF;
+
+/*
+ * FPGA power on
+ * 上位机： 0x01 0x00 0x00 0x11
+ * 电源板： 0x01 0x00 0x00 0x11
+ */
+static const char gs_dif_byte_fpga_pwr_on = 0x11;
+static const int gs_fpga_pwr_on_msg_len = 4;
+
+/*--------------------*/
 static const int gs_sport_read_try_cnt = 3;
 static const int gs_pb_sport_read_buf_size = 256;
 
@@ -120,6 +142,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::detector_self_chk_ret_sig_hdlr, Qt::QueuedConnection);
     connect(this, &MainWindow::scan_widget_disp_sig,
             m_scan_widget, &ScanWidget::scan_widget_disp_sig_hdlr, Qt::QueuedConnection);
+    connect(m_scan_widget, &ScanWidget::fpga_pwr_on_off_sig,
+            this, &MainWindow::fpga_pwr_on_off_sig_hdlr, Qt::QueuedConnection);
 
     connect(&m_pb_monitor_timer, &QTimer::timeout, this, &MainWindow::pb_monitor_timer_hdlr,
             Qt::QueuedConnection);
@@ -209,6 +233,8 @@ void MainWindow::self_check(bool go_check)
 
     if(go_check)
     {
+        fpga_pwr_on_off_sig_hdlr(true);
+
         emit check_next_item_sig(true);
     }
     else
@@ -453,6 +479,9 @@ void MainWindow::self_check_finished_sig_hdlr(bool result)
     {
         m_hv_monitor_timer.start(g_sys_configs_block.hv_monitor_period_ms);
     }
+
+    //self-check finished, fpga pwr off
+    fpga_pwr_on_off_sig_hdlr(false);
 }
 
 void MainWindow::goto_login_widget()
@@ -548,7 +577,7 @@ void MainWindow::mb_regs_read_ret_sig_hdlr(mb_reg_val_map_t reg_val_map)
     ui->hvConnLbl->setText(disp_str);
 }
 
-void MainWindow::hv_op_finish_sig_hdlr(bool ret, QString /*err_str*/)
+void MainWindow::hv_op_finish_sig_hdlr(bool ret, hv_op_enum_t /*hv_op*/, QString /*err_str*/)
 {
     if(HV_SELF_CHK_WAITING_READ == m_hv_self_chk_stg)
     {
@@ -733,7 +762,8 @@ void MainWindow::setup_sport_parameters()
     m_pb_sport_read_buf.len_from_hd = 0;
     m_pb_sport_read_buf.buf = QByteArray(gs_pb_sport_read_buf_size, 0);
 
-    m_min_pb_sport_msg_len = std::min({gs_pwr_off_msg_len, gs_wkup_slp_msg_len, gs_motor_rpm_msg_len, gs_pwr_st_msg_len});
+    m_min_pb_sport_msg_len = std::min({gs_pwr_off_msg_len, gs_wkup_slp_msg_len, gs_motor_rpm_msg_len, gs_pwr_st_msg_len,
+                                       gs_fpga_pwr_off_msg_len, gs_fpga_pwr_on_msg_len});
 }
 
 bool MainWindow::open_sport()
@@ -909,6 +939,16 @@ void MainWindow::parse_pb_sport_data()
             hd_idx += gs_motor_rpm_msg_len;
             break;
 
+        case gs_dif_byte_fpga_pwr_off:
+            proc_pb_fpga_pwr_onoff_msg(buf.mid(hd_idx, gs_fpga_pwr_off_msg_len));
+            hd_idx += gs_fpga_pwr_off_msg_len;
+            break;
+
+        case gs_dif_byte_fpga_pwr_on:
+            proc_pb_fpga_pwr_onoff_msg(buf.mid(hd_idx, gs_fpga_pwr_on_msg_len));
+            hd_idx += gs_fpga_pwr_on_msg_len;
+            break;
+
         default:
             DIY_LOG(LOG_WARN, QString("diff byte of data is %1, not a valid short msg.")
                                   .arg(QString::number(diff_byte, 16).toUpper().rightJustified(2, '0')));
@@ -971,6 +1011,12 @@ void MainWindow::proc_pb_motor_msg(QByteArray msg)
 {
     quint16 rpm_v = (quint16)msg[1] * 256 + (quint16)msg[2];
     DIY_LOG(LOG_INFO, QString("motor speed is %1 rpm.").arg(rpm_v));
+}
+
+void MainWindow::proc_pb_fpga_pwr_onoff_msg(QByteArray msg)
+{
+    DIY_LOG(LOG_INFO, QString("receive fpga power on/off msg: ")
+                          + msg.toHex(' ').toUpper().rightJustified(2, '0'));
 }
 
 void MainWindow::proc_pb_pwr_bat_st_msg(QByteArray msg)
@@ -1302,6 +1348,32 @@ void MainWindow::pb_slp_wkp_sig_sig_hdlr(bool wkp)
 
     log_str = QString("send %1 command: %2 ").arg(wkp ? "wakeup" : "sleep").arg(wkp_data);
     set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
+    if(!set_ok)
+    {
+        log_lvl = LOG_ERROR;
+        log_str += "error!";
+    }
+    else
+    {
+        log_str += "succeeds.";
+    }
+    DIY_LOG(log_lvl, log_str);
+}
+
+void MainWindow::fpga_pwr_on_off_sig_hdlr(bool on, quint16 expo_dura_s)
+{
+    char data_arr[] = {gs_addr_byte, 0,
+                       on ? (char)0 : (char)expo_dura_s,
+                       on ? gs_dif_byte_fpga_pwr_on : gs_dif_byte_fpga_pwr_off};
+
+    int byte_cnt = ARRAY_COUNT(data_arr);
+    LOG_LEVEL log_lvl = LOG_INFO;
+    QString log_str;
+
+    log_str = QString("send fpga pwr %1 command: ").arg(on ? "on" : "off")
+              + QByteArray::fromRawData(data_arr, byte_cnt).toHex(' ').toUpper().rightJustified(2, '0')
+              + " ";
+    bool set_ok = write_to_sport(data_arr, byte_cnt, g_sys_configs_block.pb_monitor_log);
     if(!set_ok)
     {
         log_lvl = LOG_ERROR;

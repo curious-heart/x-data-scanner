@@ -90,7 +90,7 @@ private:
     range_edge_enum_t low_edge, up_edge;
     QString unit_str;
 public:
-    RangeChecker(T min = -1, T max = 1, QString unit_str = "",
+    RangeChecker(T min, T max, QString unit_str = "",
                  range_edge_enum_t low_edge = EDGE_INCLUDED, range_edge_enum_t up_edge = EDGE_INCLUDED);
 public:
     bool range_check(T val);

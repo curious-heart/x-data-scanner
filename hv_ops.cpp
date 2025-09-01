@@ -196,7 +196,7 @@ void ScanWidget::mb_rw_reply_received(hv_op_enum_t op, QModbusReply* mb_reply,
                 QModbusDataUnit rb_du = mb_reply->result();
                 if(!rb_du.isValid())
                 {
-                    emit hv_op_finish_sig(false, g_str_mb_read_regs_invalid);
+                    emit hv_op_finish_sig(false, m_hv_curr_op, g_str_mb_read_regs_invalid);
                     DIY_LOG(LOG_ERROR, g_str_mb_read_regs_invalid);
                 }
                 else
@@ -217,20 +217,20 @@ void ScanWidget::mb_rw_reply_received(hv_op_enum_t op, QModbusReply* mb_reply,
                     }
                     emit mb_regs_read_ret_sig(m_regs_read_result);
 
-                    emit hv_op_finish_sig(true);
+                    emit hv_op_finish_sig(true, m_hv_curr_op);
                     DIY_LOG(LOG_INFO, err_str);
                 }
             }
             else
             {
-                emit hv_op_finish_sig(true);
+                emit hv_op_finish_sig(true, m_hv_curr_op);
             }
         }
         else
         {
             err_str = mb_reply->errorString();
             err_str += err_notify ? " (from error sig hadnler)" : " (from finish sig hadnler)";
-            emit hv_op_finish_sig(false, err_str);
+            emit hv_op_finish_sig(false, m_hv_curr_op, err_str);
 
             DIY_LOG(LOG_ERROR, err_str);
         }

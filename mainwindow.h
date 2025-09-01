@@ -31,6 +31,8 @@ typedef struct
     int hd_idx, len_from_hd;
 }sport_read_buffer_s_t;
 
+extern const quint8 g_def_expo_dura_to_fpga;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -132,6 +134,7 @@ private:
     void proc_pb_wkup_msg(QByteArray msg);
     void proc_pb_motor_msg(QByteArray msg);
     void proc_pb_pwr_bat_st_msg(QByteArray msg);
+    void proc_pb_fpga_pwr_onoff_msg(QByteArray msg);
 
     SerialSniffer * m_serial_sniffer = nullptr;
 
@@ -159,7 +162,7 @@ public slots:
     void go_to_syssettings_widget_sig_hdlr();
     void go_to_scan_widget_sig_hdlr();
     void go_to_camera_widget_sig_hdlr();
-    void hv_op_finish_sig_hdlr(bool ret, QString err_str = "");
+    void hv_op_finish_sig_hdlr(bool ret, hv_op_enum_t hv_op, QString err_str = "");
 
     void self_check_hv_rechk_sig_hdlr();
     void detector_self_chk_ret_sig_hdlr(bool ret);
@@ -177,6 +180,7 @@ public slots:
     void motor_speed_set_sig_hdlr(int speed);
     void pb_slp_wkp_sig_sig_hdlr(bool wkp); //true-wkp, false-slp
 
+    void fpga_pwr_on_off_sig_hdlr(bool on, quint16 expo_dura_s = g_def_expo_dura_to_fpga);
 signals:
     void self_check_hv_rechk_sig();
     void check_next_item_sig(bool start = false, bool last_ret = true);
