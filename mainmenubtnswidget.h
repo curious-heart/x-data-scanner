@@ -24,6 +24,8 @@ private slots:
 
     void on_exitPBtn_clicked();
 
+    void on_imgManagePBtn_clicked();
+
 private:
     Ui::MainmenuBtnsWidget *ui;
 
@@ -31,6 +33,7 @@ signals:
     void go_to_scan_widget_sig();
     void go_to_syssettings_widget_sig();
     void go_to_camera_widget_sig();
+    void go_to_img_proc_widget_sig();
 
     void send_pb_power_off_sig();
 };

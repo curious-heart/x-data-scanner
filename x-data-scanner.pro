@@ -15,6 +15,7 @@ SOURCES += \
     exitdialog.cpp \
     gpiomonitorthread.cpp \
     hv_ops.cpp \
+    imageprocessorwidget.cpp \
     literal_strings/literal_strings.cpp \
     logger/logger.cpp \
     loginwidget.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     exitdialog.h \
     gpiomonitorthread.h \
     hv_ops_internal.h \
+    imageprocessorwidget.h \
     literal_strings/literal_strings.h \
     logger/logger.h \
     loginwidget.h \
@@ -57,6 +59,7 @@ HEADERS += \
 FORMS += \
     camerawidget.ui \
     exitdialog.ui \
+    imageprocessorwidget.ui \
     loginwidget.ui \
     mainmenubtnswidget.ui \
     mainwindow.ui \

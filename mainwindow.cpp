@@ -130,6 +130,9 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     }
     m_camera_widget->hide();
 
+    m_img_proc_widget = new ImageProcessorWidget(this);
+    m_img_proc_widget->hide();
+
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);
     ui->buttonsHBoxLayout->addWidget(m_mainmenubtns_widget);
 
@@ -144,6 +147,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::go_to_scan_widget_sig_hdlr, Qt::QueuedConnection);
     connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::go_to_camera_widget_sig,
             this, &MainWindow::go_to_camera_widget_sig_hdlr, Qt::QueuedConnection);
+    connect(m_mainmenubtns_widget, &MainmenuBtnsWidget::go_to_img_proc_widget_sig,
+            this, &MainWindow::go_to_img_proc_widget_sig_hdlr, Qt::QueuedConnection);
 
     connect(m_scan_widget, &ScanWidget::mb_regs_read_ret_sig,
             this, &MainWindow::mb_regs_read_ret_sig_hdlr, Qt::QueuedConnection);
@@ -525,6 +530,15 @@ void MainWindow::go_to_scan_widget()
     emit scan_widget_disp_sig();
 }
 
+void MainWindow::go_to_img_proc_widget()
+{
+    if(m_stacked_widget->indexOf(m_img_proc_widget) < 0)
+    {
+        m_stacked_widget->addWidget(m_img_proc_widget);
+    }
+    m_stacked_widget->setCurrentWidget(m_img_proc_widget);
+}
+
 void MainWindow::go_to_camera_widget()
 {
     if(m_stacked_widget->indexOf(m_camera_widget) < 0)
@@ -552,6 +566,11 @@ void MainWindow::go_to_camera_widget_sig_hdlr()
 void MainWindow::login_chk_passed_sig_hdlr()
 {
     go_to_scan_widget();
+}
+
+void MainWindow::go_to_img_proc_widget_sig_hdlr()
+{
+    go_to_img_proc_widget();
 }
 
 void MainWindow::detector_self_chk_ret_sig_hdlr(bool ret)

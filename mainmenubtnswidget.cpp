@@ -56,3 +56,9 @@ void MainmenuBtnsWidget::on_exitPBtn_clicked()
     }
 }
 
+
+void MainmenuBtnsWidget::on_imgManagePBtn_clicked()
+{
+    emit go_to_img_proc_widget_sig();
+}
+
