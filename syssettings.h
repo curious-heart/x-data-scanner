@@ -15,7 +15,7 @@ typedef struct
 
 typedef struct
 {
-    QString img_save_path;
+    QString img_save_path, cam_photo_save_path;
     int conn_data_src_timeout_sec;
     int max_scan_dura_sec;
     int expo_to_coll_delay_ms;

@@ -114,9 +114,20 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     m_login_widget->hide();
 
     m_scan_widget = new ScanWidget(&m_cfg_recorder, this);
+    if(!m_scan_widget->m_init_ok)
+    {
+        m_init_err_str += m_scan_widget->m_init_err_str;
+        return;
+    }
+
     m_scan_widget->hide();
 
     m_camera_widget = new CameraWidget(this);
+    if(!m_camera_widget->m_init_ok)
+    {
+        m_init_err_str += m_camera_widget->m_init_err_str;
+        return;
+    }
     m_camera_widget->hide();
 
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);
@@ -224,6 +235,8 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
             this, &MainWindow::motor_speed_set_sig_hdlr, Qt::QueuedConnection);
     connect(m_syssettings_widget, &SysSettingsWidget::pb_slp_wkp_sig,
             this, &MainWindow::pb_slp_wkp_sig_sig_hdlr, Qt::QueuedConnection);
+
+    m_init_ok = true;
 }
 
 void MainWindow::self_check(bool go_check)

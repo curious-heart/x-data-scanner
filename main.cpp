@@ -75,6 +75,14 @@ int main(int argc, char *argv[])
     /*create main window.*/
     QString title_str = QString("%1 %2").arg(a.applicationName(), APP_VER_STR);
     MainWindow w(title_str);
+    if(!w.m_init_ok)
+    {
+        end_log_thread(th);
+
+        QMessageBox::critical(nullptr, "", w.m_init_err_str);
+        return -1;
+    }
+
     w.setWindowTitle(title_str);
 
     w.showFullScreen();

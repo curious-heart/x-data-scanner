@@ -47,10 +47,18 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
 
     load_ui_settings();
 
+    m_scan_img_save_dir_ready = mkpth_if_not_exists(g_sys_settings_blk.img_save_path);
+    if(!m_scan_img_save_dir_ready)
+    {
+        m_init_err_str += QString("create director %1 error!")
+                              .arg(g_sys_settings_blk.img_save_path);
+        DIY_LOG(LOG_ERROR, m_init_err_str);
+        return;
+    }
+
     m_scan_dura_timer.setSingleShot(true);
     connect(&m_scan_dura_timer, &QTimer::timeout,
             this, &ScanWidget::scan_dura_timeout_hdlr, Qt::QueuedConnection);
-
 
     QString rmt_ip = g_sys_configs_block.data_src_ip;
     quint16 rmt_port = (quint16)g_sys_configs_block.data_src_port;
@@ -105,6 +113,8 @@ ScanWidget::ScanWidget(UiConfigRecorder * cfg_recorder, QWidget *parent) :
     reset_cali_ctrl_vars();
 
     btns_refresh();
+
+    m_init_ok = true;
 }
 
 void ScanWidget::setup_tools(QModbusClient * modbus_device)

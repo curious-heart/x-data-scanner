@@ -19,16 +19,18 @@ public:
     explicit CameraWidget(QWidget *parent = nullptr);
     ~CameraWidget();
 
+    bool m_init_ok = false;
+    QString m_init_err_str;
+
 private slots:
     void onImageCaptured(int id, const QImage &preview);
 
     void on_btnCapture_clicked();
 
-    void on_btnSave_clicked();
-
 private:
     Ui::CameraWidget *ui;
 
+    bool m_dir_ready = false;
     QCamera *camera;
     QCameraViewfinder *viewfinder;
     QCameraImageCapture *imageCapture;

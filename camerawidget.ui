@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="10,1,1">
    <item>
     <widget class="QWidget" name="viewfinderContainer" native="true">
      <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -49,13 +49,6 @@
       <widget class="QPushButton" name="btnCapture">
        <property name="text">
         <string>拍摄</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnSave">
-       <property name="text">
-        <string>保存</string>
        </property>
       </widget>
      </item>

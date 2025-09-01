@@ -41,6 +41,9 @@ public:
     MainWindow(QString sw_about_str = "", QWidget *parent = nullptr);
     ~MainWindow();
 
+    bool m_init_ok = false;
+    QString m_init_err_str;
+
     SelfCheckWidget * m_self_chk_widget;
 
     void setup_sport_parameters();

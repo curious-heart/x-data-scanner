@@ -71,6 +71,9 @@ public:
 
     bool hv_send_op_cmd(hv_op_enum_t op);
 
+    bool m_init_ok = false;
+    QString m_init_err_str;
+
 private:
     Ui::ScanWidget *ui;
 
@@ -120,6 +123,8 @@ private:
     int m_cali_bg_line_idx = 0, m_cali_stre_factor_line_idx = 0;
 
     src_of_collect_cmd_e_t m_curr_collect_cmd = COLLECT_CMD_NONE;
+
+    bool m_scan_img_save_dir_ready = false;
 
     //just collect.
     void start_collect(src_of_collect_cmd_e_t cmd_src = COLLECT_CMD_SW_BTN);
