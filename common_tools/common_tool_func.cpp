@@ -850,9 +850,10 @@ QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair, con
 {
     bool opt_flag = false;
 
-    if (img16.format() != QImage::Format_Grayscale16)
+    QImage::Format input_img_format = img16.format();
+    if (input_img_format != QImage::Format_Grayscale16)
     {
-        qWarning("Input image is not Grayscale16");
+        DIY_LOG(LOG_WARN, "Input image is not Grayscale16");
         return QImage();
     }
 
@@ -938,6 +939,48 @@ QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair, con
     }
 
     return img8;
+}
+
+bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL)
+{
+    QImage::Format input_img_format = img.format();
+    if (input_img_format != QImage::Format_Grayscale16 && input_img_format != QImage::Format_Grayscale8)
+    {
+        DIY_LOG(LOG_WARN, "Input image is not Grayscale16 or Grayscale8");
+        return false;
+    }
+
+    quint16 minV = 0xFFFF;
+    quint16 maxV = 0;
+    if(QImage::Format_Grayscale16 == input_img_format)
+    {
+        for (int y = 0; y < img.height(); ++y)
+        {
+            const quint16 *line = reinterpret_cast<const quint16 *>(img.constScanLine(y));
+            for (int x = 0; x < img.width(); ++x)
+            {
+                quint16 v = line[x];
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
+        }
+    }
+    else
+    {
+        for (int y = 0; y < img.height(); ++y)
+        {
+            const quint8 *line = reinterpret_cast<const quint8 *>(img.constScanLine(y));
+            for (int x = 0; x < img.width(); ++x)
+            {
+                quint8 v = line[x];
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
+        }
+    }
+    WW = maxV - minV;
+    WL = (maxV + minV) / 2;
+    return true;
 }
 
 bool ip_addr_valid(QString &ip_str)

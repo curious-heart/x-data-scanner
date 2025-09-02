@@ -960,23 +960,6 @@ void ScanWidget::add_line_to_display(QVector<gray_pixel_data_type> &line, gray_p
     }
 }
 
-static inline void pt_data_to_image(QVector<QVector<gray_pixel_data_type>> &data,
-                                    QImage &img, int width, int height)
-{
-    for (int y = 0; y < height; ++y)
-    {
-        const QVector<gray_pixel_data_type>& row = data[y];
-        uchar* line = img.scanLine(y);
-        for (int x = 0; x < width; ++x)
-        {
-            quint16 gray = static_cast<quint16>(row[x]);
-            // 写入16位灰度（低字节在前）
-            line[2 * x]     = gray & 0xFF;         // LSB
-            line[2 * x + 1] = (gray >> 8) & 0xFF;  // MSB
-        }
-    }
-}
-
 void ScanWidget::generate_gray_img(gray_img_disp_type_e_t disp_type)
 {
     static gray_pixel_data_type append_val = (1 << g_sys_configs_block.all_bytes_per_pt * 4) - 1;

@@ -16,6 +16,7 @@ SOURCES += \
     gpiomonitorthread.cpp \
     hv_ops.cpp \
     imageprocessorwidget.cpp \
+    imageviewerwidget.cpp \
     img_proc_common.cpp \
     literal_strings/literal_strings.cpp \
     logger/logger.cpp \
@@ -40,6 +41,7 @@ HEADERS += \
     gpiomonitorthread.h \
     hv_ops_internal.h \
     imageprocessorwidget.h \
+    imageviewerwidget.h \
     img_proc_common.h \
     literal_strings/literal_strings.h \
     logger/logger.h \

@@ -1,4 +1,3 @@
-#include "common_tools/common_tool_func.h"
 #include "img_proc_common.h"
 
 const char* g_str_img_raw_type = ".raw";
@@ -77,4 +76,20 @@ QString img_name_convert(img_name_convert_op_e_t op, QString now_fpn)
             break;
     }
     return new_fpn;
+}
+
+void pt_data_to_image(QVector<QVector<gray_pixel_data_type>> &data, QImage &img, int width, int height)
+{
+    for (int y = 0; y < height; ++y)
+    {
+        const QVector<gray_pixel_data_type>& row = data[y];
+        uchar* line = img.scanLine(y);
+        for (int x = 0; x < width; ++x)
+        {
+            gray_pixel_data_type gray = static_cast<gray_pixel_data_type>(row[x]);
+            // 写入16位灰度（低字节在前）
+            line[2 * x]     = gray & 0xFF;         // LSB
+            line[2 * x + 1] = (gray >> 8) & 0xFF;  // MSB
+        }
+    }
 }

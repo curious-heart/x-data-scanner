@@ -21,7 +21,7 @@ typedef enum
 {
     IP_SET_TYPE_IPV4_DYNAMIC = 0,
     IP_SET_TYPE_IPV4_FIXED,
-}ip_set_type_t;;
+}ip_set_type_t;
 
 typedef enum
 {
@@ -142,6 +142,8 @@ public:
 
 QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair = nullptr,
                              QRect area = QRect(), QColor bg = QColor());
+bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL);
+
 // 求最大公约数
 template <typename T>
 T gcd(T a, T b)

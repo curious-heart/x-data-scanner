@@ -13,6 +13,17 @@ typedef struct
     const char* str;
 }img_proc_filter_combobox_item_s_t;
 
+bool _img_fns_list::operator ==(const img_fns_list_s_t &other)
+{
+    return fn_png == other.fn_png;
+}
+_img_fns_list::_img_fns_list(QString png, QString png8bit, QString raw, int width, int height)
+{
+    fn_png = png; fn_png8bit = png8bit; fn_raw = raw;
+    this->width = width;
+    this->height = height;
+}
+
 static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
 {
     {IMG_PROC_FILTER_ALL, "所有"},
@@ -22,6 +33,8 @@ static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
 static const char* gs_thumbnail_prop_png_fp_name = "file_png";
 static const char* gs_thumbnail_prop_png8bit_fp_name = "file_png8bit_path";
 static const char* gs_thumbnail_prop_raw_fp_name = "file_raw_path";
+static const char* gs_thumbnail_prop_width_name = "img_width";
+static const char* gs_thumbnail_prop_height_name = "img_height";
 
 ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     : QWidget(parent)
@@ -57,8 +70,15 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_thumbnail_scroll_area->setWidget(m_thumbnail_container_wgt);
     m_thumbnail_scroll_area->setWidgetResizable(true);
 
+    /*setup widges for image view and process*/
+    m_img_view_container_wgt = new QWidget(this);
+    m_img_view_hbox_layout = new QHBoxLayout(m_img_view_container_wgt);
+    m_img_viewr = new ImageViewerWidget(m_img_view_container_wgt);
+    m_img_viewr_2 = new ImageViewerWidget(m_img_view_container_wgt);
+
     /*--------------------*/
     ui->imgViewStackedWgt->addWidget(m_thumbnail_scroll_area);
+    ui->imgViewStackedWgt->addWidget(m_img_view_container_wgt);
 
     /*--------------------*/
     refresh_ctrls_display();
@@ -161,12 +181,15 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
         }
 
         QPixmap pixmap(fp_8bit);
+        int ori_img_width = pixmap.width(), ori_img_height = pixmap.height();
         QLabel *thumbLabel = new QLabel;
         thumbLabel->setPixmap(pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::FastTransformation));
         thumbLabel->setAlignment(Qt::AlignCenter);
         thumbLabel->setProperty(gs_thumbnail_prop_png8bit_fp_name, fp_8bit);
         thumbLabel->setProperty(gs_thumbnail_prop_png_fp_name, fp_png);
         thumbLabel->setProperty(gs_thumbnail_prop_raw_fp_name, fp_raw);
+        thumbLabel->setProperty(gs_thumbnail_prop_width_name, ori_img_width);
+        thumbLabel->setProperty(gs_thumbnail_prop_height_name, ori_img_height);
         thumbLabel->setAttribute(Qt::WA_Hover);
         thumbLabel->installEventFilter(this);
 
@@ -198,14 +221,20 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     QWidget *cellWidget = thumbLabel->parentWidget();
     if (!cellWidget) return QWidget::eventFilter(obj, event);
 
-    QString filePath = thumbLabel->property(gs_thumbnail_prop_png8bit_fp_name).toString();
+    QString fn_png = thumbLabel->property(gs_thumbnail_prop_png_fp_name).toString();
+    QString fn_png8bit = thumbLabel->property(gs_thumbnail_prop_png8bit_fp_name).toString();
+    QString fn_raw = thumbLabel->property(gs_thumbnail_prop_raw_fp_name).toString();
+    int ori_img_width = thumbLabel->property(gs_thumbnail_prop_width_name).toInt();
+    int ori_img_height = thumbLabel->property(gs_thumbnail_prop_height_name).toInt();
+    img_fns_list_s_t fns = img_fns_list_s_t(fn_png, fn_png8bit, fn_raw, ori_img_width, ori_img_height);
 
     // 1) 双击查看大图
     if (event->type() == QEvent::MouseButtonDblClick) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         if (mouseEvent->button() == Qt::LeftButton) {
-            // TODO: 打开大图显示
-            qDebug() << "Double clicked:" << filePath;
+            m_selectedFiles.clear();
+            m_selectedFiles.append(fns);
+            go_display_one_big_img();
             return true;
         }
     }
@@ -228,22 +257,39 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
             }
 
             // 切换当前 cell 高亮
-            if (m_selectedFiles.contains(filePath)) {
+            if (m_selectedFiles.contains(fns)) {
                 // 取消选中
-                m_selectedFiles.removeAll(filePath);
+                m_selectedFiles.removeAll(fns);
                 cellWidget->setStyleSheet("");
             } else {
                 // 选中
-                m_selectedFiles.append(filePath);
+                m_selectedFiles.append(fns);
                 static const char* ls_thumb_wgt_name = "thumbCellWidget";
                 cellWidget->setObjectName(ls_thumb_wgt_name);
                 cellWidget->setStyleSheet(QString("#") + ls_thumb_wgt_name+ " {border: 2px solid red; }");
             }
 
-            qDebug() << "Selected files:" << m_selectedFiles;
             return true;
         }
     }
 
     return QWidget::eventFilter(obj, event);
+}
+
+void ImageProcessorWidget::go_display_one_big_img()
+{
+    QLayoutItem *child;
+    while ((child = m_img_view_hbox_layout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            child->widget()->setParent(nullptr);  // 从布局中移除，同时不删除控件
+        }
+        delete child;  // 删除布局项
+    }
+    /*this is to confirm m_img_viewr_2 will be deleted in destructors.*/
+    m_img_viewr_2->setParent(m_img_view_container_wgt);
+
+    m_img_view_hbox_layout->addWidget(m_img_viewr);
+
+    ui->imgViewStackedWgt->setCurrentWidget(m_img_view_container_wgt);
+    m_img_viewr->loadImage(m_selectedFiles[0].fn_raw, m_selectedFiles[0].width, m_selectedFiles[0].height);
 }

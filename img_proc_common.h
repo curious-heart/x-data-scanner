@@ -4,6 +4,8 @@
 #include <QStringList>
 #include <QRegularExpression>
 
+#include "common_tools/common_tool_func.h"
+
 typedef enum
 {
     IMG_TYPE_PNG = 0,
@@ -33,5 +35,6 @@ extern const char* g_str_8bit_img_apx;
 void get_saved_img_name_or_pat(QString *parent_dir, QStringList * fn_list,
                                QList<QRegularExpression> * fn_pat_list);
 QString img_name_convert(img_name_convert_op_e_t op, QString now_fpn);
+void pt_data_to_image(QVector<QVector<gray_pixel_data_type>> &data, QImage &img, int width, int height);
 
 #endif // IMG_PROC_COMMON_H
