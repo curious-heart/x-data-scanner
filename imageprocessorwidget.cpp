@@ -41,6 +41,11 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     get_saved_img_name_or_pat(nullptr, nullptr, &pat_list);
     m_filter_fn_reg = pat_list[IMG_TYPE_PNG];
 
+    /*--------------------*/
+    m_sort_rbtn_grp = new QButtonGroup(this);
+    m_sort_rbtn_grp->addButton(ui->newFirstRBtn);
+    m_sort_rbtn_grp->addButton(ui->oldFirstRBtn);
+
     /*setup widges for thumnail display*/
     m_thumbnail_scroll_area = new QScrollArea(this);
     m_thumbnail_container_wgt = new QWidget;
@@ -48,6 +53,7 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_thumbnail_scroll_area->setWidget(m_thumbnail_container_wgt);
     m_thumbnail_scroll_area->setWidgetResizable(true);
 
+    /*--------------------*/
     ui->imgViewStackedWgt->addWidget(m_thumbnail_scroll_area);
 
     /*--------------------*/
@@ -106,10 +112,12 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
         // 分支 1: 显示所有
         if (ui->imgFilterComboBox->currentData() == IMG_PROC_FILTER_ALL) {
             fileList.append(fi);
+            QDateTime created_dt = fi.lastModified();
+            DIY_LOG(LOG_INFO, "time is");
         }
         // 分支 2: 时间范围过滤
         else {
-            QDateTime created_dt = fi.created();   // 或 fi.lastModified()
+            QDateTime created_dt = fi.lastModified();
 
             if (created_dt >= start_dt && created_dt <= stop_dt) {
                 fileList.append(fi);
@@ -117,26 +125,46 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
         }
     }
 
-    // 3) 把文件列表显示为缩略图
+    // 3) 按创建时间排序
+    if (ui->newFirstRBtn->isChecked()) {
+        std::sort(fileList.begin(), fileList.end(),
+                  [](const QFileInfo &a, const QFileInfo &b){
+                      return a.lastModified() > b.lastModified(); // 新文件在前
+                  });
+    } else {
+        std::sort(fileList.begin(), fileList.end(),
+                  [](const QFileInfo &a, const QFileInfo &b){
+                      return a.lastModified() < b.lastModified(); // 老文件在前
+                  });
+    }
+
+    // 4) 显示缩略图 + 文件名
     int row = 0, col = 0, maxCol = 5;
     for (const QFileInfo &fi : fileList) {
         QPixmap pixmap(fi.filePath());
         QLabel *thumbLabel = new QLabel;
         thumbLabel->setPixmap(pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::FastTransformation));
-        thumbLabel->setProperty("filePath", fi.filePath());
         thumbLabel->setAlignment(Qt::AlignCenter);
-
-        // 开启鼠标事件
+        thumbLabel->setProperty("filePath", fi.filePath());
         thumbLabel->setAttribute(Qt::WA_Hover);
         thumbLabel->installEventFilter(this);
 
-        m_thumbnail_layout->addWidget(thumbLabel, row, col++);
+        QLabel *nameLabel = new QLabel(fi.fileName());
+        nameLabel->setAlignment(Qt::AlignCenter);
+
+        // 使用一个 QWidget + QVBoxLayout 包裹缩略图和文件名
+        QWidget *cellWidget = new QWidget;
+        QVBoxLayout *cellLayout = new QVBoxLayout(cellWidget);
+        cellLayout->setContentsMargins(2,2,2,2);
+        cellLayout->addWidget(thumbLabel);
+        cellLayout->addWidget(nameLabel);
+
+        m_thumbnail_layout->addWidget(cellWidget, row, col++);
         if (col >= maxCol) {
             col = 0;
             row++;
         }
     }
-
     m_thumbnail_container_wgt->adjustSize();
 }
 
@@ -145,41 +173,48 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     QLabel *thumbLabel = qobject_cast<QLabel*>(obj);
     if (!thumbLabel) return QWidget::eventFilter(obj, event);
 
+    // 获取 cellWidget
+    QWidget *cellWidget = thumbLabel->parentWidget();
+    if (!cellWidget) return QWidget::eventFilter(obj, event);
+
+    QString filePath = thumbLabel->property("filePath").toString();
+
+    // 1) 双击查看大图
     if (event->type() == QEvent::MouseButtonDblClick) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         if (mouseEvent->button() == Qt::LeftButton) {
-            QString filePath = thumbLabel->property("filePath").toString();
             // TODO: 打开大图显示
             qDebug() << "Double clicked:" << filePath;
             return true;
         }
     }
+    // 2) 左键点击选择（单选 / Ctrl 多选）
     else if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-
         if (mouseEvent->button() == Qt::LeftButton) {
-            QString filePath = thumbLabel->property("filePath").toString();
 
-            if (QApplication::keyboardModifiers() & Qt::ControlModifier) {
-                // Ctrl + 左键：多选
-                if (m_selectedFiles.contains(filePath)) {
-                    m_selectedFiles.removeAll(filePath);
-                    thumbLabel->setStyleSheet(""); // 取消高亮
-                } else {
-                    m_selectedFiles.append(filePath);
-                    thumbLabel->setStyleSheet("border: 2px solid red;");
-                }
-            } else {
-                // 单选
-                m_selectedFiles.clear();
-                m_selectedFiles.append(filePath);
+            bool ctrlPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
 
-                // 先清空所有缩略图的高亮
+            if (!ctrlPressed) {
+                // 单选：先清除所有高亮
                 for (QObject *child : m_thumbnail_container_wgt->children()) {
-                    QLabel *lbl = qobject_cast<QLabel*>(child);
-                    if (lbl) lbl->setStyleSheet("");
+                    QWidget *cw = qobject_cast<QWidget*>(child);
+                    if (cw) {
+                        cw->setStyleSheet("");
+                    }
                 }
-                thumbLabel->setStyleSheet("border: 2px solid red;");
+                m_selectedFiles.clear();
+            }
+
+            // 切换当前 cell 高亮
+            if (m_selectedFiles.contains(filePath)) {
+                // 取消选中
+                m_selectedFiles.removeAll(filePath);
+                cellWidget->setStyleSheet("");
+            } else {
+                // 选中
+                m_selectedFiles.append(filePath);
+                cellWidget->setStyleSheet("border: 2px solid red; background-color: rgba(255,0,0,30);");
             }
 
             qDebug() << "Selected files:" << m_selectedFiles;

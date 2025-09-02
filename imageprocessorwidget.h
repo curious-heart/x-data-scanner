@@ -5,6 +5,7 @@
 #include <QRegularExpression>
 #include <QScrollArea>
 #include <QGridLayout>
+#include <QButtonGroup>
 
 namespace Ui {
 class ImageProcessorWidget;
@@ -34,6 +35,8 @@ private:
     Ui::ImageProcessorWidget *ui;
 
     QRegularExpression m_filter_fn_reg;
+
+    QButtonGroup * m_sort_rbtn_grp = nullptr;
 
     QScrollArea * m_thumbnail_scroll_area = nullptr;
     QWidget * m_thumbnail_container_wgt = nullptr;
