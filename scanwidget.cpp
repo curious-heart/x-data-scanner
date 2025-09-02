@@ -9,13 +9,11 @@
 #include "sysconfigs/sysconfigs.h"
 #include "syssettings.h"
 #include "literal_strings/literal_strings.h"
+#include "img_proc_common.h"
 
 bool g_data_scanning_now = false;
 
 static const char* gs_str_sc_data_txt_file_type = ".txt";
-static const char* gs_str_img_raw_type = ".raw";
-static const char* gs_str_img_png_type = ".png";
-static const char* gs_str_8bit_img_apx = "-8bit";
 
 static const char* gs_scan_cali_file_path = "./scan_cali_datum";
 static const char* gs_scan_bg_value_fn = "scan_bg_data";
@@ -1110,21 +1108,23 @@ void ScanWidget::display_gray_img(gray_img_disp_type_e_t disp_type)
 
 void ScanWidget::save_local_imgs(gray_img_disp_type_e_t disp_type)
 {
-    QString curr_date_str = common_tool_get_curr_date_str();
-    QString curr_path = g_sys_settings_blk.img_save_path + "/" + curr_date_str;
+    QString parent_dir;
+    QStringList fn_list;
+    get_saved_img_name_or_pat(&parent_dir, &fn_list, nullptr);
+
+    QString curr_path = g_sys_settings_blk.img_save_path + "/" + parent_dir;
 
     if(!chk_mk_pth_and_warn(curr_path))
     {
         return;
     }
-    QString curr_dt_str = common_tool_get_curr_dt_str();
     QImage * op_img_ptr = (DISPLAY_IMG_REAL == disp_type) ? &m_local_img : &m_local_layfull_img;
     QImage * op_img_8bit_ptr = (DISPLAY_IMG_REAL == disp_type) ? &m_local_img_8bit : &m_local_layfull_img_8bit;
 
-    op_img_ptr->save(curr_path + "/" + curr_dt_str + gs_str_img_png_type);
-    op_img_8bit_ptr->save(curr_path + "/" + curr_dt_str + gs_str_8bit_img_apx + gs_str_img_png_type);
+    op_img_ptr->save(curr_path + "/" + fn_list[IMG_TYPE_PNG]);
+    op_img_8bit_ptr->save(curr_path + "/" + fn_list[IMG_TYPE_8BIT_PNG]);
 
-    QFile raw_data_file(curr_path + "/" + curr_dt_str + gs_str_img_raw_type);
+    QFile raw_data_file(curr_path + "/" + fn_list[IMG_TYPE_RAW]);
     if(raw_data_file.open(QIODevice::WriteOnly))
     {
         raw_data_file.write(reinterpret_cast<const char *>(op_img_ptr->constBits()),
