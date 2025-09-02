@@ -19,6 +19,10 @@ static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
     {IMG_PROC_FILTER_DT_RANGE, "按时间范围"},
 };
 
+static const char* gs_thumbnail_prop_png_fp_name = "file_png";
+static const char* gs_thumbnail_prop_png8bit_fp_name = "file_png8bit_path";
+static const char* gs_thumbnail_prop_raw_fp_name = "file_raw_path";
+
 ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::ImageProcessorWidget)
@@ -39,7 +43,7 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
 
     QList<QRegularExpression> pat_list;
     get_saved_img_name_or_pat(nullptr, nullptr, &pat_list);
-    m_filter_fn_reg = pat_list[IMG_TYPE_PNG];
+    m_filter_fn_reg = pat_list[IMG_TYPE_8BIT_PNG];
 
     /*--------------------*/
     m_sort_rbtn_grp = new QButtonGroup(this);
@@ -139,13 +143,30 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
     }
 
     // 4) 显示缩略图 + 文件名
+    // the img display: use 8bit png. refer to m_filter_fn_reg value.
     int row = 0, col = 0, maxCol = 5;
     for (const QFileInfo &fi : fileList) {
-        QPixmap pixmap(fi.filePath());
+        QString fp_8bit = fi.filePath();
+        QString fp_png = img_name_convert(IMG_NAME_8BIT_TO_PNG, fp_8bit),
+                fp_raw = img_name_convert(IMG_NAME_8BIT_TO_RAW, fp_8bit);
+        if((fp_png == fp_8bit) || !QFileInfo::exists(fp_png))
+        {
+            DIY_LOG(LOG_WARN, QString("%1 exist, but png file %2 does not exist.").arg(fp_8bit, fp_png));
+            continue;
+        }
+        if((fp_raw == fp_8bit) || !QFileInfo::exists(fp_raw))
+        {
+            DIY_LOG(LOG_WARN, QString("%1 exist, but png file %2 does not exist.").arg(fp_8bit, fp_raw));
+            continue;
+        }
+
+        QPixmap pixmap(fp_8bit);
         QLabel *thumbLabel = new QLabel;
         thumbLabel->setPixmap(pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::FastTransformation));
         thumbLabel->setAlignment(Qt::AlignCenter);
-        thumbLabel->setProperty("filePath", fi.filePath());
+        thumbLabel->setProperty(gs_thumbnail_prop_png8bit_fp_name, fp_8bit);
+        thumbLabel->setProperty(gs_thumbnail_prop_png_fp_name, fp_png);
+        thumbLabel->setProperty(gs_thumbnail_prop_raw_fp_name, fp_raw);
         thumbLabel->setAttribute(Qt::WA_Hover);
         thumbLabel->installEventFilter(this);
 
@@ -177,7 +198,7 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     QWidget *cellWidget = thumbLabel->parentWidget();
     if (!cellWidget) return QWidget::eventFilter(obj, event);
 
-    QString filePath = thumbLabel->property("filePath").toString();
+    QString filePath = thumbLabel->property(gs_thumbnail_prop_png8bit_fp_name).toString();
 
     // 1) 双击查看大图
     if (event->type() == QEvent::MouseButtonDblClick) {
@@ -214,7 +235,9 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
             } else {
                 // 选中
                 m_selectedFiles.append(filePath);
-                cellWidget->setStyleSheet("border: 2px solid red; background-color: rgba(255,0,0,30);");
+                static const char* ls_thumb_wgt_name = "thumbCellWidget";
+                cellWidget->setObjectName(ls_thumb_wgt_name);
+                cellWidget->setStyleSheet(QString("#") + ls_thumb_wgt_name+ " {border: 2px solid red; }");
             }
 
             qDebug() << "Selected files:" << m_selectedFiles;
