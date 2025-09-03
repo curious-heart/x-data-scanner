@@ -46,12 +46,16 @@ private slots:
 
     void on_imgFilterConfPBtn_clicked();
 
+    void on_translateRBtn_toggled(bool checked);
+
+    void on_bri_contr_RBtn_toggled(bool checked);
+
 private:
     Ui::ImageProcessorWidget *ui;
 
     QRegularExpression m_filter_fn_reg;
 
-    QButtonGroup * m_sort_rbtn_grp = nullptr;
+    QButtonGroup * m_sort_rbtn_grp = nullptr, * m_op_rbtn_grp = nullptr;
 
     QScrollArea * m_thumbnail_scroll_area = nullptr;
     QWidget * m_thumbnail_container_wgt = nullptr;
@@ -61,12 +65,16 @@ private:
 
     QWidget * m_img_view_container_wgt = nullptr;
     QHBoxLayout * m_img_view_hbox_layout = nullptr;
+    QWidget *m_img_with_info_wgt = nullptr, *m_img_with_info_wgt_2 = nullptr;
+    QVBoxLayout * m_img_with_info_vbox_layout = nullptr, * m_img_with_info_vbox_layout_2 = nullptr;
     ImageViewerWidget * m_img_viewr = nullptr, *m_img_viewr_2 = nullptr;
+    QLabel *m_img_info_lbl = nullptr, *m_img_info_lbl_2 = nullptr;
 
     void refresh_ctrls_display();
     bool eventFilter(QObject *obj, QEvent *event);
 
     void go_display_one_big_img();
+    void go_display_parallel_imgs();
 };
 
 #endif // IMAGEPROCESSORWIDGET_H

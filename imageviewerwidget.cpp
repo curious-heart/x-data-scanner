@@ -5,15 +5,11 @@
 
 static const int gs_min_px_val = 0, gs_max_px_val = 65535;
 
-ImageViewerWidget::ImageViewerWidget(QWidget *parent)
-    : QLabel(parent),
-      m_scaleFactor(1.0),
-      m_rotationAngle(0),
-      m_flipH(false),
-      m_flipV(false),
-      m_brightness(0),
-      m_contrast(0), m_translate(false), m_WW_adjust(false), m_WL_adjust(false)
+ImageViewerWidget::ImageViewerWidget(QLabel *info_lbl, QWidget *parent)
+    : QLabel(parent), m_info_lbl(info_lbl)
 {
+    reset_op_params();
+
     setBackgroundRole(QPalette::Base);
     setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     setScaledContents(false);
@@ -53,21 +49,44 @@ bool ImageViewerWidget::loadImage(const QString &filePath, int width, int height
     return true;
 }
 
+void ImageViewerWidget::clear_op_flags()
+{
+    m_flipH = false;
+    m_flipV = false;
+    m_translate = false;
+    m_WW_adjust = m_WL_adjust = false;
+    m_mark = m_del_mark = false;
+}
+
+void ImageViewerWidget::reset_op_params()
+{
+    m_scaleFactor = 1.0;
+    m_offset = QPoint(0,0);
+    m_rotationAngle = 0;
+
+    clear_op_flags();
+}
+
 // 恢复原图
 void ImageViewerWidget::resetImage()
 {
     m_processedImage = m_originalImage;
-    m_scaleFactor = 1.0;
-    m_offset = QPoint(0,0);
-    m_rotationAngle = 0;
-    m_flipH = false;
-    m_flipV = false;
-    m_brightness = 0;
-    m_contrast = 0;
+
+    reset_op_params();
 
     m_windowWidth = m_ori_WW;
     m_windowLevel = m_ori_WL;
     update();
+}
+
+void ImageViewerWidget::translate(bool op)
+{
+    m_translate = op;
+}
+
+void ImageViewerWidget::bright_contrast(bool op)
+{
+    m_WW_adjust = m_WL_adjust = op;
 }
 
 // 缩放
@@ -87,10 +106,6 @@ void ImageViewerWidget::rotateRight90() { m_rotationAngle += 90; update(); }
 void ImageViewerWidget::flipHorizontal() { m_flipH = !m_flipH; update(); }
 void ImageViewerWidget::flipVertical()   { m_flipV = !m_flipV; update(); }
 
-// 亮度/对比度
-void ImageViewerWidget::setBrightness(double value) { m_brightness = value; update(); }
-void ImageViewerWidget::setContrast(double value)   { m_contrast = value; update(); }
-
 // 鼠标拖拽
 void ImageViewerWidget::mousePressEvent(QMouseEvent *event)
 {
@@ -108,7 +123,7 @@ void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
         m_lastMousePos = event->pos();
 
         if(m_translate) m_offset += delta;
-        else if(m_WW_adjust)
+        if(m_WW_adjust)
         {
             if(delta.x() >= 0) m_windowWidth += delta.x();
             else m_windowWidth -= (quint16)(-1 * delta.x());
@@ -116,7 +131,7 @@ void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
             if(m_windowWidth < gs_min_px_val) m_windowWidth = gs_min_px_val;
             if(m_windowWidth > gs_max_px_val) m_windowWidth = gs_max_px_val;
         }
-        else if(m_WL_adjust)
+        if(m_WL_adjust)
         {
             if(delta.y() >= 0) m_windowLevel -= delta.y();
             else m_windowLevel += (quint16)(-1 * delta.y());
@@ -171,6 +186,11 @@ void ImageViewerWidget::paintEvent(QPaintEvent *event)
     QPoint center = QPoint(width()/2, height()/2);
     QPoint drawPos = center - QPoint(pix.width()/2, pix.height()/2) + m_offset;
     painter.drawPixmap(drawPos, pix);
+
+    if(m_info_lbl)
+    {
+        m_info_lbl->setText(QString("WW: %1, WL: %2").arg(m_windowWidth).arg(m_windowLevel));
+    }
 }
 
 // 简单亮度/对比度调整

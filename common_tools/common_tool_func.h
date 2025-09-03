@@ -142,7 +142,7 @@ public:
 
 QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair = nullptr,
                              QRect area = QRect(), QColor bg = QColor());
-bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL);
+bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL, quint16 * maxVal = nullptr, quint16 *minVal = nullptr);
 
 // 求最大公约数
 template <typename T>

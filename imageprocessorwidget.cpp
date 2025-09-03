@@ -33,6 +33,7 @@ static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
 static const char* gs_thumbnail_prop_png_fp_name = "file_png";
 static const char* gs_thumbnail_prop_png8bit_fp_name = "file_png8bit_path";
 static const char* gs_thumbnail_prop_raw_fp_name = "file_raw_path";
+static const char* gs_thumbnail_prop_base_f_name = "file_base_name";
 static const char* gs_thumbnail_prop_width_name = "img_width";
 static const char* gs_thumbnail_prop_height_name = "img_height";
 
@@ -63,6 +64,13 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_sort_rbtn_grp->addButton(ui->newFirstRBtn);
     m_sort_rbtn_grp->addButton(ui->oldFirstRBtn);
 
+    /*--------------------*/
+     m_op_rbtn_grp= new QButtonGroup(this);
+    m_op_rbtn_grp->addButton(ui->translateRBtn);
+    m_op_rbtn_grp->addButton(ui->markRBtn);
+    m_op_rbtn_grp->addButton(ui->bri_contr_RBtn);
+    m_op_rbtn_grp->addButton(ui->delMarkRBtn);
+
     /*setup widges for thumnail display*/
     m_thumbnail_scroll_area = new QScrollArea(this);
     m_thumbnail_container_wgt = new QWidget;
@@ -73,9 +81,29 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     /*setup widges for image view and process*/
     m_img_view_container_wgt = new QWidget(this);
     m_img_view_hbox_layout = new QHBoxLayout(m_img_view_container_wgt);
-    m_img_viewr = new ImageViewerWidget(m_img_view_container_wgt);
-    m_img_viewr_2 = new ImageViewerWidget(m_img_view_container_wgt);
+    m_img_view_container_wgt->setLayout(m_img_view_hbox_layout);
 
+    m_img_with_info_wgt = new QWidget(m_img_view_container_wgt);
+    m_img_with_info_wgt_2 = new QWidget(m_img_view_container_wgt);
+    m_img_view_hbox_layout->addWidget(m_img_with_info_wgt);
+    m_img_view_hbox_layout->addWidget(m_img_with_info_wgt_2);
+
+    m_img_with_info_vbox_layout = new QVBoxLayout(m_img_with_info_wgt);
+    m_img_info_lbl = new QLabel(m_img_with_info_wgt);
+    m_img_viewr = new ImageViewerWidget(m_img_info_lbl, m_img_with_info_wgt);
+    m_img_with_info_vbox_layout->addWidget(m_img_viewr);
+    m_img_with_info_vbox_layout->addWidget(m_img_info_lbl);
+
+    m_img_with_info_vbox_layout_2 = new QVBoxLayout(m_img_with_info_wgt_2);
+    m_img_info_lbl_2 = new QLabel(m_img_with_info_wgt_2);
+    m_img_viewr_2 = new ImageViewerWidget(m_img_info_lbl_2, m_img_with_info_wgt_2);
+    m_img_with_info_vbox_layout_2->addWidget(m_img_viewr_2);
+    m_img_with_info_vbox_layout_2->addWidget(m_img_info_lbl_2);
+
+    QFontMetrics fm(m_img_info_lbl->font());
+    int lbl_h = fm.height();
+    m_img_info_lbl->setFixedHeight(lbl_h);
+    m_img_info_lbl_2->setFixedHeight(lbl_h);
     /*--------------------*/
     ui->imgViewStackedWgt->addWidget(m_thumbnail_scroll_area);
     ui->imgViewStackedWgt->addWidget(m_img_view_container_wgt);
@@ -168,7 +196,8 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
     for (const QFileInfo &fi : fileList) {
         QString fp_8bit = fi.filePath();
         QString fp_png = img_name_convert(IMG_NAME_8BIT_TO_PNG, fp_8bit),
-                fp_raw = img_name_convert(IMG_NAME_8BIT_TO_RAW, fp_8bit);
+                fp_raw = img_name_convert(IMG_NAME_8BIT_TO_RAW, fp_8bit),
+                fp_base = QFileInfo(fp_png).baseName();
         if((fp_png == fp_8bit) || !QFileInfo::exists(fp_png))
         {
             DIY_LOG(LOG_WARN, QString("%1 exist, but png file %2 does not exist.").arg(fp_8bit, fp_png));
@@ -188,12 +217,13 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
         thumbLabel->setProperty(gs_thumbnail_prop_png8bit_fp_name, fp_8bit);
         thumbLabel->setProperty(gs_thumbnail_prop_png_fp_name, fp_png);
         thumbLabel->setProperty(gs_thumbnail_prop_raw_fp_name, fp_raw);
+        thumbLabel->setProperty(gs_thumbnail_prop_base_f_name, fp_base);
         thumbLabel->setProperty(gs_thumbnail_prop_width_name, ori_img_width);
         thumbLabel->setProperty(gs_thumbnail_prop_height_name, ori_img_height);
         thumbLabel->setAttribute(Qt::WA_Hover);
         thumbLabel->installEventFilter(this);
 
-        QLabel *nameLabel = new QLabel(fi.fileName());
+        QLabel *nameLabel = new QLabel(fp_base);
         nameLabel->setAlignment(Qt::AlignCenter);
 
         // 使用一个 QWidget + QVBoxLayout 包裹缩略图和文件名
@@ -278,18 +308,31 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
 
 void ImageProcessorWidget::go_display_one_big_img()
 {
-    QLayoutItem *child;
-    while ((child = m_img_view_hbox_layout->takeAt(0)) != nullptr) {
-        if (child->widget()) {
-            child->widget()->setParent(nullptr);  // 从布局中移除，同时不删除控件
-        }
-        delete child;  // 删除布局项
-    }
-    /*this is to confirm m_img_viewr_2 will be deleted in destructors.*/
-    m_img_viewr_2->setParent(m_img_view_container_wgt);
-
-    m_img_view_hbox_layout->addWidget(m_img_viewr);
+    m_img_with_info_wgt->setVisible(true);
+    m_img_with_info_wgt_2->setVisible(false);
 
     ui->imgViewStackedWgt->setCurrentWidget(m_img_view_container_wgt);
     m_img_viewr->loadImage(m_selectedFiles[0].fn_raw, m_selectedFiles[0].width, m_selectedFiles[0].height);
 }
+
+void ImageProcessorWidget::go_display_parallel_imgs()
+{
+    m_img_with_info_wgt->setVisible(true);
+    m_img_with_info_wgt_2->setVisible(true);
+
+    ui->imgViewStackedWgt->setCurrentWidget(m_img_view_container_wgt);
+}
+
+void ImageProcessorWidget::on_translateRBtn_toggled(bool checked)
+{
+    if(m_img_viewr) m_img_viewr->translate(checked);
+    if(m_img_viewr_2) m_img_viewr_2->translate(checked);
+}
+
+
+void ImageProcessorWidget::on_bri_contr_RBtn_toggled(bool checked)
+{
+    if(m_img_viewr) m_img_viewr->bright_contrast(checked);
+    if(m_img_viewr_2) m_img_viewr_2->bright_contrast(checked);
+}
+

@@ -941,7 +941,7 @@ QImage convertGrayscale16To8(const QImage &img16, pixel_mmpairt_s_t *mmpair, con
     return img8;
 }
 
-bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL)
+bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL, quint16 * maxVal, quint16 *minVal)
 {
     QImage::Format input_img_format = img.format();
     if (input_img_format != QImage::Format_Grayscale16 && input_img_format != QImage::Format_Grayscale8)
@@ -980,6 +980,9 @@ bool count_WW_WL(QImage &img, quint16 &WW, quint16 &WL)
     }
     WW = maxV - minV;
     WL = (maxV + minV) / 2;
+
+    if(maxVal) *maxVal = maxV;
+    if(minVal) *minVal = minV;
     return true;
 }
 
