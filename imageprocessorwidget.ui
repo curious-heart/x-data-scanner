@@ -193,7 +193,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="leftRotatePBtn_2">
+           <widget class="QPushButton" name="clearOpflagsPBtn">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -203,6 +203,24 @@
             <property name="text">
              <string>清除
 勾选</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <item>
+           <widget class="QPushButton" name="enlargePBtn">
+            <property name="text">
+             <string>放大</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="shrinkPBtn">
+            <property name="text">
+             <string>缩小</string>
             </property>
            </widget>
           </item>
@@ -262,7 +280,7 @@
          </spacer>
         </item>
         <item>
-         <widget class="QPushButton" name="rightRotatePBtn_2">
+         <widget class="QPushButton" name="restoreImgPBtn">
           <property name="text">
            <string>恢复原图</string>
           </property>

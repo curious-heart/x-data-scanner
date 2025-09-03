@@ -65,7 +65,7 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_sort_rbtn_grp->addButton(ui->oldFirstRBtn);
 
     /*--------------------*/
-     m_op_rbtn_grp= new QButtonGroup(this);
+    m_op_rbtn_grp= new QButtonGroup(this);
     m_op_rbtn_grp->addButton(ui->translateRBtn);
     m_op_rbtn_grp->addButton(ui->markRBtn);
     m_op_rbtn_grp->addButton(ui->bri_contr_RBtn);
@@ -306,6 +306,16 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     return QWidget::eventFilter(obj, event);
 }
 
+void ImageProcessorWidget::uncheck_op_rbtns()
+{
+    m_op_rbtn_grp->setExclusive(false);
+        ui->translateRBtn->setChecked(false);
+        ui->markRBtn->setChecked(false);
+        ui->delMarkRBtn->setChecked(false);
+        ui->bri_contr_RBtn->setChecked(false);
+    m_op_rbtn_grp->setExclusive(true);
+}
+
 void ImageProcessorWidget::go_display_one_big_img()
 {
     m_img_with_info_wgt->setVisible(true);
@@ -334,5 +344,56 @@ void ImageProcessorWidget::on_bri_contr_RBtn_toggled(bool checked)
 {
     if(m_img_viewr) m_img_viewr->bright_contrast(checked);
     if(m_img_viewr_2) m_img_viewr_2->bright_contrast(checked);
+}
+
+void ImageProcessorWidget::on_restoreImgPBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->resetImage();
+    if(m_img_viewr_2) m_img_viewr_2->resetImage();
+}
+
+void ImageProcessorWidget::on_leftRotatePBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->rotateLeft90();
+    if(m_img_viewr_2) m_img_viewr_2->rotateLeft90();
+}
+
+void ImageProcessorWidget::on_rightRotatePBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->rotateRight90();
+    if(m_img_viewr_2) m_img_viewr_2->rotateRight90();
+}
+
+void ImageProcessorWidget::on_horiFlipPBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->flipHorizontal();
+    if(m_img_viewr_2) m_img_viewr_2->flipHorizontal();
+}
+
+
+void ImageProcessorWidget::on_verFlipPbtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->flipVertical();
+    if(m_img_viewr_2) m_img_viewr_2->flipVertical();
+}
+
+void ImageProcessorWidget::on_clearOpflagsPBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->clear_op_flags();
+    if(m_img_viewr_2) m_img_viewr_2->clear_op_flags();
+
+    uncheck_op_rbtns();
+}
+
+void ImageProcessorWidget::on_enlargePBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->zoomIn();
+    if(m_img_viewr_2) m_img_viewr_2->zoomIn();
+}
+
+void ImageProcessorWidget::on_shrinkPBtn_clicked()
+{
+    if(m_img_viewr) m_img_viewr->zoomOut();
+    if(m_img_viewr_2) m_img_viewr_2->zoomOut();
 }
 

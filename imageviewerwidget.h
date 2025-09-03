@@ -52,11 +52,19 @@ private:
     bool m_mark, m_del_mark;
     quint16 m_windowWidth, m_windowLevel, m_ori_WW, m_ori_WL;
 
+    bool m_mouse_in_img = false;
+    int m_curr_mouse_pos_x, m_curr_mouse_pos_y;
+    quint16 m_curr_mouse_pos_val;
+
+    QTransform m_imageToWidget;
+    QTransform m_widgetToImage;
+
     void reset_op_params();
 
     void updateProcessedImage(); // 根据旋转/翻转/亮度/对比度更新 m_processedImage
     QImage applyBrightnessContrast(QImage &img);
     QImage applyWindowWidth(const QImage &img, quint16 WW, quint16 WL);
+    bool get_mouse_pos_px_val(const QPoint &mouse_pos, int &pos_x, int &pos_y, quint16 &pos_val);
 };
 
 #endif // IMAGEVIEWERWIDGET_H

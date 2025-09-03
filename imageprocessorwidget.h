@@ -50,6 +50,22 @@ private slots:
 
     void on_bri_contr_RBtn_toggled(bool checked);
 
+    void on_restoreImgPBtn_clicked();
+
+    void on_leftRotatePBtn_clicked();
+
+    void on_rightRotatePBtn_clicked();
+
+    void on_horiFlipPBtn_clicked();
+
+    void on_verFlipPbtn_clicked();
+
+    void on_clearOpflagsPBtn_clicked();
+
+    void on_enlargePBtn_clicked();
+
+    void on_shrinkPBtn_clicked();
+
 private:
     Ui::ImageProcessorWidget *ui;
 
@@ -75,6 +91,8 @@ private:
 
     void go_display_one_big_img();
     void go_display_parallel_imgs();
+
+    void uncheck_op_rbtns();
 };
 
 #endif // IMAGEPROCESSORWIDGET_H

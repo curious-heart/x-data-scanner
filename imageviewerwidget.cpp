@@ -1,3 +1,4 @@
+#include <cmath>
 #include "imageviewerwidget.h"
 
 #include "common_tools/common_tool_func.h"
@@ -118,7 +119,9 @@ void ImageViewerWidget::mousePressEvent(QMouseEvent *event)
 }
 void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if(event->buttons() & Qt::LeftButton){
+    bool need_update = false;
+    if(event->buttons() & Qt::LeftButton)
+    {
         QPoint delta = event->pos() - m_lastMousePos;
         m_lastMousePos = event->pos();
 
@@ -140,8 +143,14 @@ void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
             if(m_windowLevel > gs_max_px_val) m_windowLevel = gs_max_px_val;
         }
 
-        update();
+        need_update = true;
     }
+
+    m_mouse_in_img = get_mouse_pos_px_val(event->pos(), m_curr_mouse_pos_x, m_curr_mouse_pos_y,
+                                          m_curr_mouse_pos_val);
+    if(m_mouse_in_img) need_update = true;
+
+    if(need_update) update();
 }
 
 // 鼠标滚轮缩放
@@ -159,37 +168,40 @@ void ImageViewerWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::SmoothPixmapTransform,true);
 
-    QImage img = m_originalImage;
+    painter.save();
+    // 图像显示中心（Widget 中心 + 用户偏移）
+    QPointF center(width() / 2.0 + m_offset.x(),
+                   height() / 2.0 + m_offset.y());
 
-    QImage::Format img_format = img.format();
-    DIY_LOG(LOG_INFO, QString("img format is %1").arg(img_format));
-
-    // 翻转
-    if(m_flipH) img = img.mirrored(true,false);
-    if(m_flipV) img = img.mirrored(false,true);
-
-    // 旋转
     QTransform transform;
-    transform.rotate(m_rotationAngle);
-    img = img.transformed(transform);
+    transform.translate(center.x(), center.y());      // 移到显示中心
+    transform.scale(m_scaleFactor, m_scaleFactor);
+    transform.rotate(m_rotationAngle);                // 旋转
+    if (m_flipH) transform.scale(-1, 1);     // 水平翻转
+    if (m_flipV) transform.scale(1, -1);     // 垂直翻转
+    transform.translate(-1 * m_originalImage.width() / 2.0, -1 * m_originalImage.height() / 2.0); // 图像左上角对齐
 
-    // 亮度/对比度
-    img = applyBrightnessContrast(img);
+    painter.setTransform(transform);
+    QImage display_img_8bit = convertGrayscale16To8(m_originalImage);
+    painter.drawImage(QPoint(0, 0), display_img_8bit);
 
-    QImage display_img_8bit = convertGrayscale16To8(img);
-    // 缩放
-    QSize targetSize = img.size() * m_scaleFactor;
-    QPixmap pix = QPixmap::fromImage(display_img_8bit.scaled(targetSize,
-                                     Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    painter.restore();
 
-    // 平移绘制
-    QPoint center = QPoint(width()/2, height()/2);
-    QPoint drawPos = center - QPoint(pix.width()/2, pix.height()/2) + m_offset;
-    painter.drawPixmap(drawPos, pix);
+    m_imageToWidget = transform;
+    m_widgetToImage = transform.inverted();
 
+    /*--------------------*/
     if(m_info_lbl)
     {
-        m_info_lbl->setText(QString("WW: %1, WL: %2").arg(m_windowWidth).arg(m_windowLevel));
+        QString info_str = QString("width: %1, height: %2;").arg(m_originalImage.width())
+                                                           .arg(m_originalImage.height());
+        info_str += QString(" WW: %1, WL: %2").arg(m_windowWidth).arg(m_windowLevel);
+        if(m_mouse_in_img)
+        {
+            info_str += QString("; x:%1, y:%2, val:%3").arg(m_curr_mouse_pos_x)
+                                            .arg(m_curr_mouse_pos_y).arg(m_curr_mouse_pos_y);
+        }
+        m_info_lbl->setText(info_str);
     }
 }
 
@@ -227,4 +239,31 @@ QImage ImageViewerWidget::applyWindowWidth(const QImage &img, quint16 WW, quint1
         }
     }
     return result;
+}
+
+bool ImageViewerWidget::get_mouse_pos_px_val(const QPoint &mouse_pos,
+                                             int &pos_x, int &pos_y, quint16 &pos_val)
+{
+    if (m_originalImage.isNull()) return false;
+
+    QPointF imgPt = m_widgetToImage.map(mouse_pos);
+    int x = static_cast<int>(std::floor(imgPt.x()));
+    int y = static_cast<int>(std::floor(imgPt.y()));
+
+    if (x < 0 || y < 0 || x >= m_originalImage.width() || y >= m_originalImage.height())
+    {
+        return false;
+    }
+
+    pos_x = x;
+    pos_y = y;
+
+    if (m_originalImage.format() == QImage::Format_Grayscale16)
+    {
+        const quint16 *line = reinterpret_cast<const quint16*>(m_originalImage.constScanLine(y));
+        pos_val = line[x];
+    } else {
+        pos_val = qGray(m_originalImage.pixel(x, y));
+    }
+    return true;
 }
