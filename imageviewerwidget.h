@@ -9,11 +9,14 @@
 #include <QPainter>
 #include <QTransform>
 
+class ImageProcessorWidget;
 class ImageViewerWidget : public QLabel
 {
     Q_OBJECT
 public:
-    explicit ImageViewerWidget(QLabel * info_lbl = nullptr, QWidget *parent = nullptr);
+    explicit ImageViewerWidget(QLabel * info_lbl = nullptr,
+                               ImageProcessorWidget * op_ctrls = nullptr,
+                               QWidget *parent = nullptr);
 
     // 加载图像
     bool loadImage(const QString &filePath, int width, int height);
@@ -39,6 +42,7 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
 
 private:
+    ImageProcessorWidget * m_op_ctrls  = nullptr;
     QLabel * m_info_lbl = nullptr;
     QImage m_originalImage;   // 原始图像
     QImage m_processedImage;  // 处理后的图像
@@ -60,6 +64,7 @@ private:
     QTransform m_widgetToImage;
 
     void reset_op_params();
+    void refresh_op_flags();
 
     void updateProcessedImage(); // 根据旋转/翻转/亮度/对比度更新 m_processedImage
     QImage applyBrightnessContrast(QImage &img);

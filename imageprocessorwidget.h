@@ -50,6 +50,8 @@ public:
     explicit ImageProcessorWidget(QWidget *parent = nullptr);
     ~ImageProcessorWidget();
 
+    void get_latest_op_flags(bool &tr, bool &mark, bool &del_mark, bool &br_con);
+
 private slots:
     void on_imgFilterComboBox_currentIndexChanged(int index);
 

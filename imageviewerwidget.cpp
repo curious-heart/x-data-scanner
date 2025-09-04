@@ -1,13 +1,15 @@
 #include <cmath>
 #include "imageviewerwidget.h"
+#include "imageprocessorwidget.h"
 
 #include "common_tools/common_tool_func.h"
 #include "logger/logger.h"
 
 static const int gs_min_px_val = 0, gs_max_px_val = 65535;
 
-ImageViewerWidget::ImageViewerWidget(QLabel *info_lbl, QWidget *parent)
-    : QLabel(parent), m_info_lbl(info_lbl)
+ImageViewerWidget::ImageViewerWidget(QLabel *info_lbl, ImageProcessorWidget * op_ctrls,
+                                     QWidget *parent)
+    : QLabel(parent), m_op_ctrls(op_ctrls), m_info_lbl(info_lbl)
 {
     reset_op_params();
 
@@ -68,6 +70,15 @@ void ImageViewerWidget::reset_op_params()
     clear_op_flags();
 }
 
+void ImageViewerWidget::refresh_op_flags()
+{
+    if(m_op_ctrls)
+    {
+        m_op_ctrls->get_latest_op_flags(m_translate, m_mark, m_del_mark, m_WW_adjust);
+        m_WL_adjust = m_WW_adjust;
+    }
+}
+
 // 恢复原图
 void ImageViewerWidget::resetImage()
 {
@@ -110,6 +121,7 @@ void ImageViewerWidget::flipVertical()   { m_flipV = !m_flipV; update(); }
 // 鼠标拖拽
 void ImageViewerWidget::mousePressEvent(QMouseEvent *event)
 {
+    refresh_op_flags();
     if(event->button() == Qt::LeftButton)
     {
         m_lastMousePos = event->pos();
@@ -119,6 +131,7 @@ void ImageViewerWidget::mousePressEvent(QMouseEvent *event)
 }
 void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    refresh_op_flags();
     bool need_update = false;
     if(event->buttons() & Qt::LeftButton)
     {
@@ -156,6 +169,7 @@ void ImageViewerWidget::mouseMoveEvent(QMouseEvent *event)
 // 鼠标滚轮缩放
 void ImageViewerWidget::wheelEvent(QWheelEvent *event)
 {
+    refresh_op_flags();
     if(event->angleDelta().y() > 0) zoomIn();
     else zoomOut();
 }

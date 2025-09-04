@@ -100,13 +100,13 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
 
     m_img_with_info_vbox_layout = new QVBoxLayout(m_img_with_info_wgt);
     m_img_info_lbl = new QLabel(m_img_with_info_wgt);
-    m_img_viewr = new ImageViewerWidget(m_img_info_lbl, m_img_with_info_wgt);
+    m_img_viewr = new ImageViewerWidget(m_img_info_lbl, this, m_img_with_info_wgt);
     m_img_with_info_vbox_layout->addWidget(m_img_viewr);
     m_img_with_info_vbox_layout->addWidget(m_img_info_lbl);
 
     m_img_with_info_vbox_layout_2 = new QVBoxLayout(m_img_with_info_wgt_2);
     m_img_info_lbl_2 = new QLabel(m_img_with_info_wgt_2);
-    m_img_viewr_2 = new ImageViewerWidget(m_img_info_lbl_2, m_img_with_info_wgt_2);
+    m_img_viewr_2 = new ImageViewerWidget(m_img_info_lbl_2, this, m_img_with_info_wgt_2);
     m_img_with_info_vbox_layout_2->addWidget(m_img_viewr_2);
     m_img_with_info_vbox_layout_2->addWidget(m_img_info_lbl_2);
 
@@ -498,4 +498,13 @@ void ImageProcessorWidget::set_compare_op_chkbox_st(Qt::CheckState new_st)
 {
     m_compare_op_chkbox_last_st = ui->compareChkBox->checkState();
     ui->compareChkBox->setCheckState(new_st);
+}
+
+void ImageProcessorWidget::get_latest_op_flags(bool &tr, bool &mark, bool &del_mark,
+                                               bool &br_con)
+{
+    tr = ui->translateRBtn->isChecked();
+    mark = ui->markRBtn->isChecked();
+    del_mark = ui->delMarkRBtn->isChecked();
+    br_con = ui->bri_contr_RBtn->isChecked();
 }
