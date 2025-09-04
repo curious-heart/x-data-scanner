@@ -8,6 +8,7 @@
 #include <QFont>
 #include <QtMath>
 #include <QStorageInfo>
+#include <QMessageBox>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -549,6 +550,18 @@ bool mkpth_if_not_exists(const QString &pth_str)
     return ret;
 }
 
+bool chk_mk_pth_and_warn(QString &pth_str, QWidget * parent, bool warn_caller)
+{
+    if(!mkpth_if_not_exists(pth_str))
+    {
+        QString err_str = QString("%1%2:%3").arg(g_str_create_folder, g_str_fail, pth_str);
+        DIY_LOG(LOG_ERROR, err_str);
+        if(warn_caller) QMessageBox::critical(parent, "Error", err_str);
+        return false;
+    }
+    return true;
+}
+
 QString shutdown_system(QString reason_str,int wait_time)
 {
 #ifdef Q_OS_UNIX
@@ -1043,4 +1056,88 @@ QString trans_bytes_cnt_unit(qint64 cnt, qint64 *unit)
     }
     if(unit) *unit = unit_val;
     return unit_str;
+}
+
+// 从 raw 文件读取 (8/16bit 灰度，逐行紧密存储)
+QImage read_gray_raw_img(const QString &fileName, int width, int height, QImage::Format img_fmt)
+{
+    if(img_fmt != QImage::Format_Grayscale8 && img_fmt != QImage::Format_Grayscale16)
+    {
+        DIY_LOG(LOG_WARN, "Only QImage::Format_Grayscale8 and QImage::Format_Grayscale16 "
+                          "image can be processed.");
+        return QImage();
+    }
+
+    QFile f(fileName);
+    if (!f.open(QIODevice::ReadOnly))
+    {
+        DIY_LOG(LOG_ERROR, QString("Open file %1 error: %2").arg(fileName, f.errorString()));
+        return QImage();
+    }
+
+    QImage img(width, height, img_fmt);
+    if (img.isNull())
+    {
+        DIY_LOG(LOG_ERROR, "Failed to allocate image");
+        f.close();
+        return QImage();
+    }
+    img.fill(0);
+
+    const int bpp       = img.depth() / 8;          // = 1 or 2
+    const int lineBytes = width * bpp;
+
+    bool ok = true;
+    for (int y = 0; y < height; ++y)
+    {
+        char *dst = reinterpret_cast<char*>(img.scanLine(y));
+        qint64 read = f.read(dst, lineBytes);
+        if (read != lineBytes)
+        {
+            DIY_LOG(LOG_ERROR, QString("The %1 line read error.").arg(y));
+            ok = false;
+            break;
+        }
+    }
+
+    f.close();
+    return ok ? img : QImage();
+}
+
+// 将 QImage 写为 raw 文件 (8/16bit 灰度，逐行紧密存储)
+bool write_gray_raw_img(const QString &fileName, const QImage &img)
+{
+    if (img.format() != QImage::Format_Grayscale16
+        && img.format() != QImage::Format_Grayscale8)
+    {
+        DIY_LOG(LOG_WARN, "Only QImage::Format_Grayscale8 and QImage::Format_Grayscale16 "
+                          "image can be supported");
+        return false;
+    }
+
+    QFile f(fileName);
+    if (!f.open(QIODevice::WriteOnly))
+    {
+        DIY_LOG(LOG_ERROR, QString("Open file %1 error: %2").arg(fileName, f.errorString()));
+        return false;
+    }
+
+    const int bpp       = img.depth() / 8;          // = 1 or 2
+    const int lineBytes = img.width() * bpp;
+
+    bool ok = true;
+    for (int y = 0; y < img.height(); ++y)
+    {
+        const char *src = reinterpret_cast<const char*>(img.constScanLine(y));
+        qint64 written = f.write(src, lineBytes);
+        if (written != lineBytes)
+        {
+            DIY_LOG(LOG_ERROR, QString("Write error at line %1: expected %2 bytes, got %3")
+                                .arg(y).arg(lineBytes).arg(written));
+            ok = false;
+            break;
+        }
+    }
+
+    return ok;
 }

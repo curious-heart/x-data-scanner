@@ -9,6 +9,7 @@
 
 static const char* gs_def_img_save_path = "./scan_images";
 static const char* gs_def_cam_photo_save_path = "./camera_photos";
+static const char* gs_def_stitched_img_save_path = "./stitched_images";
 
 sys_settings_block_s_t g_sys_settings_blk;
 
@@ -242,8 +243,8 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
     g_sys_settings_blk.expo_to_coll_delay_ms = ui->expoCollDelaySpinBox->value();
 
     g_sys_settings_blk.img_save_path = gs_def_img_save_path;
-
     g_sys_settings_blk.cam_photo_save_path = gs_def_cam_photo_save_path;
+    g_sys_settings_blk.stitched_img_save_path = gs_def_stitched_img_save_path;
 
     g_sys_settings_blk.hv_params.valid = true;
     g_sys_settings_blk.hv_params.tube_volt_kV

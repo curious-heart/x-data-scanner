@@ -20,6 +20,7 @@ public:
 
     // 加载图像
     bool loadImage(const QString &filePath, int width, int height);
+    bool loadImage(const QImage &img);
 
     // 图像操作
     void resetImage();          // 恢复原图

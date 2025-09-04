@@ -31,7 +31,7 @@ SelfCheckWidget::~SelfCheckWidget()
 
 void SelfCheckWidget::self_check_item_ret_sig_hdlr(self_check_type_e_t chk_type, self_check_stage_e_t st)
 {
-    int idx;
+    size_t idx;
     QString title;
     QLabel * self_chk_lbl = nullptr;
     static QLabel * lbl_arr[SELF_CHECK_CNT] = {nullptr};

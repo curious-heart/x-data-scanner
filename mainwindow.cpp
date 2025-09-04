@@ -1053,13 +1053,13 @@ void MainWindow::proc_pb_fpga_pwr_onoff_msg(QByteArray msg)
 
 void MainWindow::proc_pb_pwr_bat_st_msg(QByteArray msg)
 {
-    quint16 volt_val, current_val;
+    quint16 /*volt_val,*/ current_val;
     quint8 bat_pct;
     int val_byte_idx = 1;
     QByteArray &read_data = msg;
     QString charging_str, bat_lvl_str;
 
-    volt_val = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
+    //volt_val = (quint16)read_data[val_byte_idx] * 256 + (quint16)read_data[val_byte_idx + 1];
     val_byte_idx += 2;
 
     *((char*)(&current_val) + 1) = read_data[val_byte_idx];

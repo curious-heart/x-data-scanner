@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>685</width>
-    <height>462</height>
+    <height>566</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -213,6 +213,37 @@
             <property name="text">
              <string>清除
 勾选</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <item>
+           <widget class="QCheckBox" name="stitchChkBox">
+            <property name="text">
+             <string>拼接</string>
+            </property>
+            <property name="tristate">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="stitchHoriRBtn">
+            <property name="text">
+             <string>左右</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="stitchVertRBtn">
+            <property name="text">
+             <string>上下</string>
             </property>
            </widget>
           </item>

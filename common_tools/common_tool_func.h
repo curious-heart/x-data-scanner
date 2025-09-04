@@ -56,6 +56,7 @@ int set_host_wifi_or_eth_ip_addr(ip_set_type_t set_type, ip_intf_type_t intf_t =
                          QString ip_addr = "", QString ip_mask = "255.255.255.0", QString gw = "");
 
 bool mkpth_if_not_exists(const QString &pth_str);
+bool chk_mk_pth_and_warn(QString &pth_str, QWidget * parent = nullptr, bool warn_caller = true);
 
 #define DEF_SHUTDOWN_WAIT_TIME 3
 /*return the shutdown command line.*/
@@ -190,5 +191,10 @@ typedef struct
 }storage_space_info_s_t;
 void get_total_storage_amount(storage_space_info_s_t &storage_info);
 QString trans_bytes_cnt_unit(qint64 cnt, qint64 *unit = nullptr);
+
+// 从 raw 文件读取 (8/16bit 灰度，逐行紧密存储)
+QImage read_gray_raw_img(const QString &fileName, int width, int height, QImage::Format img_fmt);
+// 将 QImage 写为 raw 文件 (8/16bit 灰度，逐行紧密存储)
+bool write_gray_raw_img(const QString &fileName, const QImage &img);
 
 #endif // COMMON_TOOL_FUNC_H

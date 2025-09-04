@@ -81,12 +81,15 @@ private slots:
 
     void on_returnToThumbListPBtn_clicked();
 
+    void on_stitchChkBox_clicked();
+
 private:
     Ui::ImageProcessorWidget *ui;
 
     QRegularExpression m_filter_fn_reg;
 
     QButtonGroup * m_sort_rbtn_grp = nullptr, * m_op_rbtn_grp = nullptr;
+    QButtonGroup * m_stitch_dirc_rbtn_grp = nullptr;
 
     QScrollArea * m_thumbnail_scroll_area = nullptr;
     QWidget * m_thumbnail_container_wgt = nullptr;
@@ -106,7 +109,7 @@ private:
     void refresh_ctrls_state();
     bool eventFilter(QObject *obj, QEvent *event);
 
-    void go_display_one_big_img();
+    void go_display_one_big_img(const QImage &img);
     void go_display_parallel_imgs();
 
     void uncheck_op_rbtns(bool clear_sel_files = true);
@@ -118,6 +121,13 @@ private:
     Qt::CheckState m_compare_op_chkbox_last_st;
     Qt::CheckState get_compare_op_chkbox_last_st();
     void set_compare_op_chkbox_st(Qt::CheckState new_st);
+
+    Qt::CheckState m_stitch_op_chkbox_last_st;
+    Qt::CheckState get_stitch_op_chkbox_last_st();
+    void set_stitch_op_chkbox_st(Qt::CheckState new_st);
+    QImage stitch_images();
+    void display_stitched_image();
+    void save_stitched_image(QImage &img);
 };
 
 #endif // IMAGEPROCESSORWIDGET_H

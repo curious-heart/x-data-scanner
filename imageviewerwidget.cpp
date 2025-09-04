@@ -31,25 +31,24 @@ bool ImageViewerWidget::loadImage(const QString &filePath, int width, int height
         return false;
     }
 
-    QImage img(width, height, QImage::Format::Format_Grayscale16);
-    qsizetype img_size = img.sizeInBytes();
-    qint64 read_bytes;
-    read_bytes = raw_data_file.read((char*)img.bits(), img_size);
-    if(read_bytes != img_size)
+    QImage img = read_gray_raw_img(filePath, width, height, QImage::Format::Format_Grayscale16);
+    if(img.isNull())
     {
-        DIY_LOG(LOG_ERROR, QString("load image faile: img_size is %1, read_bytes is %2")
-                               .arg(img_size).arg(read_bytes));
-
-        raw_data_file.close();
+        DIY_LOG(LOG_ERROR, QString("load image from file %1 error.").arg(filePath));
         return false;
     }
-    raw_data_file.close();
 
+    return loadImage(img);
+}
+
+bool ImageViewerWidget::loadImage(const QImage &img)
+{
     m_originalImage = img;
 
     count_WW_WL(m_originalImage, m_ori_WW, m_ori_WL);
     resetImage();
     return true;
+
 }
 
 void ImageViewerWidget::clear_op_flags()

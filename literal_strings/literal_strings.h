@@ -71,7 +71,10 @@ STR_DELCARE_STMT(g_str_off_en, "off") \
 STR_DELCARE_STMT(g_str_unknown_en, "unknown") \
 STR_DELCARE_STMT(g_str_plz_unlock_first, "请先解锁") \
 STR_DELCARE_STMT(g_str_conf_if_power_on_fpga, "是否给FPGA上电？") \
-STR_DELCARE_STMT(g_str_plz_sel_two_files, "请选择2个文件")
+STR_DELCARE_STMT(g_str_plz_sel_two_files, "请选择2个文件") \
+STR_DELCARE_STMT(g_str_plz_sel_at_least_two_files, "请选择至少2个文件") \
+STR_DELCARE_STMT(g_str_img_width_should_be_identical, "图像宽度必须相等") \
+STR_DELCARE_STMT(g_str_img_height_should_be_identical, "图像高度必须相等")
 
 LIT_STRINGS_LIST
 

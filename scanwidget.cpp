@@ -573,7 +573,7 @@ void ScanWidget::setup_sc_data_rec_file(QString &curr_path, QString &curr_date_s
 {
     QString err_str, curr_file_path;
 
-    if(!chk_mk_pth_and_warn(curr_path))
+    if(!chk_mk_pth_and_warn(curr_path, this))
     {
         return;
     }
@@ -1097,7 +1097,7 @@ void ScanWidget::save_local_imgs(gray_img_disp_type_e_t disp_type)
 
     QString curr_path = g_sys_settings_blk.img_save_path + "/" + parent_dir;
 
-    if(!chk_mk_pth_and_warn(curr_path))
+    if(!chk_mk_pth_and_warn(curr_path, this))
     {
         return;
     }
@@ -1107,13 +1107,7 @@ void ScanWidget::save_local_imgs(gray_img_disp_type_e_t disp_type)
     op_img_ptr->save(curr_path + "/" + fn_list[IMG_TYPE_PNG]);
     op_img_8bit_ptr->save(curr_path + "/" + fn_list[IMG_TYPE_8BIT_PNG]);
 
-    QFile raw_data_file(curr_path + "/" + fn_list[IMG_TYPE_RAW]);
-    if(raw_data_file.open(QIODevice::WriteOnly))
-    {
-        raw_data_file.write(reinterpret_cast<const char *>(op_img_ptr->constBits()),
-                            op_img_ptr->sizeInBytes());
-        raw_data_file.close();
-    }
+    write_gray_raw_img(curr_path + "/" + fn_list[IMG_TYPE_RAW], *op_img_ptr);
 }
 
 void ScanWidget::on_dataCollStartPbt_clicked()
@@ -1141,18 +1135,6 @@ void ScanWidget::recv_data_finished_sig_hdlr()
 void ScanWidget::on_dataCollStopPbt_clicked()
 {
     stop_scan();
-}
-
-bool ScanWidget::chk_mk_pth_and_warn(QString &pth_str)
-{
-    if(!mkpth_if_not_exists(pth_str))
-    {
-        QString err_str = QString("%1%2:%3").arg(g_str_create_folder, g_str_fail, pth_str);
-        DIY_LOG(LOG_ERROR, err_str);
-        QMessageBox::critical(this, "Error", err_str);
-        return false;
-    }
-    return true;
 }
 
 void ScanWidget::btns_refresh()

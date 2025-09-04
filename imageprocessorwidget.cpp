@@ -79,8 +79,16 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_op_rbtn_grp->addButton(ui->delMarkRBtn);
 
     /*--------------------*/
+    m_stitch_dirc_rbtn_grp = new QButtonGroup(this);
+    m_stitch_dirc_rbtn_grp->addButton(ui->stitchHoriRBtn);
+    m_stitch_dirc_rbtn_grp->addButton(ui->stitchVertRBtn);
+    ui->stitchHoriRBtn->setChecked(true);
+    ui->stitchChkBox->setTristate(true);
+
+    /*--------------------*/
     ui->compareChkBox->setTristate(true);
 
+    /*--------------------*/
     /*setup widges for thumnail display*/
     m_thumbnail_scroll_area = new QScrollArea(this);
     m_thumbnail_container_wgt = new QWidget;
@@ -142,7 +150,6 @@ void ImageProcessorWidget::on_imgFilterComboBox_currentIndexChanged(int /*index*
     refresh_ctrls_state();
 }
 
-
 void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
 {
     ui->imgViewStackedWgt->setCurrentWidget(m_thumbnail_scroll_area);
@@ -161,32 +168,37 @@ void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
     }
 
     // 2) 遍历路径下所有符合正则的文件
-    QDirIterator it(g_sys_settings_blk.img_save_path,
-                    QStringList() << QString("*") + g_str_img_png_type,   // 先按后缀过滤
-                    QDir::Files,
-                    QDirIterator::Subdirectories);
-
+    QStringList img_dirs =
+    {
+        g_sys_settings_blk.img_save_path,
+        g_sys_settings_blk.stitched_img_save_path
+    };
     QList<QFileInfo> fileList;
-    while (it.hasNext()) {
-        QString filePath = it.next();
-        QFileInfo fi(filePath);
+    for(const QString &img_dir : img_dirs)
+    {
+        QDirIterator it(img_dir, QStringList() << QString("*%1").arg(g_str_img_png_type),
+                         QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext())
+        {
+            QString filePath = it.next();
+            QFileInfo fi(filePath);
 
-        // 用正则过滤文件名
-        if (!m_filter_fn_reg.match(fi.fileName()).hasMatch())
-            continue;
+            // 用正则过滤文件名
+            if (!m_filter_fn_reg.match(fi.fileName()).hasMatch())
+                continue;
 
-        // 分支 1: 显示所有
-        if (ui->imgFilterComboBox->currentData() == IMG_PROC_FILTER_ALL) {
-            fileList.append(fi);
-            QDateTime created_dt = fi.lastModified();
-            DIY_LOG(LOG_INFO, "time is");
-        }
-        // 分支 2: 时间范围过滤
-        else {
-            QDateTime created_dt = fi.lastModified();
-
-            if (created_dt >= start_dt && created_dt <= stop_dt) {
+            // 分支 1: 显示所有
+            if (ui->imgFilterComboBox->currentData() == IMG_PROC_FILTER_ALL)
+            {
                 fileList.append(fi);
+            }
+            // 分支 2: 时间范围过滤
+            else {
+                QDateTime created_dt = fi.lastModified();
+
+                if (created_dt >= start_dt && created_dt <= stop_dt) {
+                    fileList.append(fi);
+                }
             }
         }
     }
@@ -279,7 +291,7 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
         if (mouseEvent->button() == Qt::LeftButton) {
             m_selectedFiles.clear();
             m_selectedFiles.append(fns);
-            go_display_one_big_img();
+            go_display_one_big_img(QImage());
             return true;
         }
     }
@@ -335,7 +347,7 @@ void ImageProcessorWidget::uncheck_op_rbtns(bool clear_sel_files)
     if(clear_sel_files) clear_all_selected_files();
 }
 
-void ImageProcessorWidget::go_display_one_big_img()
+void ImageProcessorWidget::go_display_one_big_img(const QImage &img)
 {
     ui->returnToThumbListPBtn->setEnabled(true);
 
@@ -343,7 +355,20 @@ void ImageProcessorWidget::go_display_one_big_img()
     m_img_with_info_wgt_2->setVisible(false);
 
     ui->imgViewStackedWgt->setCurrentWidget(m_img_view_container_wgt);
-    m_img_viewr->loadImage(m_selectedFiles[0].fn_raw, m_selectedFiles[0].width, m_selectedFiles[0].height);
+    if(img.isNull())
+    {
+        if(m_selectedFiles.size() <= 0)
+        {
+            DIY_LOG(LOG_ERROR, "no image file to display.");
+            return;
+        }
+        m_img_viewr->loadImage(m_selectedFiles[0].fn_raw,
+                               m_selectedFiles[0].width, m_selectedFiles[0].height);
+    }
+    else
+    {
+        m_img_viewr->loadImage(img);
+    }
 }
 
 void ImageProcessorWidget::go_display_parallel_imgs()
@@ -452,14 +477,44 @@ void ImageProcessorWidget::on_compareChkBox_clicked()
         }
         else
         {
-            set_compare_op_chkbox_st(Qt::Checked);
             go_display_parallel_imgs();
+            set_compare_op_chkbox_st(Qt::Checked);
         }
     }
     else
     {
         QMessageBox::information(this, "", g_str_plz_sel_two_files);
         set_compare_op_chkbox_st(Qt::PartiallyChecked);
+    }
+}
+
+void ImageProcessorWidget::on_stitchChkBox_clicked()
+{
+    if(curr_proc_st() == IMG_PROC_IMG_VIEW)
+    {
+        DIY_LOG(LOG_WARN, "In img view state, compare op has no meaning.");
+        return;
+    }
+
+    Qt::CheckState cur_state = get_stitch_op_chkbox_last_st();
+
+    if(m_selectedFiles.size() >= 2)
+    {
+        if(Qt::Checked == cur_state)
+        {
+            clear_all_selected_files();
+            set_stitch_op_chkbox_st(Qt::Unchecked);
+        }
+        else
+        {
+            display_stitched_image();
+            set_stitch_op_chkbox_st(Qt::Checked);
+        }
+    }
+    else
+    {
+        QMessageBox::information(this, "", g_str_plz_sel_at_least_two_files);
+        set_stitch_op_chkbox_st(Qt::PartiallyChecked);
     }
 }
 
@@ -478,7 +533,9 @@ img_processor_st_e_t ImageProcessorWidget::curr_proc_st()
 bool ImageProcessorWidget::can_multi_sel_thumbnail()
 {
     bool ctrlPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
-    return ctrlPressed || (ui->compareChkBox->checkState() == Qt::PartiallyChecked);
+    return ctrlPressed
+           || (ui->compareChkBox->checkState() == Qt::PartiallyChecked)
+           || (ui->stitchChkBox->checkState() == Qt::PartiallyChecked);
 }
 
 void ImageProcessorWidget::on_returnToThumbListPBtn_clicked()
@@ -500,6 +557,17 @@ void ImageProcessorWidget::set_compare_op_chkbox_st(Qt::CheckState new_st)
     ui->compareChkBox->setCheckState(new_st);
 }
 
+Qt::CheckState ImageProcessorWidget::get_stitch_op_chkbox_last_st()
+{
+    return m_stitch_op_chkbox_last_st;
+}
+
+void ImageProcessorWidget::set_stitch_op_chkbox_st(Qt::CheckState new_st)
+{
+    m_stitch_op_chkbox_last_st = ui->stitchChkBox->checkState();
+    ui->stitchChkBox->setCheckState(new_st);
+}
+
 void ImageProcessorWidget::get_latest_op_flags(bool &tr, bool &mark, bool &del_mark,
                                                bool &br_con)
 {
@@ -507,4 +575,122 @@ void ImageProcessorWidget::get_latest_op_flags(bool &tr, bool &mark, bool &del_m
     mark = ui->markRBtn->isChecked();
     del_mark = ui->delMarkRBtn->isChecked();
     br_con = ui->bri_contr_RBtn->isChecked();
+}
+
+QImage ImageProcessorWidget::stitch_images()
+{
+    if(m_selectedFiles.size() < 2)
+    {
+        QMessageBox::information(this, "", g_str_plz_sel_at_least_two_files);
+        return QImage();
+    }
+
+    bool hori_stitch = ui->stitchHoriRBtn->isChecked();
+    const int bpp = 2; //bytes per pix
+
+    QImage stitched_img;
+    if(hori_stitch)
+    {
+        int height = m_selectedFiles[0].height;
+        int width = m_selectedFiles[0].width;
+        for(int i = 1; i < m_selectedFiles.size(); ++i)
+        {
+            if(m_selectedFiles[i].height != height)
+            {
+                QMessageBox::critical(this, "", g_str_img_height_should_be_identical);
+                return QImage();
+            }
+            width += m_selectedFiles[i].width;
+        }
+        QImage hori_stitched_img(width, height, QImage::Format_Grayscale16);
+        int bpl_of_tgt = hori_stitched_img.bytesPerLine();
+        uchar* dst_bits = hori_stitched_img.bits();
+        for(int x_pos = 0, i = 0; i < m_selectedFiles.size(); ++i)
+        {
+            QImage curr_img = read_gray_raw_img(m_selectedFiles[i].fn_raw, m_selectedFiles[i].width,
+                                                m_selectedFiles[i].height, QImage::Format_Grayscale16);
+            if(curr_img.isNull())
+            {
+                DIY_LOG(LOG_ERROR, QString("load raw data file %1 error.")
+                                            .arg(m_selectedFiles[i].fn_raw));
+                return QImage();
+            }
+            int actual_blp_of_src = curr_img.width() * bpp;
+            for(int y = 0; y < height; ++y)
+            {
+                memcpy(dst_bits + y * bpl_of_tgt + x_pos * bpp, curr_img.scanLine(y),
+                       actual_blp_of_src);
+            }
+            x_pos += curr_img.width();
+        }
+        stitched_img = hori_stitched_img;
+    }
+    else
+    {
+        int height = m_selectedFiles[0].height;
+        int width = m_selectedFiles[0].width;
+        for(int i = 1; i < m_selectedFiles.size(); ++i)
+        {
+            if(m_selectedFiles[i].width != width)
+            {
+                QMessageBox::critical(this, "", g_str_img_width_should_be_identical);
+                return QImage();
+            }
+            height += m_selectedFiles[i].height;
+        }
+        QImage vert_stitched_img(width, height, QImage::Format_Grayscale16);
+        int bpl_of_tgt = vert_stitched_img.bytesPerLine();
+        uchar* dst_bits = vert_stitched_img.bits();
+        for(int y_pos = 0, i = 0; i < m_selectedFiles.size(); ++i)
+        {
+            QImage curr_img = read_gray_raw_img(m_selectedFiles[i].fn_raw, m_selectedFiles[i].width,
+                                                m_selectedFiles[i].height, QImage::Format_Grayscale16);
+            if(curr_img.isNull())
+            {
+                DIY_LOG(LOG_ERROR, QString("load raw data file %1 error.")
+                                            .arg(m_selectedFiles[i].fn_raw));
+                return QImage();
+            }
+            int actual_blp_of_src = curr_img.width() * bpp;
+            for(int y = 0; y < curr_img.height(); ++y)
+            {
+                memcpy(dst_bits + (y + y_pos) * bpl_of_tgt, curr_img.scanLine(y),
+                       actual_blp_of_src);
+            }
+            y_pos += curr_img.height();
+        }
+        stitched_img = vert_stitched_img;
+    }
+
+    return stitched_img;
+}
+
+void ImageProcessorWidget::display_stitched_image()
+{
+    QImage stitched_img = stitch_images();
+
+    if(stitched_img.isNull()) return;
+
+    save_stitched_image(stitched_img);
+    go_display_one_big_img(stitched_img);
+}
+
+void ImageProcessorWidget::save_stitched_image(QImage &img)
+{
+    QString parent_dir;
+    QStringList fn_list;
+
+    get_saved_img_name_or_pat(&parent_dir, &fn_list, nullptr);
+    QString curr_path = g_sys_settings_blk.stitched_img_save_path + "/" + parent_dir;
+    if(!chk_mk_pth_and_warn(curr_path, this))
+    {
+        return;
+    }
+
+    img.save(curr_path + "/" + fn_list[IMG_TYPE_PNG]);
+
+    QImage img8bit = convertGrayscale16To8(img);
+    img8bit.save(curr_path + "/" + fn_list[IMG_TYPE_8BIT_PNG]);
+
+    write_gray_raw_img(curr_path + "/" + fn_list[IMG_TYPE_RAW], img);
 }

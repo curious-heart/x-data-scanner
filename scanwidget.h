@@ -145,7 +145,6 @@ private:
     void save_local_imgs(gray_img_disp_type_e_t disp_type);
 
     QString log_disp_prepender_str();
-    bool chk_mk_pth_and_warn(QString &pth_str);
     void reset_display_img_buffer();
 
     void adjust_bg_data_size(QVector<gray_pixel_data_type> &tgt,
