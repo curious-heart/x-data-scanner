@@ -70,7 +70,8 @@ STR_DELCARE_STMT(g_str_on_en, "on") \
 STR_DELCARE_STMT(g_str_off_en, "off") \
 STR_DELCARE_STMT(g_str_unknown_en, "unknown") \
 STR_DELCARE_STMT(g_str_plz_unlock_first, "请先解锁") \
-STR_DELCARE_STMT(g_str_conf_if_power_on_fpga, "是否给FPGA上电？")
+STR_DELCARE_STMT(g_str_conf_if_power_on_fpga, "是否给FPGA上电？") \
+STR_DELCARE_STMT(g_str_plz_sel_two_files, "请选择2个文件")
 
 LIT_STRINGS_LIST
 

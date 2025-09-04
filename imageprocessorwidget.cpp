@@ -1,3 +1,4 @@
+#include <QMessageBox>
 #include <QDirIterator>
 #include "imageprocessorwidget.h"
 #include "ui_imageprocessorwidget.h"
@@ -6,6 +7,7 @@
 #include "logger/logger.h"
 #include "img_proc_common.h"
 #include "syssettings.h"
+#include "literal_strings/literal_strings.h"
 
 typedef struct
 {
@@ -13,15 +15,18 @@ typedef struct
     const char* str;
 }img_proc_filter_combobox_item_s_t;
 
-bool _img_fns_list::operator ==(const img_fns_list_s_t &other)
+bool img_fns_list_s_t::operator ==(const img_fns_list_s_t &other) const
 {
     return fn_png == other.fn_png;
 }
-_img_fns_list::_img_fns_list(QString png, QString png8bit, QString raw, int width, int height)
+img_fns_list_s_t::img_fns_list_s_t(QString png, QString png8bit, QString raw,
+                             int width, int height,  QWidget *cw)
 {
     fn_png = png; fn_png8bit = png8bit; fn_raw = raw;
     this->width = width;
     this->height = height;
+
+    cellWidget = cw;
 }
 
 static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
@@ -37,6 +42,8 @@ static const char* gs_thumbnail_prop_base_f_name = "file_base_name";
 static const char* gs_thumbnail_prop_width_name = "img_width";
 static const char* gs_thumbnail_prop_height_name = "img_height";
 
+static const char* gs_thumbnail_wgt_name = "thumbCellWidget";
+
 ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::ImageProcessorWidget)
@@ -45,7 +52,7 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
 
     qRegisterMetaType<img_proc_filter_mode_e_t>("img_proc_filter_mode_e_t");
 
-    for(int i = 0; i < ARRAY_COUNT(img_proc_filter_combox_list); ++i)
+    for(size_t i = 0; i < ARRAY_COUNT(img_proc_filter_combox_list); ++i)
     {
         ui->imgFilterComboBox->addItem(img_proc_filter_combox_list[i].str,
                                        img_proc_filter_combox_list[i].mode);
@@ -70,6 +77,9 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     m_op_rbtn_grp->addButton(ui->markRBtn);
     m_op_rbtn_grp->addButton(ui->bri_contr_RBtn);
     m_op_rbtn_grp->addButton(ui->delMarkRBtn);
+
+    /*--------------------*/
+    ui->compareChkBox->setTristate(true);
 
     /*setup widges for thumnail display*/
     m_thumbnail_scroll_area = new QScrollArea(this);
@@ -109,7 +119,10 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     ui->imgViewStackedWgt->addWidget(m_img_view_container_wgt);
 
     /*--------------------*/
-    refresh_ctrls_display();
+    m_thumnail_style = QString("#") + gs_thumbnail_wgt_name + " {border: 2px solid red; }";
+    /*--------------------*/
+    uncheck_op_rbtns();
+    refresh_ctrls_state();
 }
 
 ImageProcessorWidget::~ImageProcessorWidget()
@@ -117,7 +130,7 @@ ImageProcessorWidget::~ImageProcessorWidget()
     delete ui;
 }
 
-void ImageProcessorWidget::refresh_ctrls_display()
+void ImageProcessorWidget::refresh_ctrls_state()
 {
     bool dt_ctrl_enabled = (ui->imgFilterComboBox->currentData() != IMG_PROC_FILTER_ALL);
     ui->startDTEdit->setEnabled(dt_ctrl_enabled);
@@ -126,13 +139,14 @@ void ImageProcessorWidget::refresh_ctrls_display()
 
 void ImageProcessorWidget::on_imgFilterComboBox_currentIndexChanged(int /*index*/)
 {
-    refresh_ctrls_display();
+    refresh_ctrls_state();
 }
 
 
 void ImageProcessorWidget::on_imgFilterConfPBtn_clicked()
 {
     ui->imgViewStackedWgt->setCurrentWidget(m_thumbnail_scroll_area);
+    ui->returnToThumbListPBtn->setEnabled(false);
 
     QDateTime start_dt = ui->startDTEdit->dateTime();
     QDateTime stop_dt  = ui->stopDTEdit->dateTime();
@@ -256,7 +270,8 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     QString fn_raw = thumbLabel->property(gs_thumbnail_prop_raw_fp_name).toString();
     int ori_img_width = thumbLabel->property(gs_thumbnail_prop_width_name).toInt();
     int ori_img_height = thumbLabel->property(gs_thumbnail_prop_height_name).toInt();
-    img_fns_list_s_t fns = img_fns_list_s_t(fn_png, fn_png8bit, fn_raw, ori_img_width, ori_img_height);
+    img_fns_list_s_t fns = img_fns_list_s_t(fn_png, fn_png8bit, fn_raw,
+                                            ori_img_width, ori_img_height, cellWidget);
 
     // 1) 双击查看大图
     if (event->type() == QEvent::MouseButtonDblClick) {
@@ -269,13 +284,15 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
         }
     }
     // 2) 左键点击选择（单选 / Ctrl 多选）
-    else if (event->type() == QEvent::MouseButtonPress) {
+    else if (event->type() == QEvent::MouseButtonPress)
+    {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::LeftButton) {
+        if (mouseEvent->button() == Qt::LeftButton)
+        {
 
-            bool ctrlPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
+            bool multi_sel = can_multi_sel_thumbnail();
 
-            if (!ctrlPressed) {
+            if (!multi_sel) {
                 // 单选：先清除所有高亮
                 for (QObject *child : m_thumbnail_container_wgt->children()) {
                     QWidget *cw = qobject_cast<QWidget*>(child);
@@ -294,9 +311,8 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
             } else {
                 // 选中
                 m_selectedFiles.append(fns);
-                static const char* ls_thumb_wgt_name = "thumbCellWidget";
-                cellWidget->setObjectName(ls_thumb_wgt_name);
-                cellWidget->setStyleSheet(QString("#") + ls_thumb_wgt_name+ " {border: 2px solid red; }");
+                cellWidget->setObjectName(gs_thumbnail_wgt_name);
+                cellWidget->setStyleSheet(m_thumnail_style);
             }
 
             return true;
@@ -306,7 +322,7 @@ bool ImageProcessorWidget::eventFilter(QObject *obj, QEvent *event)
     return QWidget::eventFilter(obj, event);
 }
 
-void ImageProcessorWidget::uncheck_op_rbtns()
+void ImageProcessorWidget::uncheck_op_rbtns(bool clear_sel_files)
 {
     m_op_rbtn_grp->setExclusive(false);
         ui->translateRBtn->setChecked(false);
@@ -314,10 +330,15 @@ void ImageProcessorWidget::uncheck_op_rbtns()
         ui->delMarkRBtn->setChecked(false);
         ui->bri_contr_RBtn->setChecked(false);
     m_op_rbtn_grp->setExclusive(true);
+
+    set_compare_op_chkbox_st(Qt::Unchecked);
+    if(clear_sel_files) clear_all_selected_files();
 }
 
 void ImageProcessorWidget::go_display_one_big_img()
 {
+    ui->returnToThumbListPBtn->setEnabled(true);
+
     m_img_with_info_wgt->setVisible(true);
     m_img_with_info_wgt_2->setVisible(false);
 
@@ -327,10 +348,14 @@ void ImageProcessorWidget::go_display_one_big_img()
 
 void ImageProcessorWidget::go_display_parallel_imgs()
 {
+    ui->returnToThumbListPBtn->setEnabled(true);
+
     m_img_with_info_wgt->setVisible(true);
     m_img_with_info_wgt_2->setVisible(true);
 
     ui->imgViewStackedWgt->setCurrentWidget(m_img_view_container_wgt);
+    m_img_viewr->loadImage(m_selectedFiles[0].fn_raw, m_selectedFiles[0].width, m_selectedFiles[0].height);
+    m_img_viewr_2->loadImage(m_selectedFiles[1].fn_raw, m_selectedFiles[1].width, m_selectedFiles[1].height);
 }
 
 void ImageProcessorWidget::on_translateRBtn_toggled(bool checked)
@@ -397,3 +422,80 @@ void ImageProcessorWidget::on_shrinkPBtn_clicked()
     if(m_img_viewr_2) m_img_viewr_2->zoomOut();
 }
 
+void ImageProcessorWidget::clear_all_selected_files()
+{
+    for(const img_fns_list_s_t &sel : std::as_const(m_selectedFiles))
+    {
+        if(sel.cellWidget)
+        {
+            sel.cellWidget->setStyleSheet("");
+        }
+    }
+    m_selectedFiles.clear();
+}
+
+void ImageProcessorWidget::on_compareChkBox_clicked()
+{
+    if(curr_proc_st() == IMG_PROC_IMG_VIEW)
+    {
+        DIY_LOG(LOG_WARN, "In img view state, compare op has no meaning.");
+        return;
+    }
+    Qt::CheckState cur_state = get_compare_op_chkbox_last_st();
+
+    if(m_selectedFiles.size() >= 2)
+    {
+        if(Qt::Checked == cur_state)
+        {
+            clear_all_selected_files();
+            set_compare_op_chkbox_st(Qt::Unchecked);
+        }
+        else
+        {
+            set_compare_op_chkbox_st(Qt::Checked);
+            go_display_parallel_imgs();
+        }
+    }
+    else
+    {
+        QMessageBox::information(this, "", g_str_plz_sel_two_files);
+        set_compare_op_chkbox_st(Qt::PartiallyChecked);
+    }
+}
+
+img_processor_st_e_t ImageProcessorWidget::curr_proc_st()
+{
+    if(ui->imgViewStackedWgt->currentWidget() == m_thumbnail_scroll_area)
+    {
+        return IMG_PROC_THUMBNAIL_LIST;
+    }
+    else
+    {
+        return IMG_PROC_IMG_VIEW;
+    }
+}
+
+bool ImageProcessorWidget::can_multi_sel_thumbnail()
+{
+    bool ctrlPressed = QApplication::keyboardModifiers() & Qt::ControlModifier;
+    return ctrlPressed || (ui->compareChkBox->checkState() == Qt::PartiallyChecked);
+}
+
+void ImageProcessorWidget::on_returnToThumbListPBtn_clicked()
+{
+    ui->imgViewStackedWgt->setCurrentWidget(m_thumbnail_scroll_area);
+    ui->returnToThumbListPBtn->setEnabled(false);
+
+    uncheck_op_rbtns(false);
+}
+
+Qt::CheckState ImageProcessorWidget::get_compare_op_chkbox_last_st()
+{
+    return m_compare_op_chkbox_last_st;
+}
+
+void ImageProcessorWidget::set_compare_op_chkbox_st(Qt::CheckState new_st)
+{
+    m_compare_op_chkbox_last_st = ui->compareChkBox->checkState();
+    ui->compareChkBox->setCheckState(new_st);
+}

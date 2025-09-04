@@ -648,7 +648,7 @@ QString MainWindow::hv_work_st_str(quint16 st_reg_val)
 
     if(ls_first)
     {
-        for(int i = 0; i < ARRAY_COUNT(ls_st_val_to_str_arr); ++i)
+        for(size_t i = 0; i < ARRAY_COUNT(ls_st_val_to_str_arr); ++i)
         {
             ls_st_val_to_str_map.insert(ls_st_val_to_str_arr[i].val,
                                         ls_st_val_to_str_arr[i].str);

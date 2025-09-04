@@ -6,6 +6,8 @@
 #include <QScrollArea>
 #include <QGridLayout>
 #include <QButtonGroup>
+#include <QCheckBox>
+#include <QPointer>
 
 #include "imageviewerwidget.h"
 
@@ -20,18 +22,25 @@ typedef enum
 }img_proc_filter_mode_e_t;
 Q_DECLARE_METATYPE(img_proc_filter_mode_e_t)
 
-class _img_fns_list;
-typedef class _img_fns_list
+class img_fns_list_s_t
 {
 public:
     QString fn_png, fn_png8bit, fn_raw;
     int width, height;
+    QPointer<QWidget> cellWidget;
 
 public:
-    _img_fns_list(QString png = "", QString png8bit = "", QString raw = "", int width = 0, int height = 0);
-    bool operator==(const _img_fns_list &other);
+    img_fns_list_s_t(QString png = "", QString png8bit = "", QString raw = "",
+                  int width = 0, int height = 0, QWidget *cw = nullptr);
+    bool operator==(const img_fns_list_s_t &other) const;
 
-}img_fns_list_s_t;
+};
+
+typedef enum
+{
+    IMG_PROC_THUMBNAIL_LIST,
+    IMG_PROC_IMG_VIEW,
+}img_processor_st_e_t;
 
 class ImageProcessorWidget : public QWidget
 {
@@ -66,6 +75,10 @@ private slots:
 
     void on_shrinkPBtn_clicked();
 
+    void on_compareChkBox_clicked();
+
+    void on_returnToThumbListPBtn_clicked();
+
 private:
     Ui::ImageProcessorWidget *ui;
 
@@ -86,13 +99,23 @@ private:
     ImageViewerWidget * m_img_viewr = nullptr, *m_img_viewr_2 = nullptr;
     QLabel *m_img_info_lbl = nullptr, *m_img_info_lbl_2 = nullptr;
 
-    void refresh_ctrls_display();
+    QString m_thumnail_style;
+
+    void refresh_ctrls_state();
     bool eventFilter(QObject *obj, QEvent *event);
 
     void go_display_one_big_img();
     void go_display_parallel_imgs();
 
-    void uncheck_op_rbtns();
+    void uncheck_op_rbtns(bool clear_sel_files = true);
+    void clear_all_selected_files();
+
+    img_processor_st_e_t curr_proc_st();
+    bool can_multi_sel_thumbnail();
+
+    Qt::CheckState m_compare_op_chkbox_last_st;
+    Qt::CheckState get_compare_op_chkbox_last_st();
+    void set_compare_op_chkbox_st(Qt::CheckState new_st);
 };
 
 #endif // IMAGEPROCESSORWIDGET_H
