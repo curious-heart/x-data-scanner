@@ -1,9 +1,11 @@
 #include <cmath>
+#include <QtGlobal>
 #include "imageviewerwidget.h"
 #include "imageprocessorwidget.h"
 
 #include "common_tools/common_tool_func.h"
 #include "logger/logger.h"
+#include "literal_strings/literal_strings.h"
 
 static const int gs_min_px_val = 0, gs_max_px_val = 65535;
 
@@ -58,6 +60,7 @@ void ImageViewerWidget::clear_op_flags()
     m_translate = false;
     m_WW_adjust = m_WL_adjust = false;
     m_mark = m_del_mark = false;
+    m_pseudo_color = false;
 }
 
 void ImageViewerWidget::reset_op_params()
@@ -176,7 +179,10 @@ void ImageViewerWidget::wheelEvent(QWheelEvent *event)
 // paintEvent
 void ImageViewerWidget::paintEvent(QPaintEvent *event)
 {
-    if (m_originalImage.isNull()) return QLabel::paintEvent(event);
+    if (m_originalImage.isNull() || m_processedImage.isNull())
+    {
+        return QLabel::paintEvent(event);
+    }
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::SmoothPixmapTransform,true);
@@ -195,8 +201,15 @@ void ImageViewerWidget::paintEvent(QPaintEvent *event)
     transform.translate(-1 * m_originalImage.width() / 2.0, -1 * m_originalImage.height() / 2.0); // 图像左上角对齐
 
     painter.setTransform(transform);
-    QImage display_img_8bit = convertGrayscale16To8(m_originalImage);
-    painter.drawImage(QPoint(0, 0), display_img_8bit);
+    if(m_pseudo_color)
+    {
+        painter.drawImage(QPoint(0, 0), m_pseudoColorImage);
+    }
+    else
+    {
+        QImage display_img_8bit = convertGrayscale16To8(m_processedImage);
+        painter.drawImage(QPoint(0, 0), display_img_8bit);
+    }
 
     painter.restore();
 
@@ -280,3 +293,77 @@ bool ImageViewerWidget::get_mouse_pos_px_val(const QPoint &mouse_pos,
     }
     return true;
 }
+
+void ImageViewerWidget::reset_pseudo_color_flag()
+{
+    m_pseudo_color = false;
+}
+
+void ImageViewerWidget::pseudo_color(ColorMapType color_type)
+{
+    m_pseudo_color = !m_pseudo_color;
+
+    if(m_op_ctrls) m_op_ctrls->flip_pseudo_color_btn_text(!m_pseudo_color);
+
+    if(!m_pseudo_color || m_processedImage.isNull())
+    {
+        update();
+        return;
+    }
+
+    m_pseudoColorImage = QImage(m_processedImage.size(), QImage::Format_RGB32);
+    for(int y = 0; y < m_processedImage.height(); ++y)
+    {
+        const ushort *srcLine
+            = reinterpret_cast<const ushort*>(m_processedImage.constScanLine(y));
+        QRgb *dstLine = reinterpret_cast<QRgb*>(m_pseudoColorImage.scanLine(y));
+        for (int x = 0; x < m_processedImage.width(); ++x)
+        {
+            dstLine[x] = m_lut[color_type][srcLine[x]];
+        }
+    }
+    update();
+}
+
+// ------------------ 伪彩色映射函数 ------------------------------------
+static QRgb jet(int v)    { int r = qBound(0, 255*(v-128)/128,255); int g = qBound(0, 255*(255-abs(v-128))/128,255); int b = qBound(0, 255*(128-v)/128,255); return qRgb(r,g,b);}
+static QRgb hot(int v)    { int r = qBound(0, v*3,255); int g = qBound(0, v*3-255,255); int b = qBound(0, v*3-510,255); return qRgb(r,g,b);}
+static QRgb hsv(int v)    { int h = v*360/255; int s = 255; int val = 255; return QColor::fromHsv(h,s,val).rgb();}
+static QRgb cool(int v)   { return qRgb(v,255-v,255);}
+static QRgb spring(int v) { return qRgb(255,v,255-v);}
+static QRgb summer(int v) { return qRgb(v*0.5+128,v*0.5+128,128);}
+static QRgb autumn(int v) { return qRgb(255,v,0);}
+static QRgb winter(int v) { return qRgb(0,v,255-v);}
+static QRgb bone(int v)   { int r = (int)qBound(0.0, v*1.2,255.0); int g = (int)qBound(0.0, v*1.1,255.0); int b = v; return qRgb(r,g,b);}
+typedef QRgb (*pseudo_v_f_t )(int v) ;
+pseudo_v_f_t gs_pseudo_v_function_arr[COLOR_MAP_CNT] =
+{
+    jet,
+    hot,
+    hsv,
+    cool,
+    spring,
+    summer,
+    autumn,
+    winter,
+    bone,
+};
+QVector<QVector<QRgb>> ImageViewerWidget::m_lut;
+void ImageViewerWidget::generateLUT()
+{
+    static const int ls_16bit_cnt = 65536;
+    m_lut.resize(COLOR_MAP_CNT);
+    for(int i = JET; i < COLOR_MAP_CNT; ++i)
+    {
+        m_lut[i].resize(ls_16bit_cnt);
+    }
+    for (int i = 0; i < ls_16bit_cnt; ++i)
+    {
+        int val = i >> 8; // 16位 -> 8位
+        for(int color_type = JET; color_type < COLOR_MAP_CNT; ++color_type)
+        {
+            m_lut[color_type][i] = gs_pseudo_v_function_arr[color_type](val);
+        }
+    }
+}
+// ------------------------------------------------------

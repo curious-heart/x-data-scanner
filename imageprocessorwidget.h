@@ -51,6 +51,7 @@ public:
     ~ImageProcessorWidget();
 
     void get_latest_op_flags(bool &tr, bool &mark, bool &del_mark, bool &br_con);
+    void flip_pseudo_color_btn_text(bool op = true);
 
 private slots:
     void on_imgFilterComboBox_currentIndexChanged(int index);
@@ -82,6 +83,10 @@ private slots:
     void on_returnToThumbListPBtn_clicked();
 
     void on_stitchChkBox_clicked();
+
+    void on_pseudoColorPBtn_clicked();
+
+    void on_pseudoColorComboBox_currentIndexChanged(int index);
 
 private:
     Ui::ImageProcessorWidget *ui;

@@ -321,6 +321,20 @@
          </spacer>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="1,2">
+          <item>
+           <widget class="QPushButton" name="pseudoColorPBtn">
+            <property name="text">
+             <string>着色</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="pseudoColorComboBox"/>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QPushButton" name="restoreImgPBtn">
           <property name="text">
            <string>恢复原图</string>

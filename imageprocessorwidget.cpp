@@ -35,6 +35,24 @@ static const img_proc_filter_combobox_item_s_t img_proc_filter_combox_list[] =
     {IMG_PROC_FILTER_DT_RANGE, "按时间范围"},
 };
 
+typedef struct
+{
+    ColorMapType col_map_type;
+    const char* str;
+}pseudo_color_combobox_item_s_t;
+static const pseudo_color_combobox_item_s_t pseudo_color_sel_combox_list[] =
+{
+    {JET, "JET"},
+    {HOT, "HOT"},
+    {HSV_color, "HSV"},
+    {COOL, "COOL"},
+    {SPRING, "SPRING"},
+    {SUMMER, "SUMMER"},
+    {AUTUMN, "AUTUMN"},
+    {WINTER, "WINTER"},
+    {BONE, "BONE"},
+};
+
 static const char* gs_thumbnail_prop_png_fp_name = "file_png";
 static const char* gs_thumbnail_prop_png8bit_fp_name = "file_png8bit_path";
 static const char* gs_thumbnail_prop_raw_fp_name = "file_raw_path";
@@ -51,13 +69,21 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     ui->setupUi(this);
 
     qRegisterMetaType<img_proc_filter_mode_e_t>("img_proc_filter_mode_e_t");
+    qRegisterMetaType<ColorMapType>("ColorMapType");
 
     for(size_t i = 0; i < ARRAY_COUNT(img_proc_filter_combox_list); ++i)
     {
         ui->imgFilterComboBox->addItem(img_proc_filter_combox_list[i].str,
-                                       img_proc_filter_combox_list[i].mode);
+                           QVariant::fromValue(img_proc_filter_combox_list[i].mode));
     }
     ui->imgFilterComboBox->setCurrentIndex(IMG_PROC_FILTER_ALL);
+
+    for(size_t i = 0; i < ARRAY_COUNT(pseudo_color_sel_combox_list); ++i)
+    {
+        ui->pseudoColorComboBox->addItem(pseudo_color_sel_combox_list[i].str,
+                       QVariant::fromValue(pseudo_color_sel_combox_list[i].col_map_type));
+    }
+    ui->pseudoColorComboBox->setCurrentIndex(JET);
 
     ui->startDTEdit->setDateTime(QDateTime::currentDateTime());
     ui->stopDTEdit->setDateTime(QDateTime::currentDateTime());
@@ -125,6 +151,8 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     /*--------------------*/
     ui->imgViewStackedWgt->addWidget(m_thumbnail_scroll_area);
     ui->imgViewStackedWgt->addWidget(m_img_view_container_wgt);
+
+    ImageViewerWidget::generateLUT();
 
     /*--------------------*/
     m_thumnail_style = QString("#") + gs_thumbnail_wgt_name + " {border: 2px solid red; }";
@@ -400,6 +428,8 @@ void ImageProcessorWidget::on_restoreImgPBtn_clicked()
 {
     if(m_img_viewr) m_img_viewr->resetImage();
     if(m_img_viewr_2) m_img_viewr_2->resetImage();
+
+    flip_pseudo_color_btn_text(true);
 }
 
 void ImageProcessorWidget::on_leftRotatePBtn_clicked()
@@ -694,3 +724,36 @@ void ImageProcessorWidget::save_stitched_image(QImage &img)
 
     write_gray_raw_img(curr_path + "/" + fn_list[IMG_TYPE_RAW], img);
 }
+
+void ImageProcessorWidget::on_pseudoColorPBtn_clicked()
+{
+    if(curr_proc_st() != IMG_PROC_IMG_VIEW)
+    {
+        return;
+    }
+    if(m_img_viewr)
+    {
+        m_img_viewr->pseudo_color(ui->pseudoColorComboBox->
+                                  currentData().value<ColorMapType>());
+    }
+    if(m_img_viewr_2)
+    {
+        m_img_viewr_2->pseudo_color(ui->pseudoColorComboBox->
+                                    currentData().value<ColorMapType>());
+    }
+}
+
+void ImageProcessorWidget::flip_pseudo_color_btn_text(bool op)
+{
+    if(op) ui->pseudoColorPBtn->setText(g_str_pseudo_color);
+    else ui->pseudoColorPBtn->setText(g_str_clear_pseudo_color);
+}
+
+void ImageProcessorWidget::on_pseudoColorComboBox_currentIndexChanged(int /*index*/)
+{
+    if(m_img_viewr) m_img_viewr->reset_pseudo_color_flag();
+    if(m_img_viewr_2) m_img_viewr_2->reset_pseudo_color_flag();
+
+    flip_pseudo_color_btn_text(true);
+}
+

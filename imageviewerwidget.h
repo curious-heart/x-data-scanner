@@ -9,6 +9,22 @@
 #include <QPainter>
 #include <QTransform>
 
+typedef enum
+{
+    JET = 0,
+    HOT,
+    HSV_color,
+    COOL,
+    SPRING,
+    SUMMER,
+    AUTUMN,
+    WINTER,
+    BONE,
+
+    COLOR_MAP_CNT,
+}ColorMapType;
+Q_DECLARE_METATYPE(ColorMapType)
+
 class ImageProcessorWidget;
 class ImageViewerWidget : public QLabel
 {
@@ -18,6 +34,7 @@ public:
                                ImageProcessorWidget * op_ctrls = nullptr,
                                QWidget *parent = nullptr);
 
+    static void generateLUT();
     // 加载图像
     bool loadImage(const QString &filePath, int width, int height);
     bool loadImage(const QImage &img);
@@ -33,6 +50,8 @@ public:
     void rotateRight90();
     void flipHorizontal();
     void flipVertical();
+    void pseudo_color(ColorMapType color_type);
+    void reset_pseudo_color_flag();
 
     void clear_op_flags();
 
@@ -46,7 +65,7 @@ private:
     ImageProcessorWidget * m_op_ctrls  = nullptr;
     QLabel * m_info_lbl = nullptr;
     QImage m_originalImage;   // 原始图像
-    QImage m_processedImage;  // 处理后的图像
+    QImage m_processedImage, m_pseudoColorImage;  // 处理后的图像
     double m_scaleFactor;     // 缩放
     QPoint m_offset;          // 平移
     QPoint m_lastMousePos;    // 拖拽记录
@@ -55,14 +74,16 @@ private:
     bool m_flipV;
     bool m_translate, m_WW_adjust, m_WL_adjust;
     bool m_mark, m_del_mark;
+    bool m_pseudo_color;
     quint16 m_windowWidth, m_windowLevel, m_ori_WW, m_ori_WL;
 
-    bool m_mouse_in_img = false;
-    int m_curr_mouse_pos_x, m_curr_mouse_pos_y;
+    bool m_mouse_in_img = false; int m_curr_mouse_pos_x, m_curr_mouse_pos_y;
     quint16 m_curr_mouse_pos_val;
 
     QTransform m_imageToWidget;
     QTransform m_widgetToImage;
+
+    static QVector<QVector<QRgb>> m_lut;
 
     void reset_op_params();
     void refresh_op_flags();
