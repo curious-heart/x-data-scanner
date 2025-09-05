@@ -34,7 +34,8 @@ public:
                                ImageProcessorWidget * op_ctrls = nullptr,
                                QWidget *parent = nullptr);
 
-    static void generateLUT();
+    static void generate16bitLUT();
+    static void generate8bitLUT();
     // 加载图像
     bool loadImage(const QString &filePath, int width, int height);
     bool loadImage(const QImage &img);
@@ -65,7 +66,7 @@ private:
     ImageProcessorWidget * m_op_ctrls  = nullptr;
     QLabel * m_info_lbl = nullptr;
     QImage m_originalImage;   // 原始图像
-    QImage m_processedImage, m_pseudoColorImage;  // 处理后的图像
+    QImage m_processedImage, m_processedImage8bit, m_pseudoColorImage;  // 处理后的图像
     double m_scaleFactor;     // 缩放
     QPoint m_offset;          // 平移
     QPoint m_lastMousePos;    // 拖拽记录
@@ -83,7 +84,7 @@ private:
     QTransform m_imageToWidget;
     QTransform m_widgetToImage;
 
-    static QVector<QVector<QRgb>> m_lut;
+    static QVector<QVector<QRgb>> m_16bitlut, m_8bitlut;
 
     void reset_op_params();
     void refresh_op_flags();

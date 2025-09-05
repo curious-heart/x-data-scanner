@@ -85,6 +85,7 @@ void ImageViewerWidget::refresh_op_flags()
 void ImageViewerWidget::resetImage()
 {
     m_processedImage = m_originalImage;
+    m_processedImage8bit = convertGrayscale16To8(m_processedImage);
 
     reset_op_params();
 
@@ -207,8 +208,7 @@ void ImageViewerWidget::paintEvent(QPaintEvent *event)
     }
     else
     {
-        QImage display_img_8bit = convertGrayscale16To8(m_processedImage);
-        painter.drawImage(QPoint(0, 0), display_img_8bit);
+        painter.drawImage(QPoint(0, 0), m_processedImage8bit);
     }
 
     painter.restore();
@@ -305,21 +305,21 @@ void ImageViewerWidget::pseudo_color(ColorMapType color_type)
 
     if(m_op_ctrls) m_op_ctrls->flip_pseudo_color_btn_text(!m_pseudo_color);
 
-    if(!m_pseudo_color || m_processedImage.isNull())
+    if(!m_pseudo_color || m_processedImage8bit.isNull())
     {
         update();
         return;
     }
 
-    m_pseudoColorImage = QImage(m_processedImage.size(), QImage::Format_RGB32);
-    for(int y = 0; y < m_processedImage.height(); ++y)
+    m_pseudoColorImage = QImage(m_processedImage8bit.size(), QImage::Format_RGB32);
+    for(int y = 0; y < m_processedImage8bit.height(); ++y)
     {
-        const ushort *srcLine
-            = reinterpret_cast<const ushort*>(m_processedImage.constScanLine(y));
+        const uchar*srcLine
+            = reinterpret_cast<const uchar*>(m_processedImage8bit.constScanLine(y));
         QRgb *dstLine = reinterpret_cast<QRgb*>(m_pseudoColorImage.scanLine(y));
-        for (int x = 0; x < m_processedImage.width(); ++x)
+        for (int x = 0; x < m_processedImage8bit.width(); ++x)
         {
-            dstLine[x] = m_lut[color_type][srcLine[x]];
+            dstLine[x] = m_8bitlut[color_type][srcLine[x]];
         }
     }
     update();
@@ -348,21 +348,39 @@ pseudo_v_f_t gs_pseudo_v_function_arr[COLOR_MAP_CNT] =
     winter,
     bone,
 };
-QVector<QVector<QRgb>> ImageViewerWidget::m_lut;
-void ImageViewerWidget::generateLUT()
+QVector<QVector<QRgb>> ImageViewerWidget::m_16bitlut;
+void ImageViewerWidget::generate16bitLUT()
 {
     static const int ls_16bit_cnt = 65536;
-    m_lut.resize(COLOR_MAP_CNT);
+    m_16bitlut.resize(COLOR_MAP_CNT);
     for(int i = JET; i < COLOR_MAP_CNT; ++i)
     {
-        m_lut[i].resize(ls_16bit_cnt);
+        m_16bitlut[i].resize(ls_16bit_cnt);
     }
     for (int i = 0; i < ls_16bit_cnt; ++i)
     {
         int val = i >> 8; // 16位 -> 8位
         for(int color_type = JET; color_type < COLOR_MAP_CNT; ++color_type)
         {
-            m_lut[color_type][i] = gs_pseudo_v_function_arr[color_type](val);
+            m_16bitlut[color_type][i] = gs_pseudo_v_function_arr[color_type](val);
+        }
+    }
+}
+QVector<QVector<QRgb>> ImageViewerWidget::m_8bitlut;
+void ImageViewerWidget::generate8bitLUT()
+{
+    static const int ls_8bit_cnt = 256;
+    m_8bitlut.resize(COLOR_MAP_CNT);
+    for(int i = JET; i < COLOR_MAP_CNT; ++i)
+    {
+        m_8bitlut[i].resize(ls_8bit_cnt);
+    }
+    for (int i = 0; i < ls_8bit_cnt; ++i)
+    {
+        int val = i;
+        for(int color_type = JET; color_type < COLOR_MAP_CNT; ++color_type)
+        {
+            m_8bitlut[color_type][i] = gs_pseudo_v_function_arr[color_type](val);
         }
     }
 }

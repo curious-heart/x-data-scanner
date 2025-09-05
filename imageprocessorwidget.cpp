@@ -152,7 +152,8 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
     ui->imgViewStackedWgt->addWidget(m_thumbnail_scroll_area);
     ui->imgViewStackedWgt->addWidget(m_img_view_container_wgt);
 
-    ImageViewerWidget::generateLUT();
+    ImageViewerWidget::generate16bitLUT();
+    ImageViewerWidget::generate8bitLUT();
 
     /*--------------------*/
     m_thumnail_style = QString("#") + gs_thumbnail_wgt_name + " {border: 2px solid red; }";
@@ -397,6 +398,7 @@ void ImageProcessorWidget::go_display_one_big_img(const QImage &img)
     {
         m_img_viewr->loadImage(img);
     }
+    flip_pseudo_color_btn_text(true);
 }
 
 void ImageProcessorWidget::go_display_parallel_imgs()
