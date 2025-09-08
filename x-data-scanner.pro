@@ -76,4 +76,17 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-QMAKE_CXXFLAGS += -execution-charset:utf-8
+# Linux
+unix {
+    QMAKE_CXXFLAGS += -finput-charset=UTF-8
+}
+
+# Windows MSVC
+win32 {
+    QMAKE_CXXFLAGS += /utf-8
+}
+
+# Windows MinGW/GCC
+win32:!msvc {
+    QMAKE_CXXFLAGS += -finput-charset=UTF-8
+}
