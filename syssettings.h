@@ -24,6 +24,7 @@ typedef struct
 
     hv_params_s_t hv_params;
 
+    int ignore_pre_line_cnt;
     int ini_disp_img_line_cnt, merg_disp_img_line_cnt;
     bool cali_mode_now;
     int cali_bg_line_cnt, cali_stre_factor_line_cnt;

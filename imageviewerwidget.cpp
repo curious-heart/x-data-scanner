@@ -225,7 +225,7 @@ void ImageViewerWidget::paintEvent(QPaintEvent *event)
         if(m_mouse_in_img)
         {
             info_str += QString("; x:%1, y:%2, val:%3").arg(m_curr_mouse_pos_x)
-                                            .arg(m_curr_mouse_pos_y).arg(m_curr_mouse_pos_y);
+                                            .arg(m_curr_mouse_pos_y).arg(m_curr_mouse_pos_val);
         }
         m_info_lbl->setText(info_str);
     }

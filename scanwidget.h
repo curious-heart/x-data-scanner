@@ -89,6 +89,7 @@ private:
     QVector<gray_pixel_data_type> m_ch1_data_vec, m_ch2_data_vec;
     gray_lines_s_t m_gray_img_lines;
 
+    int m_ignore_pre_line_cnt;
     QImage m_local_img, m_local_img_8bit;
     QImage m_local_layfull_img, m_local_layfull_img_8bit;
     display_buf_img_s_t m_display_buf_img;

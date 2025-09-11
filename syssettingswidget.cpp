@@ -254,6 +254,7 @@ bool SysSettingsWidget::get_sysettings_from_ui(bool succ_silent)
     g_sys_settings_blk.hv_params.expo_dura_ms
         = ui->expoDuraSpinBox->value() * g_sys_settings_blk.hv_params.ui_to_sw_dura_factor;
 
+    g_sys_settings_blk.ignore_pre_line_cnt = ui->ignorePreLineCntSpinbox->value();
     g_sys_settings_blk.ini_disp_img_line_cnt = ui->iniDisplayLineCntSpinBox->value();
     g_sys_settings_blk.merg_disp_img_line_cnt = ui->mergeDispLineCntSpinBox->value();
 

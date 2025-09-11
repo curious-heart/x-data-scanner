@@ -195,6 +195,27 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_20">
+          <item>
+           <widget class="QLabel" name="ignorePreLineCntLbl">
+            <property name="text">
+             <string>忽略起始行数</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="ignorePreLineCntSpinbox">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>65535</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_10">
           <item>
            <widget class="QLabel" name="iniDisplayLineCntLbl">

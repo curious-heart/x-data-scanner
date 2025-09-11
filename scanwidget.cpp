@@ -457,6 +457,7 @@ void ScanWidget::start_scan(src_of_collect_cmd_e_t cmd_src)
         m_cali_stre_factor_line_idx = 0;
     }
 
+    m_ignore_pre_line_cnt = 0;
     if(g_sys_configs_block.scan_without_x)
     {
         start_collect(cmd_src);
@@ -507,6 +508,7 @@ void ScanWidget::stop_scan(src_of_collect_cmd_e_t cmd_src)
     reset_cali_ctrl_vars();
     m_curr_collect_cmd = COLLECT_CMD_NONE;
 
+    m_ignore_pre_line_cnt = 0;
     m_scan_cmd_proc = false;
     btns_refresh();
 
@@ -643,6 +645,12 @@ void ScanWidget::handleNewDataReady()
     if(!g_data_scanning_now) return;
     if(NORMAL == packet.notes)
     {
+        if(m_ignore_pre_line_cnt < g_sys_settings_blk.ignore_pre_line_cnt)
+        {
+            ++m_ignore_pre_line_cnt;
+            return;
+        }
+
         quint64 pkt_idx;
         m_curr_line_pt_cnt
                 = split_data_into_channels(packet.data, m_ch1_data_vec, m_ch2_data_vec, pkt_idx);
