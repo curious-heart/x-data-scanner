@@ -1,4 +1,4 @@
-#include <QMessageBox>
+﻿#include <QMessageBox>
 #include <QDirIterator>
 #include "imageprocessorwidget.h"
 #include "ui_imageprocessorwidget.h"
@@ -62,9 +62,9 @@ static const char* gs_thumbnail_prop_height_name = "img_height";
 
 static const char* gs_thumbnail_wgt_name = "thumbCellWidget";
 
-ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
+ImageProcessorWidget::ImageProcessorWidget(ScanWidget * scan_widget, QWidget *parent)
     : QWidget(parent)
-    , ui(new Ui::ImageProcessorWidget)
+    , ui(new Ui::ImageProcessorWidget), m_scan_widget(scan_widget)
 {
     ui->setupUi(this);
 
@@ -134,13 +134,13 @@ ImageProcessorWidget::ImageProcessorWidget(QWidget *parent)
 
     m_img_with_info_vbox_layout = new QVBoxLayout(m_img_with_info_wgt);
     m_img_info_lbl = new QLabel(m_img_with_info_wgt);
-    m_img_viewr = new ImageViewerWidget(m_img_info_lbl, this, m_img_with_info_wgt);
+    m_img_viewr = new ImageViewerWidget(m_img_info_lbl, this, m_scan_widget, m_img_with_info_wgt);
     m_img_with_info_vbox_layout->addWidget(m_img_viewr);
     m_img_with_info_vbox_layout->addWidget(m_img_info_lbl);
 
     m_img_with_info_vbox_layout_2 = new QVBoxLayout(m_img_with_info_wgt_2);
     m_img_info_lbl_2 = new QLabel(m_img_with_info_wgt_2);
-    m_img_viewr_2 = new ImageViewerWidget(m_img_info_lbl_2, this, m_img_with_info_wgt_2);
+    m_img_viewr_2 = new ImageViewerWidget(m_img_info_lbl_2, this, m_scan_widget, m_img_with_info_wgt_2);
     m_img_with_info_vbox_layout_2->addWidget(m_img_viewr_2);
     m_img_with_info_vbox_layout_2->addWidget(m_img_info_lbl_2);
 
@@ -757,5 +757,38 @@ void ImageProcessorWidget::on_pseudoColorComboBox_currentIndexChanged(int /*inde
     if(m_img_viewr_2) m_img_viewr_2->reset_pseudo_color_flag();
 
     flip_pseudo_color_btn_text(true);
+}
+
+void save_triple_files(QImage &img, QStringList &fns)
+{
+    QImage img8bit;
+    img.save(fns[IMG_TYPE_PNG]);
+
+    write_gray_raw_img(fns[IMG_TYPE_RAW], img);
+
+    img8bit = convertGrayscale16To8(img);
+    img8bit.save(fns[IMG_TYPE_8BIT_PNG]);
+}
+
+void ImageProcessorWidget::on_appCaliDataPBtn_clicked()
+{
+    QImage ret_img, ret_img8bit;
+    QString bn;
+    QStringList fn_list;
+    if(m_img_viewr && m_img_viewr->isVisible())
+    {
+        m_img_viewr->app_cali_data_to_img(ret_img);
+        bn = QFileInfo(m_selectedFiles[0].fn_raw).baseName() + g_str_applied_cali_img_apx;
+        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &bn);
+        save_triple_files(ret_img, fn_list);
+    }
+
+    if(m_img_viewr_2 && m_img_viewr_2->isVisible())
+    {
+        m_img_viewr_2->app_cali_data_to_img(ret_img);
+        bn = QFileInfo(m_selectedFiles[1].fn_raw).baseName() + g_str_applied_cali_img_apx;
+        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &bn);
+        save_triple_files(ret_img, fn_list);
+    }
 }
 

@@ -177,9 +177,11 @@ void ScanWidget::adjust_bg_data_size(QVector<gray_pixel_data_type> &tgt,
     }
     else
     {
+        gray_pixel_data_type ap_data = data.size() > 0
+                                ? data.last() : g_sys_configs_block.def_scan_bg_value;
         tgt = data;
         tgt.resize(tgt_size);
-        std::fill(tgt.begin() + data.size(), tgt.end(), g_sys_configs_block.def_scan_bg_value);
+        std::fill(tgt.begin() + data.size(), tgt.end(), ap_data);
     }
 }
 void ScanWidget::adjust_stre_factor_data_size(QVector<double> &tgt, const QVector<double>& data,
@@ -191,9 +193,11 @@ void ScanWidget::adjust_stre_factor_data_size(QVector<double> &tgt, const QVecto
     }
     else
     {
+        double ap_data = data.size() > 0
+                        ? data.last() : g_sys_configs_block.def_scan_stre_factor_value;
         tgt = data;
         tgt.resize(tgt_size);
-        std::fill(tgt.begin() + data.size(), tgt.end(), g_sys_configs_block.def_scan_stre_factor_value);
+        std::fill(tgt.begin() + data.size(), tgt.end(), ap_data);
     }
 }
 
@@ -1223,4 +1227,36 @@ void ScanWidget::on_caliStreFactorBtn_clicked()
 void ScanWidget::expo_dura_timer_sig_hdlr()
 {
     emit fpga_pwr_on_off_sig(false, (quint16)m_curr_expo_dura_s);
+}
+
+void ScanWidget::app_cali_to_img(QImage &img)
+{
+    if(img.format() != QImage::Format_Grayscale16)
+    {
+        DIY_LOG(LOG_WARN, "Only QImage::Format_Grayscale16 image can be calibrated.");
+        return;
+    }
+
+    int width = img.width(), height = img.height();
+    QVector<gray_pixel_data_type> work_bg; work_bg.clear();
+    QVector<double> work_stre; work_stre.clear();
+
+    adjust_bg_data_size(work_bg, m_scan_bg_value_loaded, width);
+    adjust_stre_factor_data_size(work_stre, m_scan_stre_factor_value_loaded, width);
+    for(int y = 0; y < height; ++y)
+    {
+        quint16 *line16 = reinterpret_cast<quint16 *>(img.scanLine(y));
+        for(int x = 0; x < width; ++x)
+        {
+            quint16 v = line16[x];
+            if(v > work_bg[x]) v -= work_bg[x];
+            else v = 0;
+
+            double tmp_v = v * work_stre[x];
+            if (tmp_v < 0.0) tmp_v = 0;
+            else if (tmp_v > g_12bitpx_max_v) tmp_v = g_12bitpx_max_v;
+            line16[x] = tmp_v;
+        }
+
+    }
 }

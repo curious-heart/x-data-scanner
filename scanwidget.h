@@ -71,6 +71,8 @@ public:
 
     bool hv_send_op_cmd(hv_op_enum_t op);
 
+    void app_cali_to_img(QImage &img);
+
     bool m_init_ok = false;
     QString m_init_err_str;
 

@@ -130,7 +130,7 @@ MainWindow::MainWindow(QString sw_about_str, QWidget *parent)
     }
     m_camera_widget->hide();
 
-    m_img_proc_widget = new ImageProcessorWidget(this);
+    m_img_proc_widget = new ImageProcessorWidget(m_scan_widget, this);
     m_img_proc_widget->hide();
 
     m_mainmenubtns_widget = new MainmenuBtnsWidget(this);

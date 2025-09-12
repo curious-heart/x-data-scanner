@@ -1,4 +1,4 @@
-#ifndef IMAGEVIEWERWIDGET_H
+﻿#ifndef IMAGEVIEWERWIDGET_H
 #define IMAGEVIEWERWIDGET_H
 
 #include <QLabel>
@@ -8,6 +8,8 @@
 #include <QWheelEvent>
 #include <QPainter>
 #include <QTransform>
+
+#include "scanwidget.h"
 
 typedef enum
 {
@@ -32,6 +34,7 @@ class ImageViewerWidget : public QLabel
 public:
     explicit ImageViewerWidget(QLabel * info_lbl = nullptr,
                                ImageProcessorWidget * op_ctrls = nullptr,
+                               ScanWidget * scan_widget = nullptr,
                                QWidget *parent = nullptr);
 
     static void generate16bitLUT();
@@ -55,6 +58,7 @@ public:
     void reset_pseudo_color_flag();
 
     void clear_op_flags();
+    void app_cali_data_to_img(QImage &ret_img);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -63,6 +67,7 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
 
 private:
+    ScanWidget * m_scan_widget = nullptr;
     ImageProcessorWidget * m_op_ctrls  = nullptr;
     QLabel * m_info_lbl = nullptr;
     QImage m_originalImage;   // 原始图像

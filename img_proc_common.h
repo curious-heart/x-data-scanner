@@ -1,4 +1,4 @@
-#ifndef IMG_PROC_COMMON_H
+﻿#ifndef IMG_PROC_COMMON_H
 #define IMG_PROC_COMMON_H
 
 #include <QStringList>
@@ -31,9 +31,10 @@ typedef enum
 extern const char* g_str_img_raw_type;
 extern const char* g_str_img_png_type;
 extern const char* g_str_8bit_img_apx;
+extern const char* g_str_applied_cali_img_apx;
 
 void get_saved_img_name_or_pat(QString *parent_dir, QStringList * fn_list,
-                               QList<QRegularExpression> * fn_pat_list);
+                               QList<QRegularExpression> * fn_pat_list, QString *bn = nullptr);
 QString img_name_convert(img_name_convert_op_e_t op, QString now_fpn);
 void pt_data_to_image(QVector<QVector<gray_pixel_data_type>> &data, QImage &img, int width, int height);
 

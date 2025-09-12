@@ -1,4 +1,4 @@
-#ifndef IMAGEPROCESSORWIDGET_H
+﻿#ifndef IMAGEPROCESSORWIDGET_H
 #define IMAGEPROCESSORWIDGET_H
 
 #include <QWidget>
@@ -10,6 +10,7 @@
 #include <QPointer>
 
 #include "imageviewerwidget.h"
+#include "scanwidget.h"
 
 namespace Ui {
 class ImageProcessorWidget;
@@ -47,7 +48,7 @@ class ImageProcessorWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ImageProcessorWidget(QWidget *parent = nullptr);
+    explicit ImageProcessorWidget(ScanWidget * scan_widget = nullptr, QWidget *parent = nullptr);
     ~ImageProcessorWidget();
 
     void get_latest_op_flags(bool &tr, bool &mark, bool &del_mark, bool &br_con);
@@ -88,8 +89,12 @@ private slots:
 
     void on_pseudoColorComboBox_currentIndexChanged(int index);
 
+    void on_appCaliDataPBtn_clicked();
+
 private:
     Ui::ImageProcessorWidget *ui;
+
+    ScanWidget * m_scan_widget = nullptr;
 
     QRegularExpression m_filter_fn_reg;
 

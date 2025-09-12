@@ -342,6 +342,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="appCaliDataPBtn">
+          <property name="text">
+           <string>应用校准数据</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="returnToThumbListPBtn">
           <property name="text">
            <string>返回图像列表</string>

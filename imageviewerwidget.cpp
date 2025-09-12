@@ -1,4 +1,4 @@
-#include <cmath>
+﻿#include <cmath>
 #include <QtGlobal>
 #include "imageviewerwidget.h"
 #include "imageprocessorwidget.h"
@@ -10,8 +10,8 @@
 static const int gs_min_px_val = 0, gs_max_px_val = 65535;
 
 ImageViewerWidget::ImageViewerWidget(QLabel *info_lbl, ImageProcessorWidget * op_ctrls,
-                                     QWidget *parent)
-    : QLabel(parent), m_op_ctrls(op_ctrls), m_info_lbl(info_lbl)
+                                     ScanWidget * scan_widget, QWidget *parent)
+    : QLabel(parent), m_scan_widget(scan_widget), m_op_ctrls(op_ctrls), m_info_lbl(info_lbl)
 {
     reset_op_params();
 
@@ -385,3 +385,15 @@ void ImageViewerWidget::generate8bitLUT()
     }
 }
 // ------------------------------------------------------
+void ImageViewerWidget::app_cali_data_to_img(QImage &ret_img)
+{
+    if(!m_scan_widget)
+    {
+        DIY_LOG(LOG_ERROR, "scan widget ptr is null.");
+        return;
+    }
+    m_processedImage = m_originalImage;
+    m_scan_widget->app_cali_to_img(m_processedImage);
+    ret_img = m_processedImage;
+    update();
+}
