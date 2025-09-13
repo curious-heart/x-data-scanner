@@ -327,7 +327,7 @@ void ImageViewerWidget::pseudo_color(ColorMapType color_type)
 // ------------------ 伪彩色映射函数 ------------------------------------
 static QRgb jet(int v)    { int r = qBound(0, 255*(v-128)/128,255); int g = qBound(0, 255*(255-abs(v-128))/128,255); int b = qBound(0, 255*(128-v)/128,255); return qRgb(r,g,b);}
 static QRgb hot(int v)    { int r = qBound(0, v*3,255); int g = qBound(0, v*3-255,255); int b = qBound(0, v*3-510,255); return qRgb(r,g,b);}
-static QRgb hsv(int v)    { int h = v*360/255; int s = 255; int val = 255; return QColor::fromHsv(h,s,val).rgb();}
+static QRgb hsv(int v)    { int h = (v*360/255) % 360; int s = 255; int val = 255; return QColor::fromHsv(h,s,val).rgb();}
 static QRgb cool(int v)   { return qRgb(v,255-v,255);}
 static QRgb spring(int v) { return qRgb(255,v,255-v);}
 static QRgb summer(int v) { return qRgb(v*0.5+128,v*0.5+128,128);}
