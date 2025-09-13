@@ -5,7 +5,6 @@
 
 #include "common_tools/common_tool_func.h"
 #include "logger/logger.h"
-#include "literal_strings/literal_strings.h"
 
 static const int gs_min_px_val = 0, gs_max_px_val = 65535;
 
@@ -395,5 +394,7 @@ void ImageViewerWidget::app_cali_data_to_img(QImage &ret_img)
     m_processedImage = m_originalImage;
     m_scan_widget->app_cali_to_img(m_processedImage);
     ret_img = m_processedImage;
+    m_processedImage8bit = convertGrayscale16To8(m_processedImage);
+
     update();
 }

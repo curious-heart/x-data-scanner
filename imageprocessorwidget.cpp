@@ -772,22 +772,23 @@ void save_triple_files(QImage &img, QStringList &fns)
 
 void ImageProcessorWidget::on_appCaliDataPBtn_clicked()
 {
-    QImage ret_img, ret_img8bit;
-    QString bn;
+    QImage ret_img;
+    QString fn;
     QStringList fn_list;
     if(m_img_viewr && m_img_viewr->isVisible())
     {
         m_img_viewr->app_cali_data_to_img(ret_img);
-        bn = QFileInfo(m_selectedFiles[0].fn_raw).baseName() + g_str_applied_cali_img_apx;
-        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &bn);
+        fn = QFileInfo(m_selectedFiles[0].fn_raw).path() + "/"
+            + QFileInfo(m_selectedFiles[0].fn_raw).baseName() + g_str_applied_cali_img_apx;
+        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &fn);
         save_triple_files(ret_img, fn_list);
     }
 
     if(m_img_viewr_2 && m_img_viewr_2->isVisible())
     {
         m_img_viewr_2->app_cali_data_to_img(ret_img);
-        bn = QFileInfo(m_selectedFiles[1].fn_raw).baseName() + g_str_applied_cali_img_apx;
-        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &bn);
+        fn = QFileInfo(m_selectedFiles[1].fn_raw).baseName() + g_str_applied_cali_img_apx;
+        get_saved_img_name_or_pat(nullptr, &fn_list, nullptr, &fn);
         save_triple_files(ret_img, fn_list);
     }
 }
